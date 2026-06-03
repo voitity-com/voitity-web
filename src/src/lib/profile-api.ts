@@ -1,6 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
-const API_TOKEN =
-  import.meta.env.VITE_API_TOKEN ?? '40|8sRupkkxJCP1XHqeXd5engmo6dC33atTt4F7KwWIf2499f47';
+const API_TOKEN = import.meta.env.VITE_API_TOKEN;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -39,11 +38,19 @@ export function apiUrl(path: string) {
 }
 
 export function authHeaders(extra?: HeadersInit): HeadersInit {
-  return {
-    Authorization: `Bearer ${API_TOKEN}`,
+  const headers: HeadersInit = {
     Accept: 'application/json',
     ...extra,
   };
+
+  if (API_TOKEN) {
+    return {
+      ...headers,
+      Authorization: `Bearer ${API_TOKEN}`,
+    };
+  }
+
+  return headers;
 }
 
 export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {

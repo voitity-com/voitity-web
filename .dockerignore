@@ -9,6 +9,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 src/.vite
+src/.env
+src/.env.*
+!src/.env.example
 src/node_modules
 src/dist
-

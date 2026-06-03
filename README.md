@@ -23,6 +23,17 @@ npm install
 npm run dev
 ```
 
+## Variables de entorno
+
+Crea o actualiza `src/.env` con:
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000
+VITE_API_TOKEN=token-local
+```
+
+Usa `src/.env.example` como plantilla. `src/.env` no se versiona.
+
 ## Docker
 
 ```bash
