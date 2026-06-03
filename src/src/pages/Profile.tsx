@@ -13,6 +13,8 @@ type ProfileProps = {
   profileAlias: string;
 };
 
+type GreetingAudioState = 'idle' | 'loading' | 'ready' | 'blocked' | 'unavailable';
+
 export function Profile({ profileAlias }: ProfileProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -25,6 +27,8 @@ export function Profile({ profileAlias }: ProfileProps) {
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [audioReady, setAudioReady] = useState(false);
+  const [greetingAudioState, setGreetingAudioState] = useState<GreetingAudioState>('idle');
+  const [greetingAudioError, setGreetingAudioError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -35,6 +39,10 @@ export function Profile({ profileAlias }: ProfileProps) {
       try {
         setIsLoading(true);
         setError(null);
+        setAudioReady(false);
+        setGreetingAudioState('idle');
+        setGreetingAudioError(null);
+        setIsAudioPlaying(false);
 
         const nextProfile = await fetchProfileByAlias(profileAlias);
 
@@ -72,6 +80,7 @@ export function Profile({ profileAlias }: ProfileProps) {
         const greetingText = `Hola, un placer hablar contigo mi nombre es ${nextProfile.name}`;
 
         try {
+          setGreetingAudioState('loading');
           const greetingAudio = await requestVoiceTest(nextProfile.id, greetingText);
 
           if (!isMounted || !audio) {
@@ -80,10 +89,20 @@ export function Profile({ profileAlias }: ProfileProps) {
 
           setAudioSource(audio, greetingAudio.audioUrl, greetingAudio.blob);
           setAudioReady(true);
-          audio.play().catch(() => undefined);
-        } catch {
+          setGreetingAudioState('ready');
+          setGreetingAudioError(null);
+          audio.play().catch(() => {
+            if (isMounted) {
+              setGreetingAudioState('blocked');
+            }
+          });
+        } catch (voiceError) {
           if (isMounted) {
             setAudioReady(false);
+            setGreetingAudioState('unavailable');
+            setGreetingAudioError(
+              voiceError instanceof Error ? voiceError.message : 'No fue posible generar el audio inicial.',
+            );
           }
         }
       } catch (loadError) {
@@ -141,7 +160,9 @@ export function Profile({ profileAlias }: ProfileProps) {
       if (response.audioUrl && audioRef.current) {
         setAudioSource(audioRef.current, response.audioUrl);
         setAudioReady(true);
-        audioRef.current.play().catch(() => undefined);
+        audioRef.current.play().catch(() => {
+          setGreetingAudioState('blocked');
+        });
       }
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : 'No fue posible enviar el mensaje.');
@@ -151,8 +172,12 @@ export function Profile({ profileAlias }: ProfileProps) {
   }
 
   function playGreeting() {
-    audioRef.current?.play().catch(() => undefined);
+    audioRef.current?.play().catch(() => {
+      setGreetingAudioState('blocked');
+    });
   }
+
+  const greetingButtonText = getGreetingButtonText(greetingAudioState);
 
   return (
     <main className="profile-page">
@@ -199,12 +224,22 @@ export function Profile({ profileAlias }: ProfileProps) {
 
               <button
                 className="profile-audio-button"
-                disabled={!audioReady}
+                disabled={!audioReady || greetingAudioState === 'loading'}
                 type="button"
                 onClick={playGreeting}
               >
-                Reproducir saludo
+                {greetingButtonText}
               </button>
+              {greetingAudioState === 'blocked' ? (
+                <p className="profile-audio-note">Toca reproducir saludo para activar el audio.</p>
+              ) : null}
+              {greetingAudioState === 'unavailable' ? (
+                <p className="profile-audio-note profile-audio-note-error">
+                  {greetingAudioError
+                    ? `Audio inicial no disponible: ${greetingAudioError}`
+                    : 'Audio inicial no disponible para este perfil.'}
+                </p>
+              ) : null}
             </aside>
 
             <section className="profile-chat-panel">
@@ -258,6 +293,18 @@ export function Profile({ profileAlias }: ProfileProps) {
       </section>
     </main>
   );
+}
+
+function getGreetingButtonText(state: GreetingAudioState) {
+  if (state === 'loading') {
+    return 'Generando saludo...';
+  }
+
+  if (state === 'unavailable') {
+    return 'Saludo no disponible';
+  }
+
+  return 'Reproducir saludo';
 }
 
 function setAudioSource(audio: HTMLAudioElement, audioUrl?: string, blob?: Blob) {

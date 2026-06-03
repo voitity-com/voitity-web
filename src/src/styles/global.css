@@ -1240,6 +1240,19 @@ h1 {
   opacity: 0.52;
 }
 
+.profile-audio-note {
+  max-width: 260px;
+  margin: 0;
+  color: #526058;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.profile-audio-note-error {
+  color: #9f2d20;
+}
+
 .profile-chat-panel {
   display: grid;
   gap: 16px;

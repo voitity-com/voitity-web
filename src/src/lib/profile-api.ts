@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
 const API_TOKEN = import.meta.env.VITE_API_TOKEN;
 
 type UnknownRecord = Record<string, unknown>;
@@ -59,7 +59,7 @@ export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {
   });
 
   if (!response.ok) {
-    throw new Error('No fue posible cargar el perfil.');
+    throw new Error(await getResponseErrorMessage(response, 'No fue posible cargar el perfil.'));
   }
 
   const payload = await response.json();
@@ -72,7 +72,7 @@ export async function fetchAvatarMedia(profileId: string): Promise<AvatarMedia> 
   });
 
   if (!response.ok) {
-    throw new Error('No fue posible cargar el avatar.');
+    throw new Error(await getResponseErrorMessage(response, 'No fue posible cargar el avatar.'));
   }
 
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
@@ -105,16 +105,22 @@ export async function fetchAvatarMedia(profileId: string): Promise<AvatarMedia> 
 
 export async function requestVoiceTest(profileId: string, text: string): Promise<AudioResponse> {
   const response = await fetch(apiUrl('/api/voice/test'), {
-    body: JSON.stringify({ profile_id: profileId, text }),
+    body: JSON.stringify({ profile_id: normalizeProfileId(profileId), text }),
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     method: 'POST',
   });
 
   if (!response.ok) {
-    throw new Error('No fue posible generar el audio de prueba.');
+    throw new Error(await getResponseErrorMessage(response, 'No fue posible generar el audio de prueba.'));
   }
 
-  return parseAudioResponse(response);
+  const audioResponse = await parseAudioResponse(response);
+
+  if (!audioResponse.audioUrl && !audioResponse.blob) {
+    throw new Error('El API no devolvió audio para el saludo.');
+  }
+
+  return audioResponse;
 }
 
 export async function sendProfileMessage(profileId: string, message: string): Promise<MessageResponse> {
@@ -125,7 +131,7 @@ export async function sendProfileMessage(profileId: string, message: string): Pr
   });
 
   if (!response.ok) {
-    throw new Error('No fue posible enviar el mensaje.');
+    throw new Error(await getResponseErrorMessage(response, 'No fue posible enviar el mensaje.'));
   }
 
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
@@ -160,14 +166,21 @@ async function parseAudioResponse(response: Response): Promise<AudioResponse> {
     const audioUrl = normalizeOptionalAssetUrl(
       pickString(source, ['audio_url', 'audioUrl', 'url', 'voice_url', 'voiceUrl']),
     );
-    const audioBase64 = pickString(source, ['audio', 'audio_content', 'audio_base64', 'audioBase64']);
+    const audioBase64 = pickString(source, [
+      'audio',
+      'audio_content',
+      'audioContent',
+      'audio_base64',
+      'audioBase64',
+    ]);
+    const audioFormat = pickString(source, ['audio_format', 'audioFormat', 'format']) ?? 'mp3';
 
     if (audioUrl) {
       return { audioUrl };
     }
 
     if (audioBase64) {
-      return { blob: base64ToBlob(audioBase64) };
+      return { blob: base64ToBlob(audioBase64, audioFormat) };
     }
 
     return {};
@@ -263,11 +276,21 @@ function normalizeOptionalAssetUrl(value?: string) {
 }
 
 function toAssetUrl(value: string) {
-  if (/^https?:\/\//i.test(value) || value.startsWith('blob:') || value.startsWith('data:')) {
-    return value;
+  const trimmedValue = value.trim();
+
+  if (trimmedValue.startsWith('blob:') || trimmedValue.startsWith('data:')) {
+    return trimmedValue;
   }
 
-  const normalizedPath = value.startsWith('/') ? value : `/storage/${value}`;
+  if (/^https?:\/\//i.test(trimmedValue)) {
+    return normalizeLocalAssetUrl(trimmedValue);
+  }
+
+  const normalizedPath = trimmedValue.startsWith('/')
+    ? trimmedValue
+    : trimmedValue.startsWith('storage/')
+      ? `/${trimmedValue}`
+      : `/storage/${trimmedValue}`;
   return `${API_BASE_URL}${normalizedPath}`;
 }
 
@@ -275,10 +298,10 @@ function isVideoFile(value: string) {
   return /\.(mp4|mov|webm|m4v)$/i.test(value);
 }
 
-function base64ToBlob(value: string) {
+function base64ToBlob(value: string, audioFormat = 'mp3') {
   const [metadata, data] = value.includes(',') ? value.split(',') : ['', value];
-  const mimeType = metadata.match(/data:(.*);base64/)?.[1] ?? 'audio/mpeg';
-  const binary = window.atob(data);
+  const mimeType = metadata.match(/data:(.*);base64/)?.[1] ?? getAudioMimeType(audioFormat);
+  const binary = window.atob(data.replace(/\s/g, ''));
   const bytes = new Uint8Array(binary.length);
 
   for (let index = 0; index < binary.length; index += 1) {
@@ -286,6 +309,66 @@ function base64ToBlob(value: string) {
   }
 
   return new Blob([bytes], { type: mimeType });
+}
+
+function normalizeProfileId(profileId: string) {
+  return /^\d+$/.test(profileId) ? Number(profileId) : profileId;
+}
+
+async function getResponseErrorMessage(response: Response, fallback: string) {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+
+  if (!contentType.includes('application/json')) {
+    return fallback;
+  }
+
+  try {
+    const payload = (await response.json()) as UnknownRecord;
+    const message = pickString(payload, ['message', 'error']);
+    return message ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeLocalAssetUrl(value: string) {
+  try {
+    const assetUrl = new URL(value);
+    const baseUrl = new URL(API_BASE_URL);
+    const isLocalHost = assetUrl.hostname === 'localhost' || assetUrl.hostname === '127.0.0.1';
+
+    if (isLocalHost && !assetUrl.port && baseUrl.port) {
+      assetUrl.protocol = baseUrl.protocol;
+      assetUrl.host = baseUrl.host;
+      return assetUrl.toString();
+    }
+  } catch {
+    return value;
+  }
+
+  return value;
+}
+
+function getAudioMimeType(audioFormat: string) {
+  const normalizedFormat = audioFormat.toLowerCase().replace(/^\./, '');
+
+  if (normalizedFormat === 'wav') {
+    return 'audio/wav';
+  }
+
+  if (normalizedFormat === 'ogg' || normalizedFormat === 'oga') {
+    return 'audio/ogg';
+  }
+
+  if (normalizedFormat === 'webm') {
+    return 'audio/webm';
+  }
+
+  if (normalizedFormat === 'm4a' || normalizedFormat === 'mp4') {
+    return 'audio/mp4';
+  }
+
+  return 'audio/mpeg';
 }
 
 function isRecord(value: unknown): value is UnknownRecord {
