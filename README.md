@@ -8,6 +8,7 @@ Landing page inicial de Voitity en React con Vite y TypeScript.
 - El proyecto Vite vive en `src/`.
 - El codigo fuente de React vive en `src/src/`.
 - La landing soporta español e ingles, cargando por defecto segun el idioma del navegador.
+- Cualquier ruta `/:profile_alias` carga la vista publica del perfil y consume los endpoints `/api/profile/alias/:profile_alias`, `/api/avatar/:profile_id`, `/api/voice/test` y `/api/profile/:profile_id/messages`.
 
 ## Requisitos
 
