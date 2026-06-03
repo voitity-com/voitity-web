@@ -1,12 +1,13 @@
 # voitity-web
 
-Aplicacion inicial en React con Vite y TypeScript.
+Landing page inicial de Voitity en React con Vite y TypeScript.
 
 ## Organizacion
 
 - La raiz contiene la configuracion de Docker.
 - El proyecto Vite vive en `src/`.
 - El codigo fuente de React vive en `src/src/`.
+- La landing soporta español e ingles, cargando por defecto segun el idioma del navegador.
 
 ## Requisitos
 
