@@ -13,6 +13,7 @@ export type ProfileData = {
 };
 
 export type ChatMessage = {
+  createdAt?: string;
   id: string;
   role: 'visitor' | 'profile';
   text: string;

@@ -24,6 +24,8 @@ const PROFILE_SESSION_KEY_PREFIX = 'voitity:profile-session:';
 
 export function Profile({ profileAlias }: ProfileProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const conversationEndRef = useRef<HTMLDivElement | null>(null);
+  const shouldScrollToBottomRef = useRef(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
   const [avatarKind, setAvatarKind] = useState<'image' | 'video'>('image');
@@ -63,6 +65,7 @@ export function Profile({ profileAlias }: ProfileProps) {
         const storedSession = readProfileSession(profileAlias);
         const initialMessages = [
           {
+            createdAt: new Date().toISOString(),
             id: crypto.randomUUID(),
             role: 'profile',
             text: `Hola, soy ${nextProfile.name}. Puedes preguntarme sobre mi experiencia, historia o proyectos.`,
@@ -71,6 +74,7 @@ export function Profile({ profileAlias }: ProfileProps) {
 
         setChatId(storedSession?.chatId ?? null);
         setMessages(storedSession?.messages.length ? storedSession.messages : initialMessages);
+        setIsLoading(false);
 
         document.title = `${nextProfile.name} | Voitity`;
 
@@ -151,6 +155,21 @@ export function Profile({ profileAlias }: ProfileProps) {
     });
   }, [chatId, messages, profile, profileAlias]);
 
+  useEffect(() => {
+    if (!shouldScrollToBottomRef.current) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      conversationEndRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end',
+      });
+    });
+
+    shouldScrollToBottomRef.current = false;
+  }, [isSending, messages.length]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -159,6 +178,7 @@ export function Profile({ profileAlias }: ProfileProps) {
     }
 
     const visitorMessage: ChatMessage = {
+      createdAt: new Date().toISOString(),
       id: crypto.randomUUID(),
       role: 'visitor',
       text: draft.trim(),
@@ -167,6 +187,7 @@ export function Profile({ profileAlias }: ProfileProps) {
     setDraft('');
     setIsSending(true);
     setError(null);
+    shouldScrollToBottomRef.current = true;
     setMessages((current) => [...current, visitorMessage]);
 
     try {
@@ -176,9 +197,11 @@ export function Profile({ profileAlias }: ProfileProps) {
         setChatId(response.chatId);
       }
 
+      shouldScrollToBottomRef.current = true;
       setMessages((current) => [
         ...current,
         {
+          createdAt: new Date().toISOString(),
           id: crypto.randomUUID(),
           role: 'profile',
           text: response.text,
@@ -217,7 +240,7 @@ export function Profile({ profileAlias }: ProfileProps) {
       />
 
       <section className="profile-shell" aria-live="polite">
-        {isLoading ? (
+        {isLoading && !profile ? (
           <div className="profile-state">Cargando perfil...</div>
         ) : null}
 
@@ -227,92 +250,142 @@ export function Profile({ profileAlias }: ProfileProps) {
 
         {profile ? (
           <>
-            <aside className="profile-avatar-panel">
-              <div className={isAudioPlaying ? 'profile-avatar is-speaking' : 'profile-avatar'}>
-                <span className="voice-ring voice-ring-one" />
-                <span className="voice-ring voice-ring-two" />
-                <span className="voice-ring voice-ring-three" />
+            <header className="profile-title">
+              <h1>{profile.name}</h1>
+            </header>
 
-                {avatarUrl && avatarKind === 'video' ? (
-                  <video autoPlay loop muted playsInline src={avatarUrl} />
-                ) : avatarUrl ? (
-                  <img
-                    alt={profile.name}
-                    src={avatarUrl}
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : null}
-
-                <div className="avatar-fallback" aria-hidden="true">
-                  {profile.name.charAt(0).toUpperCase()}
-                </div>
-              </div>
-
-              <button
-                className="profile-audio-button"
-                disabled={!audioReady || greetingAudioState === 'loading'}
-                type="button"
-                onClick={playGreeting}
-              >
-                {greetingButtonText}
-              </button>
-              {greetingAudioState === 'blocked' ? (
-                <p className="profile-audio-note">Toca reproducir saludo para activar el audio.</p>
-              ) : null}
-              {greetingAudioState === 'unavailable' ? (
-                <p className="profile-audio-note profile-audio-note-error">
-                  {greetingAudioError
-                    ? `Audio inicial no disponible: ${greetingAudioError}`
-                    : 'Audio inicial no disponible para este perfil.'}
-                </p>
-              ) : null}
-            </aside>
-
-            <section className="profile-chat-panel">
-              <header className="profile-header-card">
-                <div>
-                  <p className="profile-kicker">Perfil interactivo</p>
-                  <h1>{profile.name}</h1>
-                  <p>{profile.headline}</p>
-                </div>
-                <a className="profile-home-link" href="/">
-                  Voitity
-                </a>
-              </header>
-
-              <article className="profile-bio-card">
-                <p>{profile.description}</p>
-                {profile.details.length ? (
-                  <div className="profile-tags">
-                    {profile.details.map((detail) => (
-                      <span key={detail}>{detail}</span>
-                    ))}
-                  </div>
-                ) : null}
-              </article>
-
-              <div className="profile-messages" aria-label="Conversación">
+            <section className="profile-conversation" aria-label="Conversación">
+              <div className="profile-message-list">
                 {messages.map((message) => (
-                  <div className={`profile-message ${message.role}`} key={message.id}>
-                    {message.text}
-                  </div>
+                  <article className={`profile-conversation-row ${message.role}`} key={message.id}>
+                    {message.role === 'profile' ? (
+                      <div className="profile-thread-message profile">
+                        <div className="profile-mini-avatar">
+                          {avatarUrl && avatarKind === 'video' ? (
+                            <video loop muted playsInline src={avatarUrl} />
+                          ) : avatarUrl ? (
+                            <img alt="" src={avatarUrl} />
+                          ) : null}
+                          <span aria-hidden="true">{profile.name.charAt(0).toUpperCase()}</span>
+                          <button
+                            aria-label={greetingButtonText}
+                            className="profile-mini-play-button"
+                            disabled={!audioReady || greetingAudioState === 'loading'}
+                            title={greetingButtonText}
+                            type="button"
+                            onClick={playGreeting}
+                          >
+                            <PlayIcon />
+                          </button>
+                        </div>
+                        <div className="profile-message-copy">
+                          <p>{message.text}</p>
+                          <time>{formatMessageTime(message.createdAt)}</time>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="profile-thread-message visitor">
+                        <div className="profile-message-copy">
+                          <p>{message.text}</p>
+                          <time>{formatMessageTime(message.createdAt)}</time>
+                        </div>
+                      </div>
+                    )}
+                  </article>
                 ))}
-                {isSending ? <div className="profile-message profile">Escribiendo respuesta...</div> : null}
+                {isSending ? (
+                  <article className="profile-conversation-row profile">
+                    <div className="profile-thread-message profile">
+                      <div className="profile-mini-avatar">
+                        {avatarUrl && avatarKind === 'video' ? (
+                          <video loop muted playsInline src={avatarUrl} />
+                        ) : avatarUrl ? (
+                          <img alt="" src={avatarUrl} />
+                        ) : null}
+                        <span aria-hidden="true">{profile.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div className="profile-message-copy">
+                        <p>Escribiendo respuesta...</p>
+                      </div>
+                    </div>
+                  </article>
+                ) : null}
+                <div ref={conversationEndRef} className="profile-scroll-anchor" />
               </div>
 
+              <section className="profile-avatar-stage" aria-label={profile.name}>
+                <div className={isAudioPlaying ? 'profile-avatar is-speaking' : 'profile-avatar'}>
+                  <span className="voice-ring voice-ring-one" />
+                  <span className="voice-ring voice-ring-two" />
+                  <span className="voice-ring voice-ring-three" />
+
+                  {avatarUrl && avatarKind === 'video' ? (
+                    <video autoPlay loop muted playsInline src={avatarUrl} />
+                  ) : avatarUrl ? (
+                    <img
+                      alt={profile.name}
+                      src={avatarUrl}
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : null}
+
+                  <div className="avatar-fallback" aria-hidden="true">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </div>
+
+                  <button
+                    aria-label={greetingButtonText}
+                    className="profile-audio-button"
+                    disabled={!audioReady || greetingAudioState === 'loading'}
+                    title={greetingButtonText}
+                    type="button"
+                    onClick={playGreeting}
+                  >
+                    <PlayIcon />
+                  </button>
+                </div>
+
+                {greetingAudioState === 'blocked' ? (
+                  <p className="profile-audio-note">Toca reproducir saludo para activar el audio.</p>
+                ) : null}
+                {greetingAudioState === 'unavailable' ? (
+                  <p className="profile-audio-note profile-audio-note-error">
+                    {greetingAudioError
+                      ? `Audio inicial no disponible: ${greetingAudioError}`
+                      : 'Audio inicial no disponible para este perfil.'}
+                  </p>
+                ) : null}
+              </section>
+            </section>
+
+            <section className="profile-composer-row">
               {error && profile ? <p className="profile-inline-error">{error}</p> : null}
 
               <form className="profile-message-form" onSubmit={handleSubmit}>
                 <input
                   aria-label="Mensaje"
-                  placeholder={`Escríbele a ${profile.name}`}
+                  placeholder="Escribe tu mensaje..."
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                 />
-                <button disabled={isSending || !draft.trim()} type="submit">
-                  Enviar
+                <button
+                  aria-label="Grabar mensaje"
+                  className="profile-icon-button"
+                  title="Grabar mensaje"
+                  type="button"
+                >
+                  <MicrophoneIcon />
+                </button>
+                <button
+                  aria-label="Enviar mensaje"
+                  className="profile-icon-button"
+                  disabled={isSending || !draft.trim()}
+                  title="Enviar mensaje"
+                  type="submit"
+                >
+                  <SendIcon />
                 </button>
               </form>
             </section>
@@ -333,6 +406,19 @@ function getGreetingButtonText(state: GreetingAudioState) {
   }
 
   return 'Reproducir saludo';
+}
+
+function formatMessageTime(value?: string) {
+  const date = value ? new Date(value) : new Date();
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
 }
 
 function setAudioSource(audio: HTMLAudioElement, audioUrl?: string, blob?: Blob) {
@@ -411,6 +497,7 @@ function normalizeStoredMessages(value: unknown): ChatMessage[] {
         id: message.id,
         role: message.role,
         text: message.text,
+        ...(message.createdAt ? { createdAt: message.createdAt } : {}),
       },
     ];
   });
@@ -425,4 +512,47 @@ function isStoredMessage(value: unknown): value is ChatMessage {
   const hasValidRole = message.role === 'visitor' || message.role === 'profile';
 
   return typeof message.id === 'string' && hasValidRole && typeof message.text === 'string';
+}
+
+function PlayIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path d="M8.5 5.5v13l10-6.5-10-6.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function MicrophoneIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M12 14.25c1.85 0 3.25-1.43 3.25-3.3V6.3C15.25 4.43 13.85 3 12 3S8.75 4.43 8.75 6.3v4.65c0 1.87 1.4 3.3 3.25 3.3Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+      <path
+        d="M5.75 10.75A6.24 6.24 0 0 0 12 17a6.24 6.24 0 0 0 6.25-6.25M12 17v4M9.25 21h5.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="m4 12.25 15.5-7.5-3.15 15.1-4.3-6.1-5.95 3.55L4 12.25Zm8.05 1.5 3.95-4.2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+    </svg>
+  );
 }
