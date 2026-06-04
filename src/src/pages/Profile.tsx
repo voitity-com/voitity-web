@@ -15,9 +15,17 @@ type ProfileProps = {
 
 type GreetingAudioState = 'idle' | 'loading' | 'ready' | 'blocked' | 'unavailable';
 
+type ProfileSession = {
+  chatId: string | null;
+  messages: ChatMessage[];
+};
+
+const PROFILE_SESSION_KEY_PREFIX = 'voitity:profile-session:';
+
 export function Profile({ profileAlias }: ProfileProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [chatId, setChatId] = useState<string | null>(null);
   const [avatarKind, setAvatarKind] = useState<'image' | 'video'>('image');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -40,6 +48,7 @@ export function Profile({ profileAlias }: ProfileProps) {
         setIsLoading(true);
         setError(null);
         setAudioReady(false);
+        setChatId(null);
         setGreetingAudioState('idle');
         setGreetingAudioError(null);
         setIsAudioPlaying(false);
@@ -51,13 +60,17 @@ export function Profile({ profileAlias }: ProfileProps) {
         }
 
         setProfile(nextProfile);
-        setMessages([
+        const storedSession = readProfileSession(profileAlias);
+        const initialMessages = [
           {
             id: crypto.randomUUID(),
             role: 'profile',
             text: `Hola, soy ${nextProfile.name}. Puedes preguntarme sobre mi experiencia, historia o proyectos.`,
           },
-        ]);
+        ] satisfies ChatMessage[];
+
+        setChatId(storedSession?.chatId ?? null);
+        setMessages(storedSession?.messages.length ? storedSession.messages : initialMessages);
 
         document.title = `${nextProfile.name} | Voitity`;
 
@@ -127,6 +140,17 @@ export function Profile({ profileAlias }: ProfileProps) {
     };
   }, [profileAlias]);
 
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    writeProfileSession(profileAlias, {
+      chatId,
+      messages,
+    });
+  }, [chatId, messages, profile, profileAlias]);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -146,7 +170,11 @@ export function Profile({ profileAlias }: ProfileProps) {
     setMessages((current) => [...current, visitorMessage]);
 
     try {
-      const response = await sendProfileMessage(profile.id, visitorMessage.text);
+      const response = await sendProfileMessage(profile.id, visitorMessage.text, chatId);
+
+      if (response.chatId) {
+        setChatId(response.chatId);
+      }
 
       setMessages((current) => [
         ...current,
@@ -320,4 +348,81 @@ function setAudioSource(audio: HTMLAudioElement, audioUrl?: string, blob?: Blob)
   if (audioUrl) {
     audio.src = audioUrl;
   }
+}
+
+function readProfileSession(profileAlias: string): ProfileSession | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const storedValue = window.sessionStorage.getItem(getProfileSessionKey(profileAlias));
+
+    if (!storedValue) {
+      return null;
+    }
+
+    const parsedValue = JSON.parse(storedValue) as Partial<ProfileSession>;
+    const messages = normalizeStoredMessages(parsedValue.messages);
+
+    return {
+      chatId: typeof parsedValue.chatId === 'string' && parsedValue.chatId ? parsedValue.chatId : null,
+      messages,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeProfileSession(profileAlias: string, session: ProfileSession) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(
+      getProfileSessionKey(profileAlias),
+      JSON.stringify({
+        chatId: session.chatId,
+        messages: session.messages,
+      }),
+    );
+  } catch {
+    // sessionStorage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function getProfileSessionKey(profileAlias: string) {
+  return `${PROFILE_SESSION_KEY_PREFIX}${encodeURIComponent(profileAlias)}`;
+}
+
+function normalizeStoredMessages(value: unknown): ChatMessage[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((message) => {
+    if (!isStoredMessage(message)) {
+      return [];
+    }
+
+    return [
+      {
+        id: message.id,
+        role: message.role,
+        text: message.text,
+      },
+    ];
+  });
+}
+
+function isStoredMessage(value: unknown): value is ChatMessage {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const message = value as Partial<ChatMessage>;
+  const hasValidRole = message.role === 'visitor' || message.role === 'profile';
+
+  return typeof message.id === 'string' && hasValidRole && typeof message.text === 'string';
 }

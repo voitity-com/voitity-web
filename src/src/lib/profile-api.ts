@@ -19,6 +19,7 @@ export type ChatMessage = {
 };
 
 export type MessageResponse = {
+  chatId?: string;
   text: string;
   audioUrl?: string;
 };
@@ -123,9 +124,19 @@ export async function requestVoiceTest(profileId: string, text: string): Promise
   return audioResponse;
 }
 
-export async function sendProfileMessage(profileId: string, message: string): Promise<MessageResponse> {
+export async function sendProfileMessage(
+  profileId: string,
+  message: string,
+  chatId?: string | null,
+): Promise<MessageResponse> {
+  const body: Record<string, string | number> = { message };
+
+  if (chatId) {
+    body.chat_id = normalizeProfileId(chatId);
+  }
+
   const response = await fetch(apiUrl(`/api/profile/${encodeURIComponent(profileId)}/messages`), {
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(body),
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     method: 'POST',
   });
@@ -144,6 +155,7 @@ export async function sendProfileMessage(profileId: string, message: string): Pr
       audioUrl: normalizeOptionalAssetUrl(
         pickString(source, ['audio_url', 'audioUrl', 'voice_url', 'voiceUrl', 'url']),
       ),
+      chatId: pickString(source, ['chat_id', 'chatId']),
       text:
         pickString(source, ['response', 'answer', 'text', 'message', 'content']) ??
         'Respuesta recibida.',
