@@ -1493,8 +1493,11 @@ h1 {
 }
 
 .profile-page {
+  --profile-header-height: 178px;
+  --profile-footer-height: 190px;
   min-height: 100vh;
   display: block;
+  isolation: isolate;
   overflow-x: hidden;
   padding: 0;
   color: #111827;
@@ -1503,12 +1506,44 @@ h1 {
     linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
 }
 
+.profile-page::before,
+.profile-page::after {
+  content: "";
+  position: fixed;
+  right: 0;
+  left: 0;
+  z-index: 18;
+  pointer-events: none;
+}
+
+.profile-page::before {
+  top: 0;
+  height: var(--profile-header-height);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.98) 68%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.profile-page::after {
+  bottom: 0;
+  height: var(--profile-footer-height);
+  background: linear-gradient(
+    0deg,
+    rgba(250, 250, 250, 1) 0%,
+    rgba(250, 250, 250, 0.98) 66%,
+    rgba(250, 250, 250, 0) 100%
+  );
+}
+
 .profile-shell {
   position: relative;
   width: 100%;
   min-height: 100vh;
   display: block;
-  padding: 136px clamp(22px, 3vw, 52px) 150px;
+  padding: 178px clamp(22px, 3vw, 52px) 220px;
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -1527,19 +1562,23 @@ h1 {
   position: fixed;
   z-index: 30;
   top: 70px;
-  left: 50%;
-  width: min(760px, calc(100vw - 32px));
-  text-align: center;
-  transform: translateX(-50%);
+  right: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0 16px;
   pointer-events: none;
 }
 
 .profile-title h1 {
   margin: 0;
+  width: min(760px, 100%);
   color: #101624;
   font-size: clamp(3.2rem, 4.1vw, 4.25rem);
   font-weight: 300;
   line-height: 1;
+  text-align: center;
   overflow-wrap: anywhere;
 }
 
@@ -1585,7 +1624,25 @@ h1 {
 }
 
 .profile-scroll-anchor {
-  height: 120px;
+  height: 190px;
+}
+
+.profile-footer-note {
+  justify-self: center;
+  margin: 0;
+  color: #98a2b3;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.profile-footer-note a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.profile-footer-note a:hover {
+  text-decoration: underline;
 }
 
 .profile-message-column {
@@ -1633,17 +1690,17 @@ h1 {
 
 .profile-message-copy p {
   margin: 0;
-  color: #101624;
-  font-size: clamp(1.08rem, 1.15vw, 1.22rem);
-  line-height: 1.62;
+  color: #667085;
+  font-size: clamp(0.96rem, 0.92vw, 1.06rem);
+  line-height: 1.58;
   overflow-wrap: anywhere;
 }
 
 .profile-message-copy time {
   display: block;
   margin-top: 14px;
-  color: #67738a;
-  font-size: 0.95rem;
+  color: #8a94a8;
+  font-size: 0.84rem;
 }
 
 .profile-mini-avatar {
@@ -1663,7 +1720,7 @@ h1 {
   width: 74%;
   height: 74%;
   object-fit: cover;
-  border: 1px solid rgba(17, 24, 39, 0.08);
+  border: 0;
   border-radius: 50%;
   background: #f3f4f6;
 }
@@ -1686,7 +1743,8 @@ h1 {
 
 .profile-mini-play-button,
 .profile-audio-button,
-.profile-icon-button {
+.profile-icon-button,
+.profile-scroll-bottom-button {
   display: inline-grid;
   place-items: center;
   color: #ffffff;
@@ -1741,11 +1799,7 @@ h1 {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: transparent;
-  border: 1px solid rgba(17, 24, 39, 0.08);
-  border-radius: 50%;
-  box-shadow: none;
-  animation: none;
+  display: none;
 }
 
 .profile-avatar::after {
@@ -1753,9 +1807,7 @@ h1 {
   position: absolute;
   inset: 11%;
   z-index: 1;
-  border: 1px solid rgba(17, 24, 39, 0.09);
-  border-radius: 50%;
-  box-shadow: none;
+  display: none;
 }
 
 .profile-avatar img,
@@ -1764,7 +1816,7 @@ h1 {
   width: 76%;
   height: 76%;
   object-fit: cover;
-  border: 1px solid rgba(17, 24, 39, 0.12);
+  border: 1px solid rgba(17, 24, 39, 0.11);
   border-radius: 50%;
   box-shadow: none;
 }
@@ -1790,7 +1842,7 @@ h1 {
 .voice-ring {
   position: absolute;
   z-index: 2;
-  inset: 11%;
+  inset: 12%;
   border: 2px solid rgba(107, 114, 128, 0);
   border-radius: 50%;
   opacity: 0;
@@ -1849,12 +1901,12 @@ h1 {
 .profile-composer-row {
   position: fixed;
   z-index: 40;
-  bottom: 66px;
+  bottom: 16px;
   left: 50%;
   width: min(690px, calc(100vw - 32px));
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: 8px;
   transform: translateX(-50%);
 }
 
@@ -1919,6 +1971,21 @@ h1 {
 .profile-icon-button svg {
   width: 25px;
   height: 25px;
+}
+
+.profile-scroll-bottom-button {
+  position: fixed;
+  right: clamp(24px, 4vw, 64px);
+  bottom: 76px;
+  z-index: 45;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+}
+
+.profile-scroll-bottom-button svg {
+  width: 26px;
+  height: 26px;
 }
 
 .profile-inline-error {

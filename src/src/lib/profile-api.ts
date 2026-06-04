@@ -13,6 +13,7 @@ export type ProfileData = {
 };
 
 export type ChatMessage = {
+  audioUrl?: string;
   createdAt?: string;
   id: string;
   role: 'visitor' | 'profile';

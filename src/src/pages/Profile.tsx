@@ -35,8 +35,8 @@ export function Profile({ profileAlias }: ProfileProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [audioReady, setAudioReady] = useState(false);
   const [greetingAudioState, setGreetingAudioState] = useState<GreetingAudioState>('idle');
   const [greetingAudioError, setGreetingAudioError] = useState<string | null>(null);
 
@@ -49,7 +49,6 @@ export function Profile({ profileAlias }: ProfileProps) {
       try {
         setIsLoading(true);
         setError(null);
-        setAudioReady(false);
         setChatId(null);
         setGreetingAudioState('idle');
         setGreetingAudioError(null);
@@ -73,6 +72,7 @@ export function Profile({ profileAlias }: ProfileProps) {
         ] satisfies ChatMessage[];
 
         setChatId(storedSession?.chatId ?? null);
+        shouldScrollToBottomRef.current = true;
         setMessages(storedSession?.messages.length ? storedSession.messages : initialMessages);
         setIsLoading(false);
 
@@ -105,7 +105,15 @@ export function Profile({ profileAlias }: ProfileProps) {
           }
 
           setAudioSource(audio, greetingAudio.audioUrl, greetingAudio.blob);
-          setAudioReady(true);
+          if (greetingAudio.audioUrl) {
+            setMessages((current) =>
+              current.map((message, index) =>
+                index === 0 && message.role === 'profile'
+                  ? { ...message, audioUrl: greetingAudio.audioUrl }
+                  : message,
+              ),
+            );
+          }
           setGreetingAudioState('ready');
           setGreetingAudioError(null);
           audio.play().catch(() => {
@@ -115,7 +123,6 @@ export function Profile({ profileAlias }: ProfileProps) {
           });
         } catch (voiceError) {
           if (isMounted) {
-            setAudioReady(false);
             setGreetingAudioState('unavailable');
             setGreetingAudioError(
               voiceError instanceof Error ? voiceError.message : 'No fue posible generar el audio inicial.',
@@ -161,14 +168,26 @@ export function Profile({ profileAlias }: ProfileProps) {
     }
 
     window.requestAnimationFrame(() => {
-      conversationEndRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'end',
-      });
+      scrollToConversationBottom();
     });
 
     shouldScrollToBottomRef.current = false;
-  }, [isSending, messages.length]);
+  }, [isSending, messages.length, profile?.id]);
+
+  useEffect(() => {
+    function updateScrollButton() {
+      setShowScrollToBottom(getScrollDistanceFromBottom() > 96);
+    }
+
+    updateScrollButton();
+    window.addEventListener('scroll', updateScrollButton, { passive: true });
+    window.addEventListener('resize', updateScrollButton);
+
+    return () => {
+      window.removeEventListener('scroll', updateScrollButton);
+      window.removeEventListener('resize', updateScrollButton);
+    };
+  }, [isSending, messages.length, profile]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -201,6 +220,7 @@ export function Profile({ profileAlias }: ProfileProps) {
       setMessages((current) => [
         ...current,
         {
+          audioUrl: response.audioUrl,
           createdAt: new Date().toISOString(),
           id: crypto.randomUUID(),
           role: 'profile',
@@ -210,7 +230,6 @@ export function Profile({ profileAlias }: ProfileProps) {
 
       if (response.audioUrl && audioRef.current) {
         setAudioSource(audioRef.current, response.audioUrl);
-        setAudioReady(true);
         audioRef.current.play().catch(() => {
           setGreetingAudioState('blocked');
         });
@@ -222,13 +241,24 @@ export function Profile({ profileAlias }: ProfileProps) {
     }
   }
 
-  function playGreeting() {
-    audioRef.current?.play().catch(() => {
+  function playMessageAudio(message: ChatMessage) {
+    if (!message.audioUrl || !audioRef.current) {
+      return;
+    }
+
+    setAudioSource(audioRef.current, message.audioUrl);
+    audioRef.current.play().catch(() => {
       setGreetingAudioState('blocked');
     });
   }
 
-  const greetingButtonText = getGreetingButtonText(greetingAudioState);
+  function scrollToConversationBottom() {
+    setShowScrollToBottom(false);
+    conversationEndRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'end',
+    });
+  }
 
   return (
     <main className="profile-page">
@@ -268,12 +298,12 @@ export function Profile({ profileAlias }: ProfileProps) {
                           ) : null}
                           <span aria-hidden="true">{profile.name.charAt(0).toUpperCase()}</span>
                           <button
-                            aria-label={greetingButtonText}
+                            aria-label="Reproducir audio del mensaje"
                             className="profile-mini-play-button"
-                            disabled={!audioReady || greetingAudioState === 'loading'}
-                            title={greetingButtonText}
+                            disabled={!message.audioUrl}
+                            title="Reproducir audio del mensaje"
                             type="button"
-                            onClick={playGreeting}
+                            onClick={() => playMessageAudio(message)}
                           >
                             <PlayIcon />
                           </button>
@@ -334,22 +364,7 @@ export function Profile({ profileAlias }: ProfileProps) {
                   <div className="avatar-fallback" aria-hidden="true">
                     {profile.name.charAt(0).toUpperCase()}
                   </div>
-
-                  <button
-                    aria-label={greetingButtonText}
-                    className="profile-audio-button"
-                    disabled={!audioReady || greetingAudioState === 'loading'}
-                    title={greetingButtonText}
-                    type="button"
-                    onClick={playGreeting}
-                  >
-                    <PlayIcon />
-                  </button>
                 </div>
-
-                {greetingAudioState === 'blocked' ? (
-                  <p className="profile-audio-note">Toca reproducir saludo para activar el audio.</p>
-                ) : null}
                 {greetingAudioState === 'unavailable' ? (
                   <p className="profile-audio-note profile-audio-note-error">
                     {greetingAudioError
@@ -388,24 +403,28 @@ export function Profile({ profileAlias }: ProfileProps) {
                   <SendIcon />
                 </button>
               </form>
+
+              <footer className="profile-footer-note">
+                © 2026 <a href="/">voitity.com</a> All rights Reserved.
+              </footer>
             </section>
+
+            {showScrollToBottom ? (
+              <button
+                aria-label="Ir al final de la conversación"
+                className="profile-scroll-bottom-button"
+                title="Ir al final de la conversación"
+                type="button"
+                onClick={scrollToConversationBottom}
+              >
+                <ChevronDownIcon />
+              </button>
+            ) : null}
           </>
         ) : null}
       </section>
     </main>
   );
-}
-
-function getGreetingButtonText(state: GreetingAudioState) {
-  if (state === 'loading') {
-    return 'Generando saludo...';
-  }
-
-  if (state === 'unavailable') {
-    return 'Saludo no disponible';
-  }
-
-  return 'Reproducir saludo';
 }
 
 function formatMessageTime(value?: string) {
@@ -434,6 +453,14 @@ function setAudioSource(audio: HTMLAudioElement, audioUrl?: string, blob?: Blob)
   if (audioUrl) {
     audio.src = audioUrl;
   }
+}
+
+function getScrollDistanceFromBottom() {
+  const documentElement = document.documentElement;
+  const scrollTop = window.scrollY || documentElement.scrollTop;
+  const viewportHeight = window.innerHeight || documentElement.clientHeight;
+
+  return documentElement.scrollHeight - scrollTop - viewportHeight;
 }
 
 function readProfileSession(profileAlias: string): ProfileSession | null {
@@ -494,6 +521,7 @@ function normalizeStoredMessages(value: unknown): ChatMessage[] {
 
     return [
       {
+        ...(message.audioUrl ? { audioUrl: message.audioUrl } : {}),
         id: message.id,
         role: message.role,
         text: message.text,
@@ -552,6 +580,20 @@ function SendIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.9"
+      />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="m6 9 6 6 6-6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2.2"
       />
     </svg>
   );
