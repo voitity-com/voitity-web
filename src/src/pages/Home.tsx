@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 
+import valeriaAvatar from '../assets/valeria-rios-avatar.png';
+
 type Locale = 'es' | 'en';
 
 type Plan = {
@@ -66,22 +68,22 @@ const content: Record<
       contact: 'Contacto',
     },
     hero: {
-      eyebrow: 'Avatares conversacionales con voz propia',
-      title: 'Convierte un perfil real en una presencia interactiva.',
+      eyebrow: 'Perfiles interactivos con imagen, voz y contexto',
+      title: 'Avatares que responden con tu imagen y tu voz.',
       lead:
-        'Sube una imagen autorizada, clona una voz con textos leídos y publica un perfil capaz de responder por chat o audio.',
+        'Crea una página pública donde tu avatar conversa, responde con audio y mantiene una experiencia cercana a tu forma real de comunicar.',
       primaryCta: 'Contáctenos',
       secondaryCta: 'Ver planes',
       demoAria:
-        'Simulación de un perfil con avatar animado, ondas de audio y respuesta escrita.',
+        'Vista previa de un perfil interactivo con avatar central, mensajes laterales, ondas de audio y campo de conversación.',
       profileName: 'Valeria Rios',
-      profileRole: 'Perfil profesional verificado',
-      online: 'En línea',
-      userMessage: '¿Qué puedes contarle a un visitante?',
-      avatarMessage: 'Respondo con mi voz sobre mi historia y agenda.',
-      speaking: 'Respondiendo con voz clonada',
-      waveform: 'Audio activo',
-      memory: 'Memoria del perfil',
+      profileRole: 'Perfil profesional interactivo',
+      online: 'Activo ahora',
+      userMessage: '¿Puedes contarme sobre tu experiencia?',
+      avatarMessage: 'Claro. Puedo responder sobre mi historia, servicios y proyectos usando mi propia voz.',
+      speaking: 'Respuesta con audio',
+      waveform: 'Voz del perfil',
+      memory: 'Información verificada',
     },
     plans: {
       eyebrow: 'Planes',
@@ -140,22 +142,22 @@ const content: Record<
       contact: 'Contact',
     },
     hero: {
-      eyebrow: 'Conversational avatars with their own voice',
-      title: 'Turn a real profile into an interactive presence.',
+      eyebrow: 'Interactive profiles with image, voice, and context',
+      title: 'Avatars that reply with your image and voice.',
       lead:
-        'Upload an authorized image, clone a voice from read scripts, and publish a profile that answers by chat or audio.',
+        'Create a public page where your avatar chats, replies with audio, and keeps the experience close to your real communication style.',
       primaryCta: 'Contact us',
       secondaryCta: 'See plans',
       demoAria:
-        'Simulation of a profile with an animated avatar, audio waves, and written response.',
+        'Preview of an interactive profile with a centered avatar, side messages, audio waves, and conversation input.',
       profileName: 'Valeria Rios',
-      profileRole: 'Verified professional profile',
-      online: 'Online',
-      userMessage: 'What can you tell a visitor?',
-      avatarMessage: 'I answer in my own voice about my work and schedule.',
-      speaking: 'Answering with cloned voice',
-      waveform: 'Audio active',
-      memory: 'Profile memory',
+      profileRole: 'Interactive professional profile',
+      online: 'Active now',
+      userMessage: 'Can you tell me about your experience?',
+      avatarMessage: 'Of course. I can answer about my story, services, and projects using my own voice.',
+      speaking: 'Audio response',
+      waveform: 'Profile voice',
+      memory: 'Verified information',
     },
     plans: {
       eyebrow: 'Plans',
@@ -221,6 +223,14 @@ export function Home() {
   const [locale, setLocale] = useState<Locale>(getInitialLocale);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const t = content[locale];
+  const heroProof =
+    locale === 'es'
+      ? ['Imagen autorizada', 'Voz clonada', 'Chat público', 'Audio en tiempo real']
+      : ['Authorized image', 'Cloned voice', 'Public chat', 'Real-time audio'];
+  const contactHighlights =
+    locale === 'es'
+      ? ['Perfil público listo para compartir', 'Mensajes por texto y audio', 'Información organizada por contexto']
+      : ['Public profile ready to share', 'Text and audio messages', 'Context-aware profile information'];
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -267,8 +277,8 @@ export function Home() {
       <section className="hero-section" id="top">
         <div className="hero-scene" aria-hidden="true">
           <div className="scene-grid" />
-          <div className="signal signal-a" />
-          <div className="signal signal-b" />
+          <div className="scene-glow scene-glow-one" />
+          <div className="scene-glow scene-glow-two" />
         </div>
 
         <div className="hero-content" id="product">
@@ -277,69 +287,80 @@ export function Home() {
           <p className="hero-lead">{t.hero.lead}</p>
 
           <div className="hero-actions">
-            <a className="button button-primary" href="#contact">
-              {t.hero.primaryCta}
+            <a className="button button-primary hero-avatar-button" href="#contact">
+              <img alt="" src={valeriaAvatar} />
+              <span>{t.hero.primaryCta}</span>
             </a>
-            <a className="button button-secondary" href="#plans">
-              {t.hero.secondaryCta}
+            <a className="button button-secondary button-arrow" href="#plans">
+              <span>{t.hero.secondaryCta}</span>
+              <i aria-hidden="true" />
             </a>
+          </div>
+
+          <div className="hero-proof" aria-label="Highlights">
+            {heroProof.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
           </div>
         </div>
 
-        <div className="demo-stage" role="img" aria-label={t.hero.demoAria}>
-          <div className="demo-toolbar">
-            <span />
-            <span />
-            <span />
-          </div>
+        <div className="hero-product-demo" role="img" aria-label={t.hero.demoAria}>
+          <div className="demo-profile-name">{t.hero.profileName}</div>
 
-          <div className="profile-strip">
-            <div className="avatar">
-              <div className="avatar-hair" />
-              <div className="avatar-face">
-                <span className="avatar-eye avatar-eye-left" />
-                <span className="avatar-eye avatar-eye-right" />
-                <span className="avatar-nose" />
-                <span className="avatar-mouth" />
+          <div className="demo-chat-surface">
+            <div className="demo-thread demo-thread-left">
+              <article className="demo-bubble with-avatar">
+                <img alt="" className="demo-mini-avatar" src={valeriaAvatar} />
+                <span className="demo-play" />
+                <p>{t.hero.avatarMessage}</p>
+                <time>10:30 AM</time>
+              </article>
+
+              <article className="demo-bubble with-avatar">
+                <img alt="" className="demo-mini-avatar" src={valeriaAvatar} />
+                <span className="demo-play" />
+                <p>{t.hero.memory}</p>
+                <time>10:31 AM</time>
+              </article>
+            </div>
+
+            <div className="demo-avatar-stage">
+              <span className="demo-ring demo-ring-one" />
+              <span className="demo-ring demo-ring-two" />
+              <span className="demo-ring demo-ring-three" />
+              <div className="landing-avatar">
+                <img alt="" className="landing-avatar-image" src={valeriaAvatar} />
               </div>
             </div>
 
-            <div>
-              <strong>{t.hero.profileName}</strong>
-              <span>{t.hero.profileRole}</span>
-            </div>
+            <div className="demo-thread demo-thread-right">
+              <article className="demo-bubble visitor">
+                <p>{t.hero.userMessage}</p>
+                <time>10:30 AM</time>
+              </article>
 
-            <small>{t.hero.online}</small>
-          </div>
-
-          <div className="conversation">
-            <p className="message message-user">{t.hero.userMessage}</p>
-            <div className="message message-avatar">
-              <span className="typing-text">{t.hero.avatarMessage}</span>
+              <article className="demo-bubble visitor">
+                <p>{locale === 'es' ? '¿También puedes responder con audio?' : 'Can you answer with audio too?'}</p>
+                <time>10:31 AM</time>
+              </article>
             </div>
           </div>
 
-          <div className="voice-panel">
-            <div>
-              <span>{t.hero.speaking}</span>
-              <strong>{t.hero.waveform}</strong>
-            </div>
+          <div className="demo-composer">
+            <div className="demo-input">{locale === 'es' ? 'Escribe tu mensaje...' : 'Write your message...'}</div>
+            <div className="demo-action demo-mic" />
+            <div className="demo-action demo-send" />
+          </div>
 
+          <div className="demo-audio-status">
+            <span>{t.hero.speaking}</span>
+            <strong>{t.hero.waveform}</strong>
             <div className="audio-wave" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
-
-          <div className="memory-line">
-            <span>{t.hero.memory}</span>
-            <div>
+              <i />
+              <i />
+              <i />
+              <i />
+              <i />
               <i />
               <i />
               <i />
@@ -359,6 +380,15 @@ export function Home() {
           {t.plans.items.map((plan) => (
             <article className={plan.highlighted ? 'plan-card highlighted' : 'plan-card'} key={plan.name}>
               <div>
+                <span className="plan-label">
+                  {plan.highlighted
+                    ? locale === 'es'
+                      ? 'Mejor valor'
+                      : 'Best value'
+                    : locale === 'es'
+                      ? 'Inicio'
+                      : 'Start'}
+                </span>
                 <h3>{plan.name}</h3>
                 <p>{plan.description}</p>
               </div>
@@ -383,10 +413,16 @@ export function Home() {
       </section>
 
       <section className="contact-section section-shell" id="contact">
-        <div className="section-heading">
+        <div className="contact-copy">
           <p className="eyebrow">{t.contact.eyebrow}</p>
           <h2>{t.contact.title}</h2>
           <p>{t.contact.lead}</p>
+
+          <div className="contact-highlights">
+            {contactHighlights.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
         </div>
 
         <form className="contact-form" onSubmit={handleSubmit}>
