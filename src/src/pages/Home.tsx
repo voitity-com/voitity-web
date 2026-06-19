@@ -9,6 +9,7 @@ type Plan = {
   name: string;
   price: string;
   period: string;
+  label: string;
   description: string;
   features: string[];
   cta: string;
@@ -88,33 +89,42 @@ const content: Record<
     },
     plans: {
       eyebrow: 'Planes',
-      title: 'Empieza con créditos simples y predecibles.',
+      title: 'Starter incluye lo necesario para lanzar un perfil.',
       lead:
-        'Cada crédito alimenta conversaciones, respuestas de voz y mejoras del perfil publicado.',
+        'Un plan simple con avatar, clon de voz, chat y respuestas de audio incluidas en créditos mensuales.',
       items: [
         {
-          name: 'Mensual',
-          price: '$6',
-          period: '/mes',
-          description: 'Para validar un perfil interactivo con bajo costo inicial.',
+          name: 'Starter',
+          price: '$8',
+          period: 'USD /mes',
+          label: 'Mensual',
+          description: 'Para crear y validar un perfil conversacional completo.',
           features: [
-            '1000 créditos incluidos',
-            '1 generación de imagen por mes',
-            'Chat de texto y audio para visitantes',
+            '1 perfil publicado',
+            '1 imagen de avatar y 5 segundos de video',
+            '1 clon de voz autorizado',
+            '1000 mensajes de chat con 500 créditos',
+            '10.000 caracteres TTS con 500 créditos',
+            '1000 créditos mensuales incluidos',
           ],
-          cta: 'Elegir mensual',
+          cta: 'Elegir Starter mensual',
         },
         {
-          name: 'Anual',
-          price: '$60',
-          period: '/año',
-          description: 'Para mantener un perfil activo todo el año con mejor precio.',
+          name: 'Starter',
+          price: '$80',
+          period: 'USD /año',
+          label: 'Anual',
+          description: 'Para mantener el perfil activo todo el año con mejor precio.',
           features: [
-            '1000 créditos mensuales',
-            '12 generaciones de imagen al año',
-            'Ahorro equivalente a 2 meses',
+            '1 perfil publicado',
+            '1 imagen de avatar y 5 segundos de video',
+            '1 clon de voz autorizado',
+            '1000 mensajes de chat mensuales con 500 créditos',
+            '10.000 caracteres TTS mensuales con 500 créditos',
+            '1000 créditos mensuales incluidos',
+            'Ahorro de $16 frente al pago mensual',
           ],
-          cta: 'Elegir anual',
+          cta: 'Elegir Starter anual',
           highlighted: true,
         },
       ],
@@ -162,33 +172,42 @@ const content: Record<
     },
     plans: {
       eyebrow: 'Plans',
-      title: 'Start with simple, predictable credits.',
+      title: 'Starter includes what you need to launch one profile.',
       lead:
-        'Each credit powers conversations, voice replies, and improvements to the published profile.',
+        'A simple plan with avatar, voice clone, chat, and audio replies included in monthly credits.',
       items: [
         {
-          name: 'Monthly',
-          price: '$6',
-          period: '/month',
-          description: 'For validating one interactive profile with a low starting cost.',
+          name: 'Starter',
+          price: '$8',
+          period: 'USD /month',
+          label: 'Monthly',
+          description: 'For creating and validating one complete conversational profile.',
           features: [
-            '1000 credits included',
-            '1 image generation per month',
-            'Text and audio chat for visitors',
+            '1 published profile',
+            '1 avatar image and 5 seconds of video',
+            '1 authorized voice clone',
+            '1000 chat messages with 500 credits',
+            '10,000 TTS characters with 500 credits',
+            '1000 monthly credits included',
           ],
-          cta: 'Choose monthly',
+          cta: 'Choose Starter monthly',
         },
         {
-          name: 'Annual',
-          price: '$60',
-          period: '/year',
-          description: 'For keeping a profile active all year at a better price.',
+          name: 'Starter',
+          price: '$80',
+          period: 'USD /year',
+          label: 'Annual',
+          description: 'For keeping one profile active all year at a better price.',
           features: [
-            '1000 monthly credits',
-            '12 image generations per year',
-            'Savings equal to 2 months',
+            '1 published profile',
+            '1 avatar image and 5 seconds of video',
+            '1 authorized voice clone',
+            '1000 monthly chat messages with 500 credits',
+            '10,000 monthly TTS characters with 500 credits',
+            '1000 monthly credits included',
+            'Save $16 compared with monthly billing',
           ],
-          cta: 'Choose annual',
+          cta: 'Choose Starter annual',
           highlighted: true,
         },
       ],
@@ -367,17 +386,9 @@ export function Home() {
 
         <div className="plans-grid">
           {t.plans.items.map((plan) => (
-            <article className={plan.highlighted ? 'plan-card highlighted' : 'plan-card'} key={plan.name}>
+            <article className={plan.highlighted ? 'plan-card highlighted' : 'plan-card'} key={`${plan.name}-${plan.period}`}>
               <div>
-                <span className="plan-label">
-                  {plan.highlighted
-                    ? locale === 'es'
-                      ? 'Mejor valor'
-                      : 'Best value'
-                    : locale === 'es'
-                      ? 'Inicio'
-                      : 'Start'}
-                </span>
+                <span className="plan-label">{plan.label}</span>
                 <h3>{plan.name}</h3>
                 <p>{plan.description}</p>
               </div>
