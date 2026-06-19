@@ -348,22 +348,11 @@ export function Home() {
 
           <div className="demo-composer">
             <div className="demo-input">{locale === 'es' ? 'Escribe tu mensaje...' : 'Write your message...'}</div>
-            <div className="demo-action demo-mic" />
-            <div className="demo-action demo-send" />
-          </div>
-
-          <div className="demo-audio-status">
-            <span>{t.hero.speaking}</span>
-            <strong>{t.hero.waveform}</strong>
-            <div className="audio-wave" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
-              <i />
+            <div className="demo-action" aria-hidden="true">
+              <MicrophoneIcon />
+            </div>
+            <div className="demo-action" aria-hidden="true">
+              <SendIcon />
             </div>
           </div>
         </div>
@@ -462,5 +451,40 @@ export function Home() {
         </div>
       </footer>
     </main>
+  );
+}
+
+function MicrophoneIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M12 14.25c1.85 0 3.25-1.43 3.25-3.3V6.3C15.25 4.43 13.85 3 12 3S8.75 4.43 8.75 6.3v4.65c0 1.87 1.4 3.3 3.25 3.3Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+      <path
+        d="M5.75 10.75A6.24 6.24 0 0 0 12 17a6.24 6.24 0 0 0 6.25-6.25M12 17v4M9.25 21h5.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+    </svg>
+  );
+}
+
+function SendIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="m4 12.25 15.5-7.5-3.15 15.1-4.3-6.1-5.95 3.55L4 12.25Zm8.05 1.5 3.95-4.2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+    </svg>
   );
 }
