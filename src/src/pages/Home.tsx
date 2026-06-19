@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 
+import bigmeloLogo from '../assets/bigmelo-logo.png';
 import valeriaAvatar from '../assets/valeria-rios-avatar.png';
 
 type Locale = 'es' | 'en';
@@ -234,7 +235,7 @@ export function Home() {
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = locale === 'es' ? 'Voitity | Avatares interactivos' : 'Voitity | Interactive avatars';
+    document.title = locale === 'es' ? 'bigmelo | Avatares interactivos' : 'bigmelo | Interactive avatars';
   }, [locale]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -244,10 +245,9 @@ export function Home() {
 
   return (
     <main className="landing-page">
-      <header className="site-header" aria-label="Voitity">
-        <a className="brand" href="#top" aria-label="Voitity">
-          <span className="brand-mark">V</span>
-          <span>Voitity</span>
+      <header className="site-header" aria-label="bigmelo">
+        <a className="brand" href="#top" aria-label="bigmelo">
+          <img className="brand-logo" alt="bigmelo" src={bigmeloLogo} />
         </a>
 
         <nav className="nav-links" aria-label="Main navigation">
@@ -450,9 +450,8 @@ export function Home() {
       </section>
 
       <footer className="site-footer">
-        <a className="brand" href="#top" aria-label="Voitity">
-          <span className="brand-mark">V</span>
-          <span>Voitity</span>
+        <a className="brand" href="#top" aria-label="bigmelo">
+          <img className="brand-logo" alt="bigmelo" src={bigmeloLogo} />
         </a>
 
         <p>{t.footer.tagline}</p>

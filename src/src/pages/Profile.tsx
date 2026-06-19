@@ -20,7 +20,7 @@ type ProfileSession = {
   messages: ChatMessage[];
 };
 
-const PROFILE_SESSION_KEY_PREFIX = 'voitity:profile-session:';
+const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:';
 
 export function Profile({ profileAlias }: ProfileProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -76,7 +76,7 @@ export function Profile({ profileAlias }: ProfileProps) {
         setMessages(storedSession?.messages.length ? storedSession.messages : initialMessages);
         setIsLoading(false);
 
-        document.title = `${nextProfile.name} | Voitity`;
+        document.title = `${nextProfile.name} | bigmelo`;
 
         fetchAvatarMedia(nextProfile.id)
           .then((media) => {
@@ -405,7 +405,7 @@ export function Profile({ profileAlias }: ProfileProps) {
               </form>
 
               <footer className="profile-footer-note">
-                © 2026 <a href="/">voitity.com</a> All rights Reserved.
+                © 2026 <a href="/">bigmelo.com</a> All rights Reserved.
               </footer>
             </section>
 

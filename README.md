@@ -1,6 +1,6 @@
-# voitity-web
+# bigmelo-web
 
-Landing page inicial de Voitity en React con Vite y TypeScript.
+Landing page inicial de bigmelo en React con Vite y TypeScript.
 
 ## Organizacion
 
