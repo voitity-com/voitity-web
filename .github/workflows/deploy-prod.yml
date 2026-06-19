@@ -1,0 +1,72 @@
+name: Deploy Web
+
+on:
+  push:
+    branches:
+      - prod
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ROLE_ARN: arn:aws:iam::139194331469:role/bigmelo-prod-github-actions-deploy-role
+  WEB_ENV_SECRET_ID: bigmelo/prod/web/env
+  WEB_BUCKET: bigmelo-prod-web-139194331469
+  WEB_DISTRIBUTION_ID: E2WUNAZAZFZHYA
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Write production env
+        run: |
+          aws secretsmanager get-secret-value \
+            --secret-id "$WEB_ENV_SECRET_ID" \
+            --region "$AWS_REGION" \
+            --query SecretString \
+            --output text > .env.production
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync dist "s3://$WEB_BUCKET" \
+            --delete \
+            --cache-control "public,max-age=31536000,immutable" \
+            --exclude "index.html"
+          aws s3 cp dist/index.html "s3://$WEB_BUCKET/index.html" \
+            --cache-control "no-cache,no-store,must-revalidate" \
+            --content-type "text/html"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$WEB_DISTRIBUTION_ID" \
+            --paths "/*"
