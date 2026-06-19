@@ -1,0 +1,384 @@
+import { type ReactNode, useEffect } from 'react';
+
+import bigmeloLogo from '../assets/bigmelo-logo.png';
+
+const lastUpdated = '19 de junio de 2026';
+
+type LegalLayoutProps = {
+  children: ReactNode;
+  eyebrow: string;
+  title: string;
+};
+
+export function PrivacyPolicy() {
+  return (
+    <LegalLayout eyebrow="Política de privacidad" title="Política de privacidad de bigmelo">
+      <p>
+        Esta política explica cómo bigmelo recopila, usa, comparte y protege información cuando una
+        persona crea un perfil, sube imagen, graba o carga audio, clona una voz, publica un landing
+        de perfil o conversa con un avatar.
+      </p>
+
+      <section>
+        <h2>1. Información que tratamos</h2>
+        <p>Podemos tratar las siguientes categorías de información:</p>
+        <ul>
+          <li>Datos de contacto y cuenta, como nombre, correo, identificadores de usuario y datos de soporte.</li>
+          <li>Contenido del perfil, como nombre público, alias, biografía, textos, enlaces, instrucciones y contexto.</li>
+          <li>Imagen, video, audio y muestras de voz que subas para crear o animar un avatar.</li>
+          <li>Modelos, archivos o resultados generados, incluyendo avatar animado, voz clonada y respuestas en audio.</li>
+          <li>Mensajes de visitantes al perfil y respuestas generadas por el sistema.</li>
+          <li>Datos técnicos, como dirección IP, dispositivo, navegador, registros de uso, errores y eventos de seguridad.</li>
+          <li>Datos de pago, facturación o consumo de créditos cuando contrates un plan o compres créditos.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. Imagen, voz y datos sensibles</h2>
+        <p>
+          Tu imagen, voz, grabaciones y rasgos de voz pueden considerarse datos biométricos, datos
+          sensibles o información especialmente protegida según la ley aplicable. Solo debes subir
+          imagen o voz propia, o de una persona que te haya dado autorización expresa, verificable y
+          suficiente para crear un avatar, clonar voz y publicar un perfil conversacional.
+        </p>
+        <p>
+          No debes subir imagen, audio o voz de menores de edad, figuras públicas, empleados,
+          clientes, familiares, terceros o cualquier persona si no tienes autorización legal para ese
+          uso específico.
+        </p>
+      </section>
+
+      <section>
+        <h2>3. Para qué usamos la información</h2>
+        <p>Usamos la información para:</p>
+        <ul>
+          <li>Crear, configurar, publicar y mantener perfiles conversacionales.</li>
+          <li>Generar o animar avatares a partir de imágenes, video, instrucciones o referencias.</li>
+          <li>Clonar, sintetizar y reproducir una voz autorizada en respuestas de audio.</li>
+          <li>Entender mensajes de visitantes y generar respuestas coherentes con la información del perfil.</li>
+          <li>Prestar soporte, corregir errores, prevenir abuso, fraude, suplantación o usos ilegales.</li>
+          <li>Medir consumo de créditos, administrar planes, pagos, límites y disponibilidad del servicio.</li>
+          <li>Cumplir obligaciones legales, contractuales, regulatorias o solicitudes válidas de autoridades.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. Proveedores de inteligencia artificial</h2>
+        <p>
+          Para operar el servicio usamos proveedores externos especializados. Al usar bigmelo,
+          aceptas que el contenido necesario pueda enviarse a estos proveedores para prestar el
+          servicio:
+        </p>
+        <ul>
+          <li>
+            <a href="https://runwayml.com/" rel="noreferrer" target="_blank">Runway</a>, para
+            generación o animación de avatar, video, imagen u otros recursos visuales.
+          </li>
+          <li>
+            <a href="https://elevenlabs.io/" rel="noreferrer" target="_blank">ElevenLabs</a>, para
+            clonación de voz, procesamiento de audio y generación de voz sintética.
+          </li>
+          <li>
+            <a href="https://openai.com/" rel="noreferrer" target="_blank">OpenAI</a>, para
+            comprender mensajes, organizar contexto y generar respuestas.
+          </li>
+        </ul>
+        <p>
+          Cada proveedor procesa datos conforme a sus propias condiciones, políticas de privacidad,
+          medidas de seguridad, ubicaciones de procesamiento y reglas de retención. Podemos cambiar,
+          agregar o sustituir proveedores cuando sea necesario para mantener o mejorar el servicio.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. Perfiles públicos y mensajes de visitantes</h2>
+        <p>
+          Cuando publicas un perfil, la información marcada como pública puede ser vista por cualquier
+          persona con acceso al enlace. Los visitantes pueden enviar mensajes al avatar; esos mensajes
+          se procesan para generar respuestas y pueden conservarse para continuidad de conversación,
+          seguridad, soporte, auditoría y mejora operativa del perfil.
+        </p>
+        <p>
+          No incluyas en perfiles públicos ni en conversaciones información confidencial, datos de
+          salud, datos financieros, claves, documentos de identidad, secretos comerciales o información
+          que no tengas derecho a compartir.
+        </p>
+      </section>
+
+      <section>
+        <h2>6. Conservación y eliminación</h2>
+        <p>
+          Conservamos información mientras tu cuenta, perfil, landing, modelo de voz, avatar o relación
+          comercial estén activos, y por el tiempo adicional necesario para seguridad, soporte,
+          cumplimiento legal, prevención de abuso, resolución de disputas o copias de respaldo.
+        </p>
+        <p>
+          Puedes pedir eliminación de perfiles, imágenes, audios, modelos de voz o datos personales.
+          Algunas eliminaciones pueden tardar en reflejarse en respaldos, registros técnicos o sistemas
+          de proveedores. También podemos conservar información limitada cuando sea necesario por ley o
+          para investigar abuso, fraude o suplantación.
+        </p>
+      </section>
+
+      <section>
+        <h2>7. Bases legales y consentimiento</h2>
+        <p>
+          Dependiendo de tu jurisdicción, tratamos datos con base en tu consentimiento, la ejecución de
+          un contrato, nuestro interés legítimo en operar y proteger el servicio, y el cumplimiento de
+          obligaciones legales. Para imagen, voz y clonación de voz, el servicio requiere autorización
+          expresa de la persona cuya imagen o voz se usará.
+        </p>
+      </section>
+
+      <section>
+        <h2>8. Seguridad</h2>
+        <p>
+          Aplicamos medidas técnicas y organizativas razonables para proteger los datos, incluyendo
+          controles de acceso, registros, separación de ambientes y revisión de incidentes. Ningún
+          sistema es completamente seguro; debes proteger tus credenciales y avisarnos si sospechas uso
+          no autorizado.
+        </p>
+      </section>
+
+      <section>
+        <h2>9. Tus derechos</h2>
+        <p>
+          Según la ley aplicable, puedes solicitar acceso, corrección, eliminación, portabilidad,
+          oposición, limitación del tratamiento o retiro de consentimiento. También puedes pedir que un
+          perfil deje de estar publicado o que se desactive un modelo de voz asociado a ti.
+        </p>
+        <p>
+          Para ejercer derechos, contáctanos en <a href="mailto:privacy@bigmelo.com">privacy@bigmelo.com</a>.
+          Podemos pedir información adicional para verificar tu identidad o autoridad sobre la imagen,
+          voz o perfil involucrado.
+        </p>
+      </section>
+
+      <section>
+        <h2>10. Menores de edad</h2>
+        <p>
+          El servicio no está dirigido a menores. No se permite crear perfiles, avatares o voces
+          clonadas de menores sin autorización válida de sus padres o representantes legales y sin
+          cumplir la ley aplicable.
+        </p>
+      </section>
+
+      <section>
+        <h2>11. Cambios</h2>
+        <p>
+          Podemos actualizar esta política para reflejar cambios legales, técnicos o del servicio. Si
+          el cambio es material, podremos notificarlo por el sitio, correo o dentro del producto. El
+          uso continuado del servicio después de una actualización implica aceptación de la versión
+          vigente, salvo que la ley exija otro mecanismo.
+        </p>
+      </section>
+    </LegalLayout>
+  );
+}
+
+export function TermsAndConditions() {
+  return (
+    <LegalLayout eyebrow="Términos y condiciones" title="Términos y condiciones de bigmelo">
+      <p>
+        Estos términos regulan el acceso y uso de bigmelo, una plataforma para crear perfiles públicos
+        con avatares animados, voz clonada autorizada, información contextual y respuestas generadas
+        por inteligencia artificial.
+      </p>
+
+      <section>
+        <h2>1. Aceptación</h2>
+        <p>
+          Al crear una cuenta, subir contenido, generar un avatar, clonar una voz, publicar un perfil
+          o usar un landing de perfil, aceptas estos términos y nuestra política de privacidad. Si no
+          estás de acuerdo, no uses el servicio.
+        </p>
+      </section>
+
+      <section>
+        <h2>2. Requisitos de uso</h2>
+        <p>
+          Debes tener capacidad legal para contratar y, como mínimo, la mayoría de edad aplicable en tu
+          jurisdicción. Si usas bigmelo en nombre de una empresa, cliente, talento, marca o tercero,
+          declaras que tienes autoridad suficiente para obligarlo y para otorgar los permisos descritos
+          aquí.
+        </p>
+      </section>
+
+      <section>
+        <h2>3. Autorización sobre imagen, voz y contenido</h2>
+        <p>Al subir contenido declaras y garantizas que:</p>
+        <ul>
+          <li>Tienes todos los derechos y permisos necesarios sobre la imagen, video, audio, voz, texto e información enviada.</li>
+          <li>La persona cuya imagen o voz se usa autorizó expresamente la creación de avatar, clonación de voz y publicación del perfil.</li>
+          <li>El uso del contenido no viola privacidad, propiedad intelectual, derechos de imagen, derechos de voz, derechos laborales ni derechos de terceros.</li>
+          <li>No estás usando el servicio para suplantar, engañar, defraudar, acosar o manipular a otras personas.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. Licencia para operar el servicio</h2>
+        <p>
+          Conservas tus derechos sobre el contenido que subes. Sin embargo, otorgas a bigmelo una
+          licencia mundial, no exclusiva y libre de regalías para alojar, copiar, procesar, adaptar,
+          transmitir, mostrar y usar tu contenido en la medida necesaria para crear el avatar, clonar y
+          reproducir voz, generar respuestas, publicar el perfil, prestar soporte, prevenir abuso y
+          operar el servicio.
+        </p>
+        <p>
+          Esta licencia incluye el derecho de enviar contenido a proveedores como Runway, ElevenLabs y
+          OpenAI, y a otros subprocesadores necesarios. Si eliminas un perfil o solicitas eliminación,
+          dejaremos de usar el contenido para operar ese perfil, salvo copias de respaldo, obligaciones
+          legales, registros de seguridad o usos necesarios para investigar abuso.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. Proveedores externos</h2>
+        <p>
+          bigmelo usa servicios de terceros para funciones esenciales: Runway para avatar y recursos
+          visuales, ElevenLabs para voz y audio, y OpenAI para comprensión de mensajes y generación de
+          respuestas. Tu uso del servicio está condicionado a que esos proveedores estén disponibles y
+          a que el contenido cumpla sus políticas.
+        </p>
+        <p>
+          No controlamos cambios, interrupciones, límites, decisiones de moderación, reglas de
+          retención o políticas de esos proveedores. Podemos suspender, modificar o rechazar una
+          generación si un proveedor o nuestro sistema detecta riesgo legal, técnico o de seguridad.
+        </p>
+      </section>
+
+      <section>
+        <h2>6. Perfiles públicos y respuestas de IA</h2>
+        <p>
+          Los landings de perfil pueden ser públicos. Eres responsable de revisar la información que
+          publiques y de mantenerla exacta, lícita y autorizada. Las respuestas del avatar son
+          generadas automáticamente a partir del contexto disponible y pueden contener errores,
+          omisiones, respuestas similares a las de otros usuarios o contenido no esperado.
+        </p>
+        <p>
+          No debes presentar respuestas generadas como asesoría profesional definitiva, declaración
+          humana garantizada, prueba legal, diagnóstico médico, recomendación financiera personalizada
+          o decisión automatizada con efectos legales sin revisión humana competente.
+        </p>
+      </section>
+
+      <section>
+        <h2>7. Usos prohibidos</h2>
+        <p>No puedes usar bigmelo para:</p>
+        <ul>
+          <li>Clonar voces o usar imágenes de terceros sin consentimiento expreso.</li>
+          <li>Crear deepfakes engañosos, suplantaciones, fraude, phishing, extorsión o manipulación.</li>
+          <li>Generar contenido sexual no consentido, explotación de menores, acoso, amenazas, odio o violencia.</li>
+          <li>Difundir desinformación electoral, médica, financiera o legal, o atribuir declaraciones falsas a una persona.</li>
+          <li>Usar contenido protegido por propiedad intelectual sin autorización.</li>
+          <li>Intentar eludir límites, extraer modelos, acceder sin permiso, interferir con la seguridad o revender acceso no autorizado.</li>
+          <li>Subir datos sensibles de terceros, secretos, contraseñas, documentos de identidad o información que no debas compartir.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>8. Créditos, planes y pagos</h2>
+        <p>
+          Algunas funciones consumen créditos o requieren un plan. Los precios, límites, vencimientos,
+          renovaciones y funciones incluidas se mostrarán en el sitio o en la oferta aplicable. Salvo
+          que la ley exija lo contrario, pagos, créditos consumidos, créditos vencidos y servicios ya
+          prestados no son reembolsables.
+        </p>
+      </section>
+
+      <section>
+        <h2>9. Moderación, suspensión y eliminación</h2>
+        <p>
+          Podemos revisar, rechazar, despublicar, suspender o eliminar perfiles, contenido, voces,
+          avatares, respuestas o cuentas cuando creamos razonablemente que existe violación de estos
+          términos, riesgo de daño, infracción de derechos, suplantación, fraude, abuso técnico,
+          incumplimiento de proveedores o requerimiento legal.
+        </p>
+      </section>
+
+      <section>
+        <h2>10. Propiedad intelectual</h2>
+        <p>
+          bigmelo, su diseño, software, marca, interfaz, documentación y tecnología son propiedad de
+          bigmelo o sus licenciantes. No puedes copiar, modificar, descompilar, vender, sublicenciar o
+          explotar el servicio salvo lo permitido expresamente.
+        </p>
+      </section>
+
+      <section>
+        <h2>11. Disponibilidad y cambios</h2>
+        <p>
+          El servicio puede cambiar, degradarse, interrumpirse o dejar de estar disponible por
+          mantenimiento, fallos, límites de proveedores, cambios regulatorios o razones comerciales. No
+          garantizamos disponibilidad continua ni que las generaciones sean siempre correctas,
+          completas, únicas o adecuadas para un fin específico.
+        </p>
+      </section>
+
+      <section>
+        <h2>12. Responsabilidad</h2>
+        <p>
+          Usas bigmelo bajo tu responsabilidad. En la máxima medida permitida por la ley, bigmelo no
+          será responsable por daños indirectos, pérdida de ganancias, pérdida de datos, daño
+          reputacional, decisiones tomadas con base en respuestas generadas, uso no autorizado de
+          contenido que subiste o fallos de proveedores externos.
+        </p>
+      </section>
+
+      <section>
+        <h2>13. Contacto y reportes</h2>
+        <p>
+          Para reportar suplantación, uso no autorizado de imagen o voz, infracciones de propiedad
+          intelectual, contenido ilegal o solicitudes legales, escríbenos a{' '}
+          <a href="mailto:legal@bigmelo.com">legal@bigmelo.com</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2>14. Cambios a estos términos</h2>
+        <p>
+          Podemos actualizar estos términos. Si el cambio es material, podremos notificarlo por el
+          sitio, correo o dentro del producto. El uso continuado del servicio después de una
+          actualización implica aceptación de la versión vigente, salvo que la ley exija otro
+          mecanismo.
+        </p>
+      </section>
+    </LegalLayout>
+  );
+}
+
+function LegalLayout({ children, eyebrow, title }: LegalLayoutProps) {
+  useEffect(() => {
+    document.documentElement.lang = 'es';
+    document.title = `${title} | bigmelo`;
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [title]);
+
+  return (
+    <main className="legal-page">
+      <header className="legal-topbar">
+        <a className="brand" href="/" aria-label="bigmelo">
+          <img className="brand-logo" alt="bigmelo" src={bigmeloLogo} />
+        </a>
+
+        <nav className="legal-nav" aria-label="Navegación legal">
+          <a href="/">Inicio</a>
+          <a href="/privacidad">Privacidad</a>
+          <a href="/terminos">Términos</a>
+        </nav>
+      </header>
+
+      <article className="legal-document">
+        <p className="eyebrow">{eyebrow}</p>
+        <h1>{title}</h1>
+        <p className="legal-updated">Última actualización: {lastUpdated}</p>
+        {children}
+      </article>
+
+      <footer className="legal-footer">
+        <a href="/">bigmelo</a>
+        <span>© 2026 bigmelo. Todos los derechos reservados.</span>
+      </footer>
+    </main>
+  );
+}

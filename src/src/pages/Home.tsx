@@ -446,8 +446,8 @@ export function Home() {
         <p>{t.footer.tagline}</p>
 
         <div>
-          <a href="#contact">{t.footer.privacy}</a>
-          <a href="#contact">{t.footer.terms}</a>
+          <a href="/privacidad">{t.footer.privacy}</a>
+          <a href="/terminos">{t.footer.terms}</a>
         </div>
       </footer>
     </main>
