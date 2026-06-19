@@ -446,8 +446,8 @@ export function Home() {
         <p>{t.footer.tagline}</p>
 
         <div>
-          <a href="/privacidad">{t.footer.privacy}</a>
-          <a href="/terminos">{t.footer.terms}</a>
+          <a href={locale === 'es' ? '/privacidad' : '/privacy'}>{t.footer.privacy}</a>
+          <a href={locale === 'es' ? '/terminos' : '/terms'}>{t.footer.terms}</a>
         </div>
       </footer>
     </main>

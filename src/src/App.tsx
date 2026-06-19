@@ -5,12 +5,20 @@ import { Profile } from './pages/Profile';
 export function App() {
   const profileAlias = window.location.pathname.split('/').filter(Boolean)[0];
 
-  if (profileAlias === 'privacidad' || profileAlias === 'privacy') {
-    return <PrivacyPolicy />;
+  if (profileAlias === 'privacidad') {
+    return <PrivacyPolicy locale="es" />;
   }
 
-  if (profileAlias === 'terminos' || profileAlias === 'terms') {
-    return <TermsAndConditions />;
+  if (profileAlias === 'privacy') {
+    return <PrivacyPolicy locale="en" />;
+  }
+
+  if (profileAlias === 'terminos') {
+    return <TermsAndConditions locale="es" />;
+  }
+
+  if (profileAlias === 'terms') {
+    return <TermsAndConditions locale="en" />;
   }
 
   if (profileAlias) {
