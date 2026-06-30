@@ -24,6 +24,9 @@ export type MessageResponse = {
   chatId?: string;
   text: string;
   audioUrl?: string;
+  requestAudioUrl?: string;
+  requestMessageId?: string;
+  requestText?: string;
 };
 
 export type AudioResponse = {
@@ -150,18 +153,7 @@ export async function sendProfileMessage(
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
 
   if (contentType.includes('application/json')) {
-    const payload = (await response.json()) as UnknownRecord;
-    const source = unwrapPayload(payload);
-
-    return {
-      audioUrl: normalizeOptionalAssetUrl(
-        pickString(source, ['audio_url', 'audioUrl', 'voice_url', 'voiceUrl', 'url']),
-      ),
-      chatId: pickString(source, ['chat_id', 'chatId']),
-      text:
-        pickString(source, ['response', 'answer', 'text', 'message', 'content']) ??
-        'Respuesta recibida.',
-    };
+    return normalizeMessageResponse((await response.json()) as UnknownRecord);
   }
 
   const blob = await response.blob();
@@ -169,6 +161,53 @@ export async function sendProfileMessage(
     audioUrl: URL.createObjectURL(blob),
     text: 'Respuesta de audio recibida.',
   };
+}
+
+export async function sendProfileAudioMessage(
+  profileId: string,
+  audio: Blob,
+  chatId?: string | null,
+): Promise<MessageResponse> {
+  const formData = new FormData();
+  const extension = getAudioExtension(audio.type);
+  formData.append('audio', audio, `recording.${extension}`);
+
+  if (chatId) {
+    formData.append('chat_id', String(normalizeProfileId(chatId)));
+  }
+
+  const response = await fetch(apiUrl(`/api/profile/${encodeURIComponent(profileId)}/messages/audio`), {
+    body: formData,
+    headers: authHeaders(),
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    throw new Error(await getResponseErrorMessage(response, 'No fue posible enviar el audio.'));
+  }
+
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+
+  if (contentType.includes('application/json')) {
+    return normalizeMessageResponse((await response.json()) as UnknownRecord);
+  }
+
+  const blob = await response.blob();
+  return {
+    audioUrl: URL.createObjectURL(blob),
+    text: 'Respuesta de audio recibida.',
+  };
+}
+
+export async function fetchProfileChatMessages(profileId: string, chatId: string): Promise<ChatMessage[]> {
+  const firstPage = await fetchProfileChatMessagesPage(profileId, chatId, 1);
+  const pagination = isRecord(firstPage.pagination) ? firstPage.pagination : {};
+  const lastPageValue = pagination.last_page ?? pagination.lastPage;
+  const lastPage = typeof lastPageValue === 'number' ? lastPageValue : Number(lastPageValue || 1);
+  const source = lastPage > 1 ? await fetchProfileChatMessagesPage(profileId, chatId, lastPage) : firstPage;
+  const messages = Array.isArray(source.messages) ? source.messages : [];
+
+  return messages.flatMap((message) => normalizeChatMessage(message));
 }
 
 async function parseAudioResponse(response: Response): Promise<AudioResponse> {
@@ -225,6 +264,67 @@ function normalizeProfile(payload: unknown, fallbackAlias: string): ProfileData 
     id,
     name,
   };
+}
+
+function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
+  const source = unwrapPayload(payload);
+
+  return {
+    audioUrl: normalizeOptionalAssetUrl(
+      pickString(source, ['audio_url', 'audioUrl', 'voice_url', 'voiceUrl', 'url']),
+    ),
+    chatId: pickString(source, ['chat_id', 'chatId']),
+    requestAudioUrl: normalizeOptionalAssetUrl(
+      pickString(source, ['request_audio_url', 'requestAudioUrl']),
+    ),
+    requestMessageId: pickString(source, ['request_message_id', 'requestMessageId']),
+    requestText: pickString(source, ['request_text', 'requestText']),
+    text:
+      pickString(source, ['response', 'answer', 'text', 'message', 'content']) ??
+      'Respuesta recibida.',
+  };
+}
+
+async function fetchProfileChatMessagesPage(profileId: string, chatId: string, page: number): Promise<UnknownRecord> {
+  const searchParams = new URLSearchParams({
+    chat_id: String(normalizeProfileId(chatId)),
+    page: String(page),
+    profile_id: String(normalizeProfileId(profileId)),
+  });
+  const response = await fetch(apiUrl(`/api/profile/chats/messages?${searchParams.toString()}`), {
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getResponseErrorMessage(response, 'No fue posible cargar los mensajes del chat.'));
+  }
+
+  return unwrapPayload((await response.json()) as UnknownRecord);
+}
+
+function normalizeChatMessage(value: unknown): ChatMessage[] {
+  if (!isRecord(value)) {
+    return [];
+  }
+
+  const text = pickString(value, ['text', 'message', 'content']);
+  const id = pickString(value, ['id', 'message_id', 'messageId']);
+  const source = pickString(value, ['source']);
+  const type = pickString(value, ['type']);
+
+  if (!id || !text) {
+    return [];
+  }
+
+  return [
+    {
+      audioUrl: normalizeOptionalAssetUrl(pickString(value, ['audio', 'audio_url', 'audioUrl'])),
+      createdAt: pickString(value, ['created_at', 'createdAt']),
+      id,
+      role: source === 'api' || type === 'question' ? 'visitor' : 'profile',
+      text,
+    },
+  ];
 }
 
 function unwrapPayload(payload: unknown): UnknownRecord {
@@ -383,6 +483,26 @@ function getAudioMimeType(audioFormat: string) {
   }
 
   return 'audio/mpeg';
+}
+
+function getAudioExtension(mimeType: string) {
+  if (mimeType.includes('webm')) {
+    return 'webm';
+  }
+
+  if (mimeType.includes('ogg')) {
+    return 'ogg';
+  }
+
+  if (mimeType.includes('wav')) {
+    return 'wav';
+  }
+
+  if (mimeType.includes('mp4') || mimeType.includes('aac')) {
+    return 'm4a';
+  }
+
+  return 'mp3';
 }
 
 function isRecord(value: unknown): value is UnknownRecord {
