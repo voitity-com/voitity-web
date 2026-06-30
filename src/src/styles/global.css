@@ -1977,10 +1977,6 @@ h1 {
   overflow-wrap: anywhere;
 }
 
-.profile-view-toggle {
-  display: none;
-}
-
 .profile-conversation {
   position: relative;
   z-index: 10;
@@ -2476,14 +2472,12 @@ h1 {
 
   .profile-shell {
     min-height: 100svh;
-    padding: 136px 14px 118px;
+    padding: 118px 14px 118px;
   }
 
   .profile-title {
-    top: 12px;
-    flex-direction: column;
+    top: 14px;
     align-items: center;
-    gap: 10px;
     pointer-events: auto;
   }
 
@@ -2492,74 +2486,46 @@ h1 {
     font-size: clamp(1.9rem, 9vw, 2.55rem);
   }
 
-  .profile-view-toggle {
-    width: min(258px, calc(100vw - 32px));
-    display: inline-grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.86);
-    border: 1px solid rgba(17, 24, 39, 0.1);
-    border-radius: 999px;
-    box-shadow: 0 14px 30px rgba(17, 24, 39, 0.08);
-    backdrop-filter: blur(14px);
-  }
-
-  .profile-view-toggle button {
-    height: 34px;
-    color: #667085;
-    background: transparent;
-    border: 0;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.86rem;
-    font-weight: 850;
-  }
-
-  .profile-view-toggle button.is-active {
-    color: #ffffff;
-    background: #111827;
-  }
-
   .profile-conversation {
     width: 100%;
-    min-height: calc(100svh - 222px);
-    display: block;
+    min-height: calc(100svh - 236px);
+    display: grid;
+    grid-template-rows: minmax(0, auto) minmax(86px, 1fr);
+    align-content: stretch;
+    gap: clamp(8px, 1.8svh, 16px);
     margin: 0;
   }
 
-  .profile-view-avatar .profile-message-list,
-  .profile-view-messages .profile-avatar-stage {
-    display: none;
-  }
-
-  .profile-view-avatar .profile-avatar-stage {
-    display: grid;
-  }
-
   .profile-avatar-stage {
-    position: fixed;
-    top: 124px;
-    right: 0;
-    bottom: 118px;
-    left: 0;
+    position: static;
     width: 100%;
+    height: min(43svh, 390px);
     align-content: center;
     justify-items: center;
-    padding: 0 16px;
+    padding: 0;
     transform: none;
   }
 
   .profile-avatar {
-    width: min(86vw, 370px, calc(100svh - 260px));
+    width: min(82vw, 350px, calc(43svh - 16px));
   }
 
-  .profile-view-messages .profile-message-list {
+  .profile-message-list {
     width: 100%;
+    max-height: clamp(86px, 18svh, 156px);
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 8px 0 20px;
+    gap: 8px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 18px 2px;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  }
+
+  .profile-message-list::-webkit-scrollbar {
+    display: none;
   }
 
   .profile-conversation-row {
@@ -2660,7 +2626,7 @@ h1 {
   }
 
   .profile-scroll-anchor {
-    height: 104px;
+    display: none;
   }
 
   .profile-composer-row {
@@ -2673,15 +2639,8 @@ h1 {
     display: none;
   }
 
-  .profile-view-avatar .profile-scroll-bottom-button {
-    display: none;
-  }
-
   .profile-scroll-bottom-button {
-    right: 16px;
-    bottom: 78px;
-    width: 44px;
-    height: 44px;
+    display: none;
   }
 
   .profile-message-form {
