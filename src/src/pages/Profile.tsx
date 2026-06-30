@@ -14,6 +14,7 @@ type ProfileProps = {
 };
 
 type GreetingAudioState = 'idle' | 'loading' | 'ready' | 'blocked' | 'unavailable';
+type ProfileMobileView = 'avatar' | 'messages';
 
 type ProfileSession = {
   chatId: string | null;
@@ -39,6 +40,7 @@ export function Profile({ profileAlias }: ProfileProps) {
   const [error, setError] = useState<string | null>(null);
   const [greetingAudioState, setGreetingAudioState] = useState<GreetingAudioState>('idle');
   const [greetingAudioError, setGreetingAudioError] = useState<string | null>(null);
+  const [mobileProfileView, setMobileProfileView] = useState<ProfileMobileView>('avatar');
 
   useEffect(() => {
     let isMounted = true;
@@ -260,6 +262,18 @@ export function Profile({ profileAlias }: ProfileProps) {
     });
   }
 
+  function selectMobileProfileView(nextView: ProfileMobileView) {
+    setMobileProfileView(nextView);
+
+    if (nextView === 'messages') {
+      window.requestAnimationFrame(() => {
+        scrollToConversationBottom();
+      });
+    } else {
+      setShowScrollToBottom(false);
+    }
+  }
+
   return (
     <main className="profile-page">
       <audio
@@ -269,7 +283,7 @@ export function Profile({ profileAlias }: ProfileProps) {
         onPlay={() => setIsAudioPlaying(true)}
       />
 
-      <section className="profile-shell" aria-live="polite">
+      <section className={`profile-shell profile-view-${mobileProfileView}`} aria-live="polite">
         {isLoading && !profile ? (
           <div className="profile-state">Cargando perfil...</div>
         ) : null}
@@ -282,6 +296,24 @@ export function Profile({ profileAlias }: ProfileProps) {
           <>
             <header className="profile-title">
               <h1>{profile.name}</h1>
+              <div className="profile-view-toggle" aria-label="Vista del perfil">
+                <button
+                  className={mobileProfileView === 'avatar' ? 'is-active' : ''}
+                  type="button"
+                  aria-pressed={mobileProfileView === 'avatar'}
+                  onClick={() => selectMobileProfileView('avatar')}
+                >
+                  Avatar
+                </button>
+                <button
+                  className={mobileProfileView === 'messages' ? 'is-active' : ''}
+                  type="button"
+                  aria-pressed={mobileProfileView === 'messages'}
+                  onClick={() => selectMobileProfileView('messages')}
+                >
+                  Messages
+                </button>
+              </div>
             </header>
 
             <section className="profile-conversation" aria-label="Conversación">
