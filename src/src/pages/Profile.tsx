@@ -3,9 +3,11 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import {
   ChatMessage,
   fetchAvatarMedia,
+  fetchProfileChatMessages,
   fetchProfileByAlias,
   ProfileData,
   requestVoiceTest,
+  sendProfileAudioMessage,
   sendProfileMessage,
 } from '../lib/profile-api';
 
@@ -14,6 +16,13 @@ type ProfileProps = {
 };
 
 type GreetingAudioState = 'idle' | 'loading' | 'ready' | 'blocked' | 'unavailable';
+type RecordingState = 'idle' | 'preparing' | 'recording' | 'preview';
+
+type AudioDraft = {
+  blob: Blob;
+  duration: number;
+  url: string;
+};
 
 type ProfileSession = {
   chatId: string | null;
@@ -21,10 +30,22 @@ type ProfileSession = {
 };
 
 const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:';
+const WAVEFORM_BAR_COUNT = 22;
 
 export function Profile({ profileAlias }: ProfileProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
+  const audioDraftRef = useRef<AudioDraft | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<BlobPart[]>([]);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingTimerRef = useRef<number | null>(null);
+  const recordingStartedAtRef = useRef(0);
+  const recordingCanceledRef = useRef(false);
+  const recordingSessionRef = useRef(0);
+  const isComponentMountedRef = useRef(true);
+  const messageAudioBlobUrlsRef = useRef<Set<string>>(new Set());
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToBottomRef = useRef(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -40,6 +61,12 @@ export function Profile({ profileAlias }: ProfileProps) {
   const [error, setError] = useState<string | null>(null);
   const [greetingAudioState, setGreetingAudioState] = useState<GreetingAudioState>('idle');
   const [greetingAudioError, setGreetingAudioError] = useState<string | null>(null);
+  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [audioDraft, setAudioDraft] = useState<AudioDraft | null>(null);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [previewDurationSeconds, setPreviewDurationSeconds] = useState(0);
+  const [previewPlaybackSeconds, setPreviewPlaybackSeconds] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -153,6 +180,30 @@ export function Profile({ profileAlias }: ProfileProps) {
   }, [profileAlias]);
 
   useEffect(() => {
+    isComponentMountedRef.current = true;
+
+    return () => {
+      isComponentMountedRef.current = false;
+      clearRecordingTimer();
+      stopRecordingStream();
+
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        recordingCanceledRef.current = true;
+        mediaRecorderRef.current.stop();
+      }
+
+      if (audioDraftRef.current?.url.startsWith('blob:')) {
+        URL.revokeObjectURL(audioDraftRef.current.url);
+      }
+
+      messageAudioBlobUrlsRef.current.forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
+      messageAudioBlobUrlsRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!profile) {
       return;
     }
@@ -199,6 +250,11 @@ export function Profile({ profileAlias }: ProfileProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (audioDraft) {
+      await sendAudioDraft();
+      return;
+    }
 
     if (!profile || !draft.trim() || isSending) {
       return;
@@ -249,6 +305,304 @@ export function Profile({ profileAlias }: ProfileProps) {
     }
   }
 
+  async function startAudioRecording() {
+    if (isSending || recordingState !== 'idle') {
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setError('Tu navegador no permite grabar audio desde esta pantalla.');
+      return;
+    }
+
+    const recordingSessionId = recordingSessionRef.current + 1;
+    recordingSessionRef.current = recordingSessionId;
+
+    try {
+      clearAudioDraft();
+      setError(null);
+      setIsPreviewPlaying(false);
+      setRecordingSeconds(0);
+      setRecordingState('preparing');
+      recordingCanceledRef.current = false;
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      if (
+        recordingCanceledRef.current ||
+        recordingSessionId !== recordingSessionRef.current ||
+        !isComponentMountedRef.current
+      ) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      const mimeType = getPreferredRecordingMimeType();
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+
+      recordingChunksRef.current = [];
+      recordingStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+      recordingStartedAtRef.current = 0;
+
+      recorder.addEventListener('dataavailable', (event) => {
+        if (event.data.size > 0) {
+          recordingChunksRef.current.push(event.data);
+        }
+      });
+
+      recorder.addEventListener('start', () => {
+        if (
+          recordingCanceledRef.current ||
+          recordingSessionId !== recordingSessionRef.current ||
+          !isComponentMountedRef.current
+        ) {
+          return;
+        }
+
+        recordingStartedAtRef.current = Date.now();
+        setRecordingSeconds(0);
+        setRecordingState('recording');
+        clearRecordingTimer();
+        recordingTimerRef.current = window.setInterval(() => {
+          setRecordingSeconds(Math.max(0, Math.floor((Date.now() - recordingStartedAtRef.current) / 1000)));
+        }, 250);
+      });
+
+      recorder.addEventListener('stop', () => {
+        clearRecordingTimer();
+        stopRecordingStream();
+
+        if (
+          recordingCanceledRef.current ||
+          recordingSessionId !== recordingSessionRef.current ||
+          !isComponentMountedRef.current
+        ) {
+          recordingChunksRef.current = [];
+          setRecordingState('idle');
+          setRecordingSeconds(0);
+          return;
+        }
+
+        const recordedMimeType = recorder.mimeType || mimeType || 'audio/webm';
+        const blob = new Blob(recordingChunksRef.current, { type: recordedMimeType });
+        const startedAt = recordingStartedAtRef.current || Date.now();
+        const duration = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+        const url = URL.createObjectURL(blob);
+
+        recordingChunksRef.current = [];
+        setNextAudioDraft({ blob, duration, url });
+        setRecordingSeconds(duration);
+        setRecordingState('preview');
+      });
+
+      recorder.start();
+    } catch (recordingError) {
+      clearRecordingTimer();
+      stopRecordingStream();
+      setRecordingState('idle');
+      setError(
+        recordingError instanceof Error
+          ? recordingError.message
+          : 'No fue posible acceder al micrófono.',
+      );
+    }
+  }
+
+  function stopAudioRecording() {
+    const recorder = mediaRecorderRef.current;
+
+    if (!recorder || recorder.state === 'inactive') {
+      return;
+    }
+
+    try {
+      recorder.requestData();
+    } catch {
+      // Some browsers can transition the recorder state between the guard and this call.
+    }
+    recorder.stop();
+  }
+
+  function cancelAudioRecording() {
+    recordingCanceledRef.current = true;
+    recordingSessionRef.current += 1;
+    stopAudioRecording();
+    clearRecordingTimer();
+    stopRecordingStream();
+    setRecordingState('idle');
+    setRecordingSeconds(0);
+  }
+
+  function clearAudioDraft() {
+    const currentDraft = audioDraftRef.current;
+
+    if (currentDraft?.url.startsWith('blob:')) {
+      URL.revokeObjectURL(currentDraft.url);
+    }
+
+    setNextAudioDraft(null);
+    setRecordingState('idle');
+    setRecordingSeconds(0);
+    setIsPreviewPlaying(false);
+    setPreviewDurationSeconds(0);
+    setPreviewPlaybackSeconds(0);
+
+    if (recordingAudioRef.current) {
+      recordingAudioRef.current.pause();
+      recordingAudioRef.current.removeAttribute('src');
+      recordingAudioRef.current.load();
+    }
+  }
+
+  async function playAudioDraft() {
+    if (!audioDraft || !recordingAudioRef.current) {
+      return;
+    }
+
+    const audio = recordingAudioRef.current;
+
+    if (!audio.paused) {
+      audio.pause();
+      return;
+    }
+
+    if (audio.src !== audioDraft.url) {
+      audio.src = audioDraft.url;
+    }
+
+    const duration = audioDraft.duration;
+
+    if (duration > 0 && audio.currentTime >= duration) {
+      audio.currentTime = 0;
+    }
+
+    updatePreviewPlayback(audio);
+    audio.play().catch(() => {
+      setIsPreviewPlaying(false);
+    });
+  }
+
+  async function sendAudioDraft() {
+    if (!profile || !audioDraft || isSending) {
+      return;
+    }
+
+    const pendingMessageId = crypto.randomUUID();
+    const localAudioUrl = audioDraft.url;
+    const localAudioBlob = audioDraft.blob;
+    const localDuration = audioDraft.duration;
+    const pendingMessage: ChatMessage = {
+      audioUrl: localAudioUrl,
+      createdAt: new Date().toISOString(),
+      id: pendingMessageId,
+      role: 'visitor',
+      text: 'Procesando audio...',
+    };
+
+    setNextAudioDraft(null);
+    setRecordingState('idle');
+    setRecordingSeconds(0);
+    setIsPreviewPlaying(false);
+    setPreviewDurationSeconds(0);
+    setPreviewPlaybackSeconds(0);
+    setIsSending(true);
+    setError(null);
+    shouldScrollToBottomRef.current = true;
+    messageAudioBlobUrlsRef.current.add(localAudioUrl);
+    setMessages((current) => [...current, pendingMessage]);
+
+    try {
+      const response = await sendProfileAudioMessage(profile.id, localAudioBlob, chatId);
+      const nextChatId = response.chatId ?? chatId;
+
+      if (nextChatId) {
+        setChatId(nextChatId);
+      }
+
+      const resolvedVisitorMessage = response.requestText
+        ? {
+            ...pendingMessage,
+            audioUrl: response.requestAudioUrl ?? localAudioUrl,
+            id: response.requestMessageId ?? pendingMessageId,
+            text: response.requestText,
+          }
+        : nextChatId
+        ? await resolveSentAudioMessage(profile.id, nextChatId, pendingMessageId, localAudioUrl, localDuration)
+        : {
+            ...pendingMessage,
+            text: 'Mensaje de audio enviado.',
+          };
+
+      if (resolvedVisitorMessage.audioUrl !== localAudioUrl && localAudioUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(localAudioUrl);
+        messageAudioBlobUrlsRef.current.delete(localAudioUrl);
+      }
+
+      shouldScrollToBottomRef.current = true;
+      setMessages((current) => [
+        ...current.map((message) => (message.id === pendingMessageId ? resolvedVisitorMessage : message)),
+        {
+          audioUrl: response.audioUrl,
+          createdAt: new Date().toISOString(),
+          id: crypto.randomUUID(),
+          role: 'profile',
+          text: response.text,
+        },
+      ]);
+
+      if (response.audioUrl && audioRef.current) {
+        setAudioSource(audioRef.current, response.audioUrl);
+        audioRef.current.play().catch(() => {
+          setGreetingAudioState('blocked');
+        });
+      }
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : 'No fue posible enviar el audio.');
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === pendingMessageId
+            ? { ...message, text: 'No fue posible procesar este audio.' }
+            : message,
+        ),
+      );
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  async function resolveSentAudioMessage(
+    profileId: string,
+    nextChatId: string,
+    pendingMessageId: string,
+    localAudioUrl: string,
+    localDuration: number,
+  ): Promise<ChatMessage> {
+    try {
+      const chatMessages = await fetchProfileChatMessages(profileId, nextChatId);
+      const latestAudioVisitorMessage = [...chatMessages]
+        .reverse()
+        .find((message) => message.role === 'visitor' && message.audioUrl);
+
+      if (latestAudioVisitorMessage) {
+        return {
+          ...latestAudioVisitorMessage,
+          id: pendingMessageId,
+        };
+      }
+    } catch {
+      // The answer was already created; keep the local audio bubble if history lookup fails.
+    }
+
+    return {
+      audioUrl: localAudioUrl,
+      createdAt: new Date().toISOString(),
+      id: pendingMessageId,
+      role: 'visitor',
+      text: `Mensaje de audio (${formatRecordingDuration(localDuration)})`,
+    };
+  }
+
   function playMessageAudio(message: ChatMessage) {
     if (!message.audioUrl || !audioRef.current) {
       return;
@@ -282,6 +636,56 @@ export function Profile({ profileAlias }: ProfileProps) {
     messageList.scrollTop = messageList.scrollHeight;
   }
 
+  function setNextAudioDraft(nextDraft: AudioDraft | null) {
+    audioDraftRef.current = nextDraft;
+    setAudioDraft(nextDraft);
+    setPreviewPlaybackSeconds(0);
+    setPreviewDurationSeconds(nextDraft?.duration ?? 0);
+  }
+
+  function updatePreviewPlayback(audio: HTMLAudioElement | null = recordingAudioRef.current) {
+    const currentDraft = audioDraftRef.current;
+
+    if (!currentDraft || !audio) {
+      setPreviewPlaybackSeconds(0);
+      setPreviewDurationSeconds(0);
+      return;
+    }
+
+    const duration = currentDraft.duration;
+    const currentTime = Number.isFinite(audio.currentTime) ? Math.min(audio.currentTime, duration) : 0;
+
+    setPreviewDurationSeconds(duration);
+    setPreviewPlaybackSeconds(currentTime);
+  }
+
+  function resetPreviewPlayback(audio: HTMLAudioElement | null = recordingAudioRef.current) {
+    if (audio) {
+      audio.currentTime = 0;
+    }
+
+    setPreviewPlaybackSeconds(0);
+    setPreviewDurationSeconds(audioDraftRef.current?.duration ?? 0);
+  }
+
+  function clearRecordingTimer() {
+    if (recordingTimerRef.current !== null) {
+      window.clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  }
+
+  function stopRecordingStream() {
+    recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+    recordingStreamRef.current = null;
+  }
+
+  const previewDuration = audioDraft ? previewDurationSeconds || audioDraft.duration : 0;
+  const previewProgress = previewDuration > 0 ? Math.min(1, previewPlaybackSeconds / previewDuration) : 0;
+  const previewRemainingSeconds = audioDraft
+    ? Math.max(0, Math.ceil(previewDuration - previewPlaybackSeconds))
+    : 0;
+
   return (
     <main className="profile-page">
       <audio
@@ -289,6 +693,23 @@ export function Profile({ profileAlias }: ProfileProps) {
         onEnded={() => setIsAudioPlaying(false)}
         onPause={() => setIsAudioPlaying(false)}
         onPlay={() => setIsAudioPlaying(true)}
+      />
+      <audio
+        ref={recordingAudioRef}
+        onEnded={(event) => {
+          resetPreviewPlayback(event.currentTarget);
+          setIsPreviewPlaying(false);
+        }}
+        onLoadedMetadata={(event) => updatePreviewPlayback(event.currentTarget)}
+        onPause={(event) => {
+          updatePreviewPlayback(event.currentTarget);
+          setIsPreviewPlaying(false);
+        }}
+        onPlay={(event) => {
+          updatePreviewPlayback(event.currentTarget);
+          setIsPreviewPlaying(true);
+        }}
+        onTimeUpdate={(event) => updatePreviewPlayback(event.currentTarget)}
       />
 
       <section className="profile-shell" aria-live="polite">
@@ -337,9 +758,22 @@ export function Profile({ profileAlias }: ProfileProps) {
                       </div>
                     ) : (
                       <div className="profile-thread-message visitor">
-                        <div className="profile-message-copy">
-                          <p>{message.text}</p>
-                          <time>{formatMessageTime(message.createdAt)}</time>
+                        <div className={message.audioUrl ? 'profile-message-copy has-audio' : 'profile-message-copy'}>
+                          {message.audioUrl ? (
+                            <button
+                              aria-label="Reproducir audio del mensaje"
+                              className="profile-message-play-button"
+                              title="Reproducir audio del mensaje"
+                              type="button"
+                              onClick={() => playMessageAudio(message)}
+                            >
+                              <PlayIcon />
+                            </button>
+                          ) : null}
+                          <div className="profile-message-text">
+                            <p>{message.text}</p>
+                            <time>{formatMessageTime(message.createdAt)}</time>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -400,30 +834,137 @@ export function Profile({ profileAlias }: ProfileProps) {
             <section className="profile-composer-row">
               {error && profile ? <p className="profile-inline-error">{error}</p> : null}
 
-              <form className="profile-message-form" onSubmit={handleSubmit}>
-                <input
-                  aria-label="Mensaje"
-                  placeholder="Escribe tu mensaje..."
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                />
-                <button
-                  aria-label="Grabar mensaje"
-                  className="profile-icon-button"
-                  title="Grabar mensaje"
-                  type="button"
-                >
-                  <MicrophoneIcon />
-                </button>
-                <button
-                  aria-label="Enviar mensaje"
-                  className="profile-icon-button"
-                  disabled={isSending || !draft.trim()}
-                  title="Enviar mensaje"
-                  type="submit"
-                >
-                  <SendIcon />
-                </button>
+              <form
+                className={recordingState !== 'idle' || audioDraft ? 'profile-message-form is-voice-mode' : 'profile-message-form'}
+                onSubmit={handleSubmit}
+              >
+                {recordingState === 'preparing' ? (
+                  <div className="profile-voice-recorder preparing" aria-live="polite">
+                    <span className="profile-recording-dot is-waiting" />
+                    <span className="profile-recording-status">Preparando...</span>
+                    <VoiceWaveform />
+                  </div>
+                ) : recordingState === 'recording' ? (
+                  <div className="profile-voice-recorder" aria-live="polite">
+                    <span className="profile-recording-dot" />
+                    <span className="profile-recording-time">{formatRecordingDuration(recordingSeconds)}</span>
+                    <VoiceWaveform isRecording />
+                  </div>
+                ) : audioDraft ? (
+                  <div className="profile-voice-recorder preview" aria-live="polite">
+                    <button
+                      aria-label={isPreviewPlaying ? 'Pausar audio grabado' : 'Reproducir audio grabado'}
+                      className="profile-voice-play-button"
+                      title={isPreviewPlaying ? 'Pausar audio grabado' : 'Reproducir audio grabado'}
+                      type="button"
+                      onClick={playAudioDraft}
+                    >
+                      {isPreviewPlaying ? <PauseIcon /> : <PlayIcon />}
+                    </button>
+                    <VoiceWaveform isPlaying={isPreviewPlaying} progress={previewProgress} />
+                    <span className="profile-recording-time">{formatRecordingDuration(previewRemainingSeconds)}</span>
+                  </div>
+                ) : (
+                  <input
+                    aria-label="Mensaje"
+                    disabled={isSending}
+                    placeholder="Escribe tu mensaje..."
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                  />
+                )}
+
+                {recordingState === 'preparing' ? (
+                  <>
+                    <button
+                      aria-label="Cancelar grabación"
+                      className="profile-icon-button"
+                      disabled={isSending}
+                      title="Cancelar grabación"
+                      type="button"
+                      onClick={cancelAudioRecording}
+                    >
+                      <TrashIcon />
+                    </button>
+                    <button
+                      aria-label="Detener grabación"
+                      className="profile-icon-button recording-stop"
+                      disabled
+                      title="Detener grabación"
+                      type="button"
+                    >
+                      <StopIcon />
+                    </button>
+                  </>
+                ) : recordingState === 'recording' ? (
+                  <>
+                    <button
+                      aria-label="Cancelar grabación"
+                      className="profile-icon-button"
+                      disabled={isSending}
+                      title="Cancelar grabación"
+                      type="button"
+                      onClick={cancelAudioRecording}
+                    >
+                      <TrashIcon />
+                    </button>
+                    <button
+                      aria-label="Detener grabación"
+                      className="profile-icon-button recording-stop"
+                      disabled={isSending}
+                      title="Detener grabación"
+                      type="button"
+                      onClick={stopAudioRecording}
+                    >
+                      <StopIcon />
+                    </button>
+                  </>
+                ) : audioDraft ? (
+                  <>
+                    <button
+                      aria-label="Descartar audio"
+                      className="profile-icon-button"
+                      disabled={isSending}
+                      title="Descartar audio"
+                      type="button"
+                      onClick={clearAudioDraft}
+                    >
+                      <TrashIcon />
+                    </button>
+                    <button
+                      aria-label="Enviar audio"
+                      className="profile-icon-button"
+                      disabled={isSending}
+                      title="Enviar audio"
+                      type="button"
+                      onClick={sendAudioDraft}
+                    >
+                      <SendIcon />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      aria-label="Grabar mensaje"
+                      className="profile-icon-button"
+                      disabled={isSending}
+                      title="Grabar mensaje"
+                      type="button"
+                      onClick={startAudioRecording}
+                    >
+                      <MicrophoneIcon />
+                    </button>
+                    <button
+                      aria-label="Enviar mensaje"
+                      className="profile-icon-button"
+                      disabled={isSending || !draft.trim()}
+                      title="Enviar mensaje"
+                      type="submit"
+                    >
+                      <SendIcon />
+                    </button>
+                  </>
+                )}
               </form>
 
               <footer className="profile-footer-note">
@@ -460,6 +1001,25 @@ function formatMessageTime(value?: string) {
     hour: 'numeric',
     minute: '2-digit',
   }).format(date);
+}
+
+function formatRecordingDuration(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function getPreferredRecordingMimeType() {
+  const supportedTypes = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/ogg;codecs=opus',
+  ];
+
+  return supportedTypes.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) ?? '';
 }
 
 function setAudioSource(audio: HTMLAudioElement, audioUrl?: string, blob?: Blob) {
@@ -564,6 +1124,43 @@ function isStoredMessage(value: unknown): value is ChatMessage {
   return typeof message.id === 'string' && hasValidRole && typeof message.text === 'string';
 }
 
+function VoiceWaveform({
+  isPlaying = false,
+  isRecording = false,
+  progress = 0,
+}: {
+  isPlaying?: boolean;
+  isRecording?: boolean;
+  progress?: number;
+}) {
+  const safeProgress = Math.min(1, Math.max(0, progress));
+  const activeBars = safeProgress > 0 ? Math.ceil(safeProgress * WAVEFORM_BAR_COUNT) : isPlaying ? 1 : 0;
+  const currentBar = activeBars > 0 ? activeBars - 1 : -1;
+  const className = [
+    'profile-voice-waveform',
+    isRecording ? 'is-recording' : '',
+    isPlaying ? 'is-playing' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <span className={className} aria-hidden="true">
+      {Array.from({ length: WAVEFORM_BAR_COUNT }).map((_, index) => (
+        <span
+          className={[
+            index < activeBars ? 'is-active' : '',
+            isPlaying && index === currentBar ? 'is-current' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          key={index}
+        />
+      ))}
+    </span>
+  );
+}
+
 function PlayIcon() {
   return (
     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
@@ -598,6 +1195,36 @@ function SendIcon() {
     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
       <path
         d="m4 12.25 15.5-7.5-3.15 15.1-4.3-6.1-5.95 3.55L4 12.25Zm8.05 1.5 3.95-4.2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path d="M8 5.5h3v13H8v-13ZM13 5.5h3v13h-3v-13Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path d="M7 7h10v10H7V7Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M8.5 8.5v9M12 8.5v9M15.5 8.5v9M5.5 6h13M9 6l.8-2h4.4l.8 2M7 6l.8 15h8.4L17 6"
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
