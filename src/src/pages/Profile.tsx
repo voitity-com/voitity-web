@@ -725,6 +725,27 @@ export function Profile({ profileAlias }: ProfileProps) {
           <>
             <header className="profile-title">
               <h1>{profile.name}</h1>
+              {profile.networks.length ? (
+                <nav aria-label="Redes sociales" className="profile-social-links">
+                  {profile.networks.map((network) => (
+                    <a
+                      aria-label={network.name}
+                      className="profile-social-link"
+                      href={network.url}
+                      key={network.key}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      title={network.name}
+                    >
+                      {network.iconUrl ? (
+                        <img alt={network.name} src={network.iconUrl} title={network.name} />
+                      ) : (
+                        <span aria-hidden="true">{getNetworkInitial(network.name)}</span>
+                      )}
+                    </a>
+                  ))}
+                </nav>
+              ) : null}
             </header>
 
             <section className="profile-conversation" aria-label="Conversación">
@@ -1009,6 +1030,10 @@ function formatRecordingDuration(totalSeconds: number) {
   const seconds = safeSeconds % 60;
 
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function getNetworkInitial(name: string) {
+  return name.trim().charAt(0).toUpperCase() || '?';
 }
 
 function getPreferredRecordingMimeType() {
