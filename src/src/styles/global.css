@@ -1960,6 +1960,8 @@ h1 {
   right: 0;
   left: 0;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   width: 100%;
   padding: 0 16px;
@@ -1975,6 +1977,51 @@ h1 {
   line-height: 1;
   text-align: center;
   overflow-wrap: anywhere;
+}
+
+.profile-social-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  width: min(760px, 100%);
+  margin-top: 24px;
+  pointer-events: auto;
+}
+
+.profile-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  color: #111827;
+  text-decoration: none;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  box-shadow: none;
+  transition:
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.profile-social-link:hover {
+  background: rgba(17, 24, 39, 0.06);
+  transform: translateY(-1px);
+}
+
+.profile-social-link img {
+  display: block;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.profile-social-link span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .profile-conversation {
@@ -2681,6 +2728,21 @@ h1 {
   .profile-title h1 {
     width: min(100%, 380px);
     font-size: clamp(1.9rem, 9vw, 2.55rem);
+  }
+
+  .profile-social-links {
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .profile-social-link {
+    width: 54px;
+    height: 54px;
+  }
+
+  .profile-social-link img {
+    width: 32px;
+    height: 32px;
   }
 
   .profile-conversation {

@@ -10,6 +10,14 @@ export type ProfileData = {
   headline: string;
   description: string;
   details: string[];
+  networks: ProfileSocialNetwork[];
+};
+
+export type ProfileSocialNetwork = {
+  iconUrl: string;
+  key: string;
+  name: string;
+  url: string;
 };
 
 export type ChatMessage = {
@@ -39,6 +47,12 @@ export type AvatarMedia = {
   url: string;
 };
 
+type SocialNetworkDefinition = {
+  iconUrl: string;
+  key: string;
+  name: string;
+};
+
 export function apiUrl(path: string) {
   return `${API_BASE_URL}${path}`;
 }
@@ -60,16 +74,18 @@ export function authHeaders(extra?: HeadersInit): HeadersInit {
 }
 
 export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {
-  const response = await fetch(apiUrl(`/api/profile/alias/${encodeURIComponent(alias)}`), {
+  const profileResponsePromise = fetch(apiUrl(`/api/profile/alias/${encodeURIComponent(alias)}`), {
     headers: authHeaders(),
   });
+  const socialNetworksPromise = fetchSocialNetworkDefinitions().catch(() => []);
+  const response = await profileResponsePromise;
 
   if (!response.ok) {
     throw new Error(await getResponseErrorMessage(response, 'No fue posible cargar el perfil.'));
   }
 
-  const payload = await response.json();
-  return normalizeProfile(payload, alias);
+  const [payload, socialNetworkDefinitions] = await Promise.all([response.json(), socialNetworksPromise]);
+  return normalizeProfile(payload, alias, socialNetworkDefinitions);
 }
 
 export async function fetchAvatarMedia(profileId: string): Promise<AvatarMedia> {
@@ -242,7 +258,38 @@ async function parseAudioResponse(response: Response): Promise<AudioResponse> {
   return { blob: await response.blob() };
 }
 
-function normalizeProfile(payload: unknown, fallbackAlias: string): ProfileData {
+async function fetchSocialNetworkDefinitions(): Promise<SocialNetworkDefinition[]> {
+  const response = await fetch(apiUrl('/api/profile/social-networks'), {
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    return [];
+  }
+
+  const source = unwrapPayload((await response.json()) as UnknownRecord);
+  const networks = isRecord(source.networks) ? source.networks : {};
+
+  return Object.entries(networks).flatMap(([key, value]) => {
+    if (!isRecord(value)) {
+      return [];
+    }
+
+    return [
+      {
+        iconUrl: normalizeOptionalAssetUrl(pickString(value, ['icon'])) ?? '',
+        key,
+        name: pickString(value, ['name']) ?? formatNetworkName(key),
+      },
+    ];
+  });
+}
+
+function normalizeProfile(
+  payload: unknown,
+  fallbackAlias: string,
+  socialNetworkDefinitions: SocialNetworkDefinition[] = [],
+): ProfileData {
   const source = unwrapPayload(payload);
 
   const id = pickString(source, ['id', 'profile_id', 'profileId', 'uuid']) ?? fallbackAlias;
@@ -263,6 +310,7 @@ function normalizeProfile(payload: unknown, fallbackAlias: string): ProfileData 
     headline,
     id,
     name,
+    networks: buildProfileSocialNetworks(source, socialNetworkDefinitions),
   };
 }
 
@@ -345,6 +393,46 @@ function buildDetails(source: UnknownRecord): string[] {
   ];
 
   return values.filter((value): value is string => Boolean(value));
+}
+
+function buildProfileSocialNetworks(
+  source: UnknownRecord,
+  socialNetworkDefinitions: SocialNetworkDefinition[],
+): ProfileSocialNetwork[] {
+  const profileNetworks = isRecord(source.networks) ? source.networks : {};
+  const definitionsByKey = new Map(socialNetworkDefinitions.map((definition) => [definition.key, definition]));
+  const orderedKeys = Object.keys(profileNetworks);
+
+  return orderedKeys.flatMap((key) => {
+    const url = profileNetworks[key];
+
+    if (typeof url !== 'string' || !url.trim()) {
+      return [];
+    }
+
+    const definition = definitionsByKey.get(key);
+
+    return [
+      {
+        iconUrl: definition?.iconUrl ?? '',
+        key,
+        name: definition?.name ?? formatNetworkName(key),
+        url: url.trim(),
+      },
+    ];
+  });
+}
+
+function formatNetworkName(key: string) {
+  if (key.toLowerCase() === 'x') {
+    return 'X';
+  }
+
+  return key
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
 }
 
 function pickString(source: UnknownRecord, keys: string[]) {
