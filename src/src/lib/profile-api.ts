@@ -316,21 +316,44 @@ function normalizeProfile(
 
 function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
   const source = unwrapPayload(payload);
+  const audioUrl = normalizeOptionalAssetUrl(
+    pickString(source, ['audio_url', 'audioUrl', 'voice_url', 'voiceUrl', 'url']),
+  );
+  const text = pickString(source, ['response', 'answer', 'text', 'message', 'content']);
+
+  if (!text && !audioUrl) {
+    throw new Error(getMessageResponseError(payload, source));
+  }
 
   return {
-    audioUrl: normalizeOptionalAssetUrl(
-      pickString(source, ['audio_url', 'audioUrl', 'voice_url', 'voiceUrl', 'url']),
-    ),
+    audioUrl,
     chatId: pickString(source, ['chat_id', 'chatId']),
     requestAudioUrl: normalizeOptionalAssetUrl(
       pickString(source, ['request_audio_url', 'requestAudioUrl']),
     ),
     requestMessageId: pickString(source, ['request_message_id', 'requestMessageId']),
     requestText: pickString(source, ['request_text', 'requestText']),
-    text:
-      pickString(source, ['response', 'answer', 'text', 'message', 'content']) ??
-      'Respuesta recibida.',
+    text: text ?? 'Respuesta de audio recibida.',
   };
+}
+
+function getMessageResponseError(payload: UnknownRecord, source: UnknownRecord) {
+  const status = (
+    pickString(source, ['status']) ??
+    pickNestedString(source, ['chat_ai', 'status']) ??
+    ''
+  ).toLowerCase();
+  const topLevelMessage = pickString(payload, ['message', 'error']);
+  const providerError =
+    pickString(source, ['error']) ??
+    pickNestedString(source, ['chat_ai', 'response', 'error', 'message']) ??
+    pickNestedString(source, ['chat_ai', 'response', 'error']);
+
+  if (status === 'pending' || status === 'processing' || topLevelMessage?.toLowerCase().includes('pending')) {
+    return 'La respuesta todavía se está procesando. Intenta de nuevo en unos segundos.';
+  }
+
+  return providerError ?? topLevelMessage ?? 'El API no devolvió una respuesta para mostrar.';
 }
 
 async function fetchProfileChatMessagesPage(profileId: string, chatId: string, page: number): Promise<UnknownRecord> {
@@ -526,7 +549,12 @@ async function getResponseErrorMessage(response: Response, fallback: string) {
 
   try {
     const payload = (await response.json()) as UnknownRecord;
-    const message = pickString(payload, ['message', 'error']);
+    const source = unwrapPayload(payload);
+    const message =
+      pickString(payload, ['message', 'error']) ??
+      pickString(source, ['error']) ??
+      pickNestedString(source, ['chat_ai', 'response', 'error', 'message']) ??
+      pickNestedString(source, ['chat_ai', 'response', 'error']);
     return message ?? fallback;
   } catch {
     return fallback;
