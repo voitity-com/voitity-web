@@ -5,6 +5,7 @@ import {
   fetchAvatarMedia,
   fetchProfileChatMessages,
   fetchProfileByAlias,
+  ProfileApiError,
   ProfileData,
   requestVoiceTest,
   sendProfileAudioMessage,
@@ -12,6 +13,7 @@ import {
 } from '../lib/profile-api';
 
 type ProfileProps = {
+  onProfileNotFound: () => void;
   profileAlias: string;
 };
 
@@ -32,7 +34,7 @@ type ProfileSession = {
 const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:';
 const WAVEFORM_BAR_COUNT = 22;
 
-export function Profile({ profileAlias }: ProfileProps) {
+export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
@@ -158,6 +160,11 @@ export function Profile({ profileAlias }: ProfileProps) {
           }
         }
       } catch (loadError) {
+        if (loadError instanceof ProfileApiError && loadError.status === 404) {
+          onProfileNotFound();
+          return;
+        }
+
         if (isMounted) {
           setError(loadError instanceof Error ? loadError.message : 'No fue posible cargar el perfil.');
         }
@@ -177,7 +184,7 @@ export function Profile({ profileAlias }: ProfileProps) {
         URL.revokeObjectURL(nextAvatarUrl);
       }
     };
-  }, [profileAlias]);
+  }, [onProfileNotFound, profileAlias]);
 
   useEffect(() => {
     isComponentMountedRef.current = true;
