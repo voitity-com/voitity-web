@@ -3,6 +3,16 @@ const API_TOKEN = import.meta.env.VITE_API_TOKEN;
 
 type UnknownRecord = Record<string, unknown>;
 
+export class ProfileApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = 'ProfileApiError';
+  }
+}
+
 export type ProfileData = {
   id: string;
   alias: string;
@@ -81,7 +91,10 @@ export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {
   const response = await profileResponsePromise;
 
   if (!response.ok) {
-    throw new Error(await getResponseErrorMessage(response, 'No fue posible cargar el perfil.'));
+    throw new ProfileApiError(
+      await getResponseErrorMessage(response, 'No fue posible cargar el perfil.'),
+      response.status,
+    );
   }
 
   const [payload, socialNetworkDefinitions] = await Promise.all([response.json(), socialNetworksPromise]);
