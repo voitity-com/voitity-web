@@ -18,23 +18,23 @@ const legalCopy = {
     privacy: 'Privacidad',
     terms: 'Términos',
     updated: 'Última actualización: 19 de junio de 2026',
-    footer: '© 2026 bigmelo. Todos los derechos reservados.',
+    footer: '© 2026 Bigmelo. Todos los derechos reservados.',
   },
   en: {
     home: 'Home',
     privacy: 'Privacy',
     terms: 'Terms',
     updated: 'Last updated: June 19, 2026',
-    footer: '© 2026 bigmelo. All rights reserved.',
+    footer: '© 2026 Bigmelo. All rights reserved.',
   },
 } satisfies Record<LegalLocale, Record<string, string>>;
 
 export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
   if (locale === 'en') {
     return (
-      <LegalLayout eyebrow="Privacy Policy" kind="privacy" locale="en" title="bigmelo Privacy Policy">
+      <LegalLayout eyebrow="Privacy Policy" kind="privacy" locale="en" title="Bigmelo Privacy Policy">
         <p>
-          This policy explains how bigmelo collects, uses, shares, and protects information when a
+          This policy explains how Bigmelo collects, uses, shares, and protects information when a
           person creates a profile, uploads an image, records or uploads audio, clones a voice,
           publishes a profile landing page, or chats with an avatar.
         </p>
@@ -171,9 +171,9 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
   }
 
   return (
-    <LegalLayout eyebrow="Política de privacidad" kind="privacy" locale="es" title="Política de privacidad de bigmelo">
+    <LegalLayout eyebrow="Política de privacidad" kind="privacy" locale="es" title="Política de privacidad de Bigmelo">
       <p>
-        Esta política explica cómo bigmelo recopila, usa, comparte y protege información cuando una
+        Esta política explica cómo Bigmelo recopila, usa, comparte y protege información cuando una
         persona crea un perfil, sube imagen, graba o carga audio, clona una voz, publica un landing
         de perfil o conversa con un avatar.
       </p>
@@ -312,9 +312,9 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
 export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
   if (locale === 'en') {
     return (
-      <LegalLayout eyebrow="Terms and Conditions" kind="terms" locale="en" title="bigmelo Terms and Conditions">
+      <LegalLayout eyebrow="Terms and Conditions" kind="terms" locale="en" title="Bigmelo Terms and Conditions">
         <p>
-          These terms govern access to and use of bigmelo, a platform for creating public profiles
+          These terms govern access to and use of Bigmelo, a platform for creating public profiles
           with animated avatars, authorized cloned voices, contextual information, and AI-generated
           responses.
         </p>
@@ -332,7 +332,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
           <h2>2. Use requirements</h2>
           <p>
             You must have legal capacity to contract and be at least the age of majority applicable in
-            your jurisdiction. If you use bigmelo on behalf of a company, client, talent, brand, or
+            your jurisdiction. If you use Bigmelo on behalf of a company, client, talent, brand, or
             third party, you represent that you have sufficient authority to bind them and grant the
             permissions described here.
           </p>
@@ -352,7 +352,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
         <section>
           <h2>4. License to operate the service</h2>
           <p>
-            You retain your rights in the content you upload. However, you grant bigmelo a worldwide,
+            You retain your rights in the content you upload. However, you grant Bigmelo a worldwide,
             non-exclusive, royalty-free license to host, copy, process, adapt, transmit, display, and
             use your content as needed to create the avatar, clone and reproduce voice, generate
             responses, publish the profile, provide support, prevent abuse, and operate the service.
@@ -368,7 +368,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
         <section>
           <h2>5. External providers</h2>
           <p>
-            bigmelo uses third-party services for essential functions: Runway for avatars and visual
+            Bigmelo uses third-party services for essential functions: Runway for avatars and visual
             assets, ElevenLabs for voice and audio, and OpenAI for message understanding and response
             generation. Your use of the service depends on those providers being available and on your
             content complying with their policies.
@@ -397,7 +397,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
 
         <section>
           <h2>7. Prohibited uses</h2>
-          <p>You may not use bigmelo to:</p>
+          <p>You may not use Bigmelo to:</p>
           <ul>
             <li>Clone voices or use third-party images without express consent.</li>
             <li>Create misleading deepfakes, impersonation, fraud, phishing, extortion, or manipulation.</li>
@@ -432,8 +432,8 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
         <section>
           <h2>10. Intellectual property</h2>
           <p>
-            bigmelo, its design, software, brand, interface, documentation, and technology are owned by
-            bigmelo or its licensors. You may not copy, modify, decompile, sell, sublicense, or exploit
+            Bigmelo, its design, software, brand, interface, documentation, and technology are owned by
+            Bigmelo or its licensors. You may not copy, modify, decompile, sell, sublicense, or exploit
             the service except as expressly permitted.
           </p>
         </section>
@@ -451,7 +451,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
         <section>
           <h2>12. Liability</h2>
           <p>
-            You use bigmelo at your own risk. To the maximum extent permitted by law, bigmelo will not
+            You use Bigmelo at your own risk. To the maximum extent permitted by law, Bigmelo will not
             be liable for indirect damages, lost profits, data loss, reputational harm, decisions made
             based on generated responses, unauthorized use of content you uploaded, or failures of
             external providers.
@@ -480,9 +480,9 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
   }
 
   return (
-    <LegalLayout eyebrow="Términos y condiciones" kind="terms" locale="es" title="Términos y condiciones de bigmelo">
+    <LegalLayout eyebrow="Términos y condiciones" kind="terms" locale="es" title="Términos y condiciones de Bigmelo">
       <p>
-        Estos términos regulan el acceso y uso de bigmelo, una plataforma para crear perfiles públicos
+        Estos términos regulan el acceso y uso de Bigmelo, una plataforma para crear perfiles públicos
         con avatares animados, voz clonada autorizada, información contextual y respuestas generadas
         por inteligencia artificial.
       </p>
@@ -500,7 +500,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
         <h2>2. Requisitos de uso</h2>
         <p>
           Debes tener capacidad legal para contratar y, como mínimo, la mayoría de edad aplicable en tu
-          jurisdicción. Si usas bigmelo en nombre de una empresa, cliente, talento, marca o tercero,
+          jurisdicción. Si usas Bigmelo en nombre de una empresa, cliente, talento, marca o tercero,
           declaras que tienes autoridad suficiente para obligarlo y para otorgar los permisos descritos
           aquí.
         </p>
@@ -520,7 +520,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
       <section>
         <h2>4. Licencia para operar el servicio</h2>
         <p>
-          Conservas tus derechos sobre el contenido que subes. Sin embargo, otorgas a bigmelo una
+          Conservas tus derechos sobre el contenido que subes. Sin embargo, otorgas a Bigmelo una
           licencia mundial, no exclusiva y libre de regalías para alojar, copiar, procesar, adaptar,
           transmitir, mostrar y usar tu contenido en la medida necesaria para crear el avatar, clonar y
           reproducir voz, generar respuestas, publicar el perfil, prestar soporte, prevenir abuso y
@@ -537,7 +537,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
       <section>
         <h2>5. Proveedores externos</h2>
         <p>
-          bigmelo usa servicios de terceros para funciones esenciales: Runway para avatar y recursos
+          Bigmelo usa servicios de terceros para funciones esenciales: Runway para avatar y recursos
           visuales, ElevenLabs para voz y audio, y OpenAI para comprensión de mensajes y generación de
           respuestas. Tu uso del servicio está condicionado a que esos proveedores estén disponibles y
           a que el contenido cumpla sus políticas.
@@ -566,7 +566,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
 
       <section>
         <h2>7. Usos prohibidos</h2>
-        <p>No puedes usar bigmelo para:</p>
+        <p>No puedes usar Bigmelo para:</p>
         <ul>
           <li>Clonar voces o usar imágenes de terceros sin consentimiento expreso.</li>
           <li>Crear deepfakes engañosos, suplantaciones, fraude, phishing, extorsión o manipulación.</li>
@@ -601,8 +601,8 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
       <section>
         <h2>10. Propiedad intelectual</h2>
         <p>
-          bigmelo, su diseño, software, marca, interfaz, documentación y tecnología son propiedad de
-          bigmelo o sus licenciantes. No puedes copiar, modificar, descompilar, vender, sublicenciar o
+          Bigmelo, su diseño, software, marca, interfaz, documentación y tecnología son propiedad de
+          Bigmelo o sus licenciantes. No puedes copiar, modificar, descompilar, vender, sublicenciar o
           explotar el servicio salvo lo permitido expresamente.
         </p>
       </section>
@@ -620,7 +620,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
       <section>
         <h2>12. Responsabilidad</h2>
         <p>
-          Usas bigmelo bajo tu responsabilidad. En la máxima medida permitida por la ley, bigmelo no
+          Usas Bigmelo bajo tu responsabilidad. En la máxima medida permitida por la ley, Bigmelo no
           será responsable por daños indirectos, pérdida de ganancias, pérdida de datos, daño
           reputacional, decisiones tomadas con base en respuestas generadas, uso no autorizado de
           contenido que subiste o fallos de proveedores externos.
@@ -655,7 +655,7 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
       <section>
         <h2>4. Artificial intelligence providers</h2>
         <p>
-          To operate the service, we use specialized external providers. By using bigmelo, you accept
+          To operate the service, we use specialized external providers. By using Bigmelo, you accept
           that the content needed to provide the service may be sent to these providers:
         </p>
         <ul>
@@ -685,7 +685,7 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
     <section>
       <h2>4. Proveedores de inteligencia artificial</h2>
       <p>
-        Para operar el servicio usamos proveedores externos especializados. Al usar bigmelo, aceptas
+        Para operar el servicio usamos proveedores externos especializados. Al usar Bigmelo, aceptas
         que el contenido necesario pueda enviarse a estos proveedores para prestar el servicio:
       </p>
       <ul>
@@ -720,15 +720,15 @@ function LegalLayout({ children, eyebrow, kind, locale, title }: LegalLayoutProp
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = `${title} | bigmelo`;
+    document.title = `${title} | Bigmelo`;
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [locale, title]);
 
   return (
     <main className="legal-page">
       <header className="legal-topbar">
-        <a className="brand" href="/" aria-label="bigmelo">
-          <img className="brand-logo" alt="bigmelo" src={bigmeloLogo} />
+        <a className="brand" href="/" aria-label="Bigmelo">
+          <img className="brand-logo" alt="Bigmelo" src={bigmeloLogo} />
         </a>
 
         <div className="legal-topbar-actions">
@@ -753,7 +753,7 @@ function LegalLayout({ children, eyebrow, kind, locale, title }: LegalLayoutProp
       </article>
 
       <footer className="legal-footer">
-        <a href="/">bigmelo</a>
+        <a href="/">Bigmelo</a>
         <span>{copy.footer}</span>
       </footer>
     </main>

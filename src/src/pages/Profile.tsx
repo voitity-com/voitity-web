@@ -106,7 +106,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setMessages(storedSession?.messages.length ? storedSession.messages : initialMessages);
         setIsLoading(false);
 
-        document.title = `${nextProfile.name} | bigmelo`;
+        document.title = `${nextProfile.name} | Bigmelo`;
 
         fetchAvatarMedia(nextProfile.id)
           .then((media) => {
