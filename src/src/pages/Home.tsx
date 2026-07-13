@@ -5,6 +5,8 @@ import valeriaAvatar from '../assets/valeria-rios-avatar.png';
 
 type Locale = 'es' | 'en';
 
+const LOCALE_STORAGE_KEY = 'bigmelo-locale';
+
 type Plan = {
   name: string;
   price: string;
@@ -70,42 +72,43 @@ const content: Record<
       contact: 'Contacto',
     },
     hero: {
-      eyebrow: 'Perfiles interactivos con imagen, voz y contexto',
-      title: 'Avatares que responden con tu imagen y tu voz.',
+      eyebrow: 'Presencia digital con inteligencia artificial',
+      title: 'Crea tu presencia digital con inteligencia artificial.',
       lead:
-        'Crea una página pública donde tu avatar conversa, responde con audio y mantiene una experiencia cercana a tu forma real de comunicar.',
-      primaryCta: 'Contáctenos',
+        'Crea una página pública donde una versión interactiva de ti responde preguntas, comparte tu historia y conversa por texto y audio con información verificada.',
+      primaryCta: 'Crear mi presencia digital',
       secondaryCta: 'Ver planes',
       demoAria:
-        'Vista previa de un perfil interactivo con avatar central, mensajes laterales, ondas de audio y campo de conversación.',
-      profileName: 'Valeria Rios',
-      profileRole: 'Perfil profesional interactivo',
+        'Vista previa de una presencia digital con avatar central, mensajes laterales, respuestas de audio y campo de conversación.',
+      profileName: 'Valeria Ríos',
+      profileRole: 'Presencia digital profesional',
       online: 'Activo ahora',
-      userMessage: '¿Puedes contarme sobre tu experiencia?',
-      avatarMessage: 'Claro. Puedo responder sobre mi historia, servicios y proyectos usando mi propia voz.',
+      userMessage: '¿Qué puedes contarme sobre tu trabajo?',
+      avatarMessage:
+        'Soy Valeria Ríos. Acompaño proyectos, marcas personales y equipos que quieren comunicar mejor lo que hacen.',
       speaking: 'Respuesta con audio',
-      waveform: 'Voz del perfil',
-      memory: 'Información verificada',
+      waveform: 'Voz autorizada',
+      memory: 'Sí. Puedes escuchar mis respuestas en audio y abrir mis redes desde este perfil.',
     },
     plans: {
       eyebrow: 'Planes',
-      title: 'Starter incluye lo necesario para lanzar un perfil.',
+      title: 'Todo lo necesario para lanzar tu primera presencia digital con IA.',
       lead:
-        'Un plan simple con avatar, clon de voz, chat y respuestas de audio incluidas en créditos mensuales.',
+        'Incluye presencia pública, avatar con imagen autorizada, voz generada con IA, chat y respuestas en audio dentro de tus créditos mensuales.',
       items: [
         {
           name: 'Starter',
           price: '$8',
           period: 'USD /mes',
           label: 'Mensual',
-          description: 'Para crear y validar un perfil conversacional completo.',
+          description: 'Para crear y validar una presencia digital conversacional.',
           features: [
-            '1 perfil publicado',
-            '1 imagen de avatar y 5 segundos de video',
-            '1 clon de voz autorizado',
-            '1000 mensajes de chat con 500 créditos',
-            '10.000 caracteres TTS con 500 créditos',
-            '1000 créditos mensuales incluidos',
+            '1 presencia digital publicada',
+            'Avatar inicial con imagen y video breve',
+            '1 voz autorizada generada con IA',
+            '500 créditos para chat, hasta 1.000 mensajes',
+            '500 créditos para respuestas en audio, hasta 10.000 caracteres',
+            '1.000 créditos mensuales incluidos',
           ],
           cta: 'Elegir Starter mensual',
         },
@@ -114,14 +117,14 @@ const content: Record<
           price: '$80',
           period: 'USD /año',
           label: 'Anual',
-          description: 'Para mantener el perfil activo todo el año con mejor precio.',
+          description: 'Para mantener tu presencia digital activa todo el año con mejor precio.',
           features: [
-            '1 perfil publicado',
-            '1 imagen de avatar y 5 segundos de video',
-            '1 clon de voz autorizado',
-            '1000 mensajes de chat mensuales con 500 créditos',
-            '10.000 caracteres TTS mensuales con 500 créditos',
-            '1000 créditos mensuales incluidos',
+            '1 presencia digital publicada',
+            'Avatar inicial con imagen y video breve',
+            '1 voz autorizada generada con IA',
+            '500 créditos mensuales para chat, hasta 1.000 mensajes',
+            '500 créditos mensuales para audio, hasta 10.000 caracteres',
+            '1.000 créditos mensuales incluidos',
             'Ahorro de $16 frente al pago mensual',
           ],
           cta: 'Elegir Starter anual',
@@ -130,18 +133,18 @@ const content: Record<
       ],
     },
     contact: {
-      eyebrow: 'Contáctenos',
-      title: 'Cuéntanos qué perfil quieres crear.',
+      eyebrow: 'Contacto',
+      title: 'Cuéntanos qué presencia digital quieres crear.',
       lead:
-        'Personaje público, profesional, educador, creador o marca personal: déjanos tus datos y te contactamos.',
+        'Ideal para profesionales, creadores, educadores, figuras públicas y marcas personales que quieren responder preguntas con inteligencia artificial.',
       name: 'Nombre',
       email: 'Correo',
       message: 'Mensaje',
-      submit: 'Enviar solicitud',
+      submit: 'Solicitar mi presencia digital',
       success: 'Gracias. Recibimos tu solicitud.',
     },
     footer: {
-      tagline: 'Perfiles conversacionales con imagen, voz e información verificada.',
+      tagline: 'Presencias digitales con inteligencia artificial, voz autorizada e información verificada.',
       privacy: 'Privacidad',
       terms: 'Términos',
     },
@@ -153,42 +156,43 @@ const content: Record<
       contact: 'Contact',
     },
     hero: {
-      eyebrow: 'Interactive profiles with image, voice, and context',
-      title: 'Avatars that reply with your image and voice.',
+      eyebrow: 'AI-powered digital presence',
+      title: 'Create your digital presence with AI.',
       lead:
-        'Create a public page where your avatar chats, replies with audio, and keeps the experience close to your real communication style.',
-      primaryCta: 'Contact us',
+        'Build a public page where an interactive version of you answers questions, shares your story, and replies with text and audio using verified information.',
+      primaryCta: 'Create my digital presence',
       secondaryCta: 'See plans',
       demoAria:
-        'Preview of an interactive profile with a centered avatar, side messages, audio waves, and conversation input.',
-      profileName: 'Valeria Rios',
-      profileRole: 'Interactive professional profile',
+        'Preview of an AI-powered digital presence with a centered avatar, side messages, audio replies, and conversation input.',
+      profileName: 'Valeria Ríos',
+      profileRole: 'Professional digital presence',
       online: 'Active now',
-      userMessage: 'Can you tell me about your experience?',
-      avatarMessage: 'Of course. I can answer about my story, services, and projects using my own voice.',
+      userMessage: 'What can you tell me about your work?',
+      avatarMessage:
+        'I am Valeria Ríos. I support projects, personal brands, and teams that want to communicate their work more clearly.',
       speaking: 'Audio response',
-      waveform: 'Profile voice',
-      memory: 'Verified information',
+      waveform: 'Authorized voice',
+      memory: 'Yes. You can listen to my replies in audio and open my social links from this profile.',
     },
     plans: {
       eyebrow: 'Plans',
-      title: 'Starter includes what you need to launch one profile.',
+      title: 'Everything you need to launch your first AI-powered presence.',
       lead:
-        'A simple plan with avatar, voice clone, chat, and audio replies included in monthly credits.',
+        'Includes a public presence, authorized image avatar, AI-generated voice, chat, and audio replies within your monthly credits.',
       items: [
         {
           name: 'Starter',
           price: '$8',
           period: 'USD /month',
           label: 'Monthly',
-          description: 'For creating and validating one complete conversational profile.',
+          description: 'For creating and validating one conversational digital presence.',
           features: [
-            '1 published profile',
-            '1 avatar image and 5 seconds of video',
-            '1 authorized voice clone',
-            '1000 chat messages with 500 credits',
-            '10,000 TTS characters with 500 credits',
-            '1000 monthly credits included',
+            '1 published digital presence',
+            'Initial avatar with image and short video',
+            '1 authorized AI-generated voice',
+            '500 credits for chat, up to 1,000 messages',
+            '500 credits for audio replies, up to 10,000 characters',
+            '1,000 monthly credits included',
           ],
           cta: 'Choose Starter monthly',
         },
@@ -197,14 +201,14 @@ const content: Record<
           price: '$80',
           period: 'USD /year',
           label: 'Annual',
-          description: 'For keeping one profile active all year at a better price.',
+          description: 'For keeping your digital presence active all year at a better price.',
           features: [
-            '1 published profile',
-            '1 avatar image and 5 seconds of video',
-            '1 authorized voice clone',
-            '1000 monthly chat messages with 500 credits',
-            '10,000 monthly TTS characters with 500 credits',
-            '1000 monthly credits included',
+            '1 published digital presence',
+            'Initial avatar with image and short video',
+            '1 authorized AI-generated voice',
+            '500 monthly credits for chat, up to 1,000 messages',
+            '500 monthly credits for audio, up to 10,000 characters',
+            '1,000 monthly credits included',
             'Save $16 compared with monthly billing',
           ],
           cta: 'Choose Starter annual',
@@ -214,17 +218,17 @@ const content: Record<
     },
     contact: {
       eyebrow: 'Contact us',
-      title: 'Tell us which profile you want to create.',
+      title: 'Tell us what digital presence you want to create.',
       lead:
-        'Public figure, professional, educator, creator, or personal brand: leave your details and we will contact you.',
+        'Built for professionals, creators, educators, public figures, and personal brands that want to answer questions with artificial intelligence.',
       name: 'Name',
       email: 'Email',
       message: 'Message',
-      submit: 'Send request',
+      submit: 'Request my digital presence',
       success: 'Thanks. We received your request.',
     },
     footer: {
-      tagline: 'Conversational profiles with verified image, voice, and information.',
+      tagline: 'AI-powered digital presences with authorized voice and verified information.',
       privacy: 'Privacy',
       terms: 'Terms',
     },
@@ -232,11 +236,19 @@ const content: Record<
 };
 
 function getInitialLocale(): Locale {
-  if (typeof navigator === 'undefined') {
-    return 'es';
+  if (typeof window !== 'undefined') {
+    try {
+      const storedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
+
+      if (storedLocale === 'es' || storedLocale === 'en') {
+        return storedLocale;
+      }
+    } catch {
+      return 'es';
+    }
   }
 
-  return navigator.language.toLowerCase().startsWith('en') ? 'en' : 'es';
+  return 'es';
 }
 
 export function Home() {
@@ -245,16 +257,30 @@ export function Home() {
   const t = content[locale];
   const heroProof =
     locale === 'es'
-      ? ['Imagen autorizada', 'Voz clonada', 'Chat público', 'Audio en tiempo real']
-      : ['Authorized image', 'Cloned voice', 'Public chat', 'Real-time audio'];
+      ? ['Presencia con IA', 'Imagen autorizada', 'Voz autorizada', 'Disponible 24/7']
+      : ['AI presence', 'Authorized image', 'Authorized voice', 'Available 24/7'];
   const contactHighlights =
     locale === 'es'
-      ? ['Perfil público listo para compartir', 'Mensajes por texto y audio', 'Información organizada por contexto']
-      : ['Public profile ready to share', 'Text and audio messages', 'Context-aware profile information'];
+      ? ['Presencia pública lista para compartir', 'Mensajes por texto y audio', 'Respuestas basadas en información verificada']
+      : ['Public presence ready to share', 'Text and audio messages', 'Replies based on verified information'];
+  const demoSocials = [
+    { href: 'https://instagram.com/', icon: 'instagram', label: 'Instagram' },
+    { href: 'https://github.com/', icon: 'github', label: 'GitHub' },
+    { href: 'https://linkedin.com/', icon: 'linkedin', label: 'LinkedIn' },
+  ] as const;
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = locale === 'es' ? 'Bigmelo | Avatares interactivos' : 'Bigmelo | Interactive avatars';
+    document.title =
+      locale === 'es'
+        ? 'Bigmelo | Presencia digital con IA'
+        : 'Bigmelo | AI-powered digital presence';
+
+    try {
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    } catch {
+      // Ignore blocked storage; language still works for the current session.
+    }
   }, [locale]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -325,6 +351,21 @@ export function Home() {
 
         <div className="hero-product-demo" role="img" aria-label={t.hero.demoAria}>
           <div className="demo-profile-name">{t.hero.profileName}</div>
+          <div className="demo-social-links" aria-label={locale === 'es' ? 'Redes de ejemplo' : 'Example social links'}>
+            {demoSocials.map((network) => (
+              <a
+                aria-label={network.label}
+                className="demo-social-link"
+                href={network.href}
+                key={network.label}
+                rel="noopener noreferrer"
+                target="_blank"
+                title={network.label}
+              >
+                <DemoSocialIcon name={network.icon} />
+              </a>
+            ))}
+          </div>
 
           <div className="demo-chat-surface">
             <div className="demo-thread demo-thread-left">
@@ -359,7 +400,11 @@ export function Home() {
               </article>
 
               <article className="demo-bubble visitor">
-                <p>{locale === 'es' ? '¿También puedes responder con audio?' : 'Can you answer with audio too?'}</p>
+                <p>
+                  {locale === 'es'
+                    ? '¿También puedes responder con audio y mostrar tus redes?'
+                    : 'Can you also reply with audio and show your social links?'}
+                </p>
                 <time>10:31 AM</time>
               </article>
             </div>
@@ -496,6 +541,35 @@ function SendIcon() {
         strokeLinejoin="round"
         strokeWidth="1.9"
       />
+    </svg>
+  );
+}
+
+function DemoSocialIcon({ name }: { name: 'instagram' | 'github' | 'linkedin' }) {
+  if (name === 'instagram') {
+    return (
+      <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+        <rect height="15.5" rx="4.2" stroke="currentColor" strokeWidth="1.9" width="15.5" x="4.25" y="4.25" />
+        <circle cx="12" cy="12" r="3.35" stroke="currentColor" strokeWidth="1.9" />
+        <circle cx="16.75" cy="7.35" fill="currentColor" r="1.05" />
+      </svg>
+    );
+  }
+
+  if (name === 'github') {
+    return (
+      <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+        <path
+          d="M12 3.75a8.45 8.45 0 0 0-2.67 16.47c.42.08.58-.18.58-.4v-1.42c-2.36.52-2.86-1-2.86-1-.38-.96-.92-1.22-.92-1.22-.75-.52.06-.5.06-.5.83.06 1.27.86 1.27.86.74 1.27 1.95.9 2.42.69.08-.54.29-.9.53-1.11-1.88-.22-3.86-.94-3.86-4.18 0-.92.33-1.68.86-2.27-.09-.22-.38-1.08.08-2.24 0 0 .7-.23 2.32.86A7.9 7.9 0 0 1 12 7.99c.72 0 1.45.1 2.13.29 1.61-1.09 2.31-.86 2.31-.86.46 1.16.17 2.02.08 2.24.54.59.86 1.35.86 2.27 0 3.25-1.98 3.96-3.87 4.17.3.26.57.78.57 1.58v2.14c0 .22.15.49.59.4A8.45 8.45 0 0 0 12 3.75Z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path d="M6.4 9.8v8.1M6.4 6.15v.08M10.4 17.9v-8.1M10.4 13.45c0-2.1 1.25-3.85 3.35-3.85 1.9 0 3.25 1.23 3.25 3.73v4.57" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" />
     </svg>
   );
 }

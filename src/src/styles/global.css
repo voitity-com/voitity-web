@@ -421,6 +421,7 @@ h1 {
   background-size: auto, 92px 92px, 92px 92px;
   border: 1px solid rgba(16, 22, 36, 0.08);
   border-radius: 8px;
+  scroll-margin-top: 82px;
   box-shadow: 0 32px 90px rgba(16, 22, 36, 0.08);
 }
 
@@ -488,12 +489,43 @@ h1 {
 }
 
 .demo-profile-name {
-  margin-bottom: clamp(20px, 2.8vw, 28px);
+  margin-bottom: 18px;
   color: #101624;
   font-size: clamp(2.6rem, 4.2vw, 4rem);
   font-weight: 300;
   line-height: 1;
   text-align: center;
+}
+
+.demo-social-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 auto clamp(20px, 2.8vw, 28px);
+}
+
+.demo-social-link {
+  width: 50px;
+  height: 50px;
+  display: inline-grid;
+  place-items: center;
+  color: #111827;
+  border-radius: 12px;
+  transition:
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.demo-social-link:hover,
+.demo-social-link:focus-visible {
+  background: rgba(17, 24, 39, 0.06);
+  transform: translateY(-1px);
+}
+
+.demo-social-link svg {
+  width: 30px;
+  height: 30px;
 }
 
 .demo-chat-surface {
@@ -1379,13 +1411,47 @@ h1 {
   }
 
   .demo-profile-name {
-    font-size: clamp(2.3rem, 13vw, 3.5rem);
-    text-align: left;
+    margin-bottom: 14px;
+    font-size: clamp(1.92rem, 10vw, 2.8rem);
+    text-align: center;
+  }
+
+  .demo-social-links {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .demo-social-link {
+    width: 46px;
+    height: 46px;
+  }
+
+  .demo-social-link svg {
+    width: 28px;
+    height: 28px;
   }
 
   .demo-chat-surface {
     gap: 22px;
     min-height: auto;
+  }
+
+  .demo-thread-left {
+    order: -1;
+  }
+
+  .demo-thread-left .demo-bubble + .demo-bubble,
+  .demo-thread-right,
+  .hero-product-demo .demo-composer {
+    display: none;
+  }
+
+  .demo-avatar-stage {
+    order: -3;
+  }
+
+  .demo-thread-right {
+    order: -2;
   }
 
   .demo-bubble.with-avatar {
@@ -1408,12 +1474,47 @@ h1 {
     font-size: 0.94rem;
   }
 
+  .demo-bubble.with-avatar {
+    align-items: end;
+  }
+
+  .demo-bubble.with-avatar p,
+  .demo-bubble.visitor p {
+    width: fit-content;
+    max-width: 100%;
+    padding: 10px 12px;
+    line-height: 1.45;
+  }
+
+  .demo-bubble.with-avatar p {
+    color: #263142;
+    background: #f1f3f5;
+    border-radius: 18px 18px 18px 5px;
+  }
+
+  .demo-bubble.visitor p {
+    justify-self: end;
+    color: #ffffff;
+    background: #111827;
+    border-radius: 18px 18px 5px 18px;
+  }
+
+  .demo-bubble time {
+    margin-top: 6px;
+    font-size: 0.72rem;
+  }
+
+  .demo-bubble.visitor time {
+    color: #98a2b3;
+    text-align: right;
+  }
+
   .demo-avatar-stage {
-    min-height: 300px;
+    min-height: 196px;
   }
 
   .landing-avatar {
-    width: min(86vw, 320px);
+    width: min(58vw, 214px);
   }
 
   .demo-composer {
@@ -2716,38 +2817,38 @@ h1 {
 
   .profile-shell {
     min-height: 100svh;
-    padding: 118px 14px 118px;
+    padding: 102px 14px 112px;
   }
 
   .profile-title {
-    top: 14px;
+    top: 12px;
     align-items: center;
     pointer-events: auto;
   }
 
   .profile-title h1 {
     width: min(100%, 380px);
-    font-size: clamp(1.9rem, 9vw, 2.55rem);
+    font-size: clamp(1.75rem, 8vw, 2.28rem);
   }
 
   .profile-social-links {
-    gap: 10px;
-    margin-top: 14px;
+    gap: 8px;
+    margin-top: 10px;
   }
 
   .profile-social-link {
-    width: 54px;
-    height: 54px;
+    width: 46px;
+    height: 46px;
   }
 
   .profile-social-link img {
-    width: 32px;
-    height: 32px;
+    width: 29px;
+    height: 29px;
   }
 
   .profile-conversation {
     width: 100%;
-    min-height: calc(100svh - 236px);
+    min-height: calc(100svh - 214px);
     display: grid;
     grid-template-rows: minmax(0, auto) minmax(86px, 1fr);
     align-content: stretch;
@@ -2758,7 +2859,7 @@ h1 {
   .profile-avatar-stage {
     position: static;
     width: 100%;
-    height: min(43svh, 390px);
+    height: min(38svh, 330px);
     align-content: center;
     justify-items: center;
     padding: 0;
@@ -2766,12 +2867,12 @@ h1 {
   }
 
   .profile-avatar {
-    width: min(82vw, 350px, calc(43svh - 16px));
+    width: min(74vw, 300px, calc(38svh - 12px));
   }
 
   .profile-message-list {
     width: 100%;
-    max-height: clamp(86px, 18svh, 156px);
+    max-height: clamp(118px, 22svh, 188px);
     display: flex;
     flex-direction: column;
     gap: 8px;

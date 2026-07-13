@@ -31,7 +31,7 @@ type ProfileSession = {
   messages: ChatMessage[];
 };
 
-const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:';
+const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:v2:';
 const WAVEFORM_BAR_COUNT = 22;
 
 export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
@@ -97,7 +97,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             createdAt: new Date().toISOString(),
             id: crypto.randomUUID(),
             role: 'profile',
-            text: `Hola, soy ${nextProfile.name}. Puedes preguntarme sobre mi experiencia, historia o proyectos.`,
+            text: `Hola, soy ${nextProfile.name}. Pregúntame sobre mi trabajo, mis proyectos o lo que quieres conocer de mí.`,
           },
         ] satisfies ChatMessage[];
 
