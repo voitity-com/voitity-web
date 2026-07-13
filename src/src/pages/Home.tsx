@@ -8,7 +8,9 @@ type Locale = 'es' | 'en';
 const LOCALE_STORAGE_KEY = 'bigmelo-locale';
 
 type Plan = {
+  cycle: 'month' | 'year';
   name: string;
+  planId?: string;
   price: string;
   period: string;
   label: string;
@@ -98,7 +100,9 @@ const content: Record<
         'Incluye presencia pública, avatar con imagen autorizada, voz generada con IA, chat y respuestas en audio dentro de tus créditos mensuales.',
       items: [
         {
+          cycle: 'month',
           name: 'Starter',
+          planId: 'starter',
           price: '$8',
           period: 'USD /mes',
           label: 'Mensual',
@@ -115,7 +119,9 @@ const content: Record<
           trial: 'Prueba gratis por 7 días y luego $8 USD/mes.',
         },
         {
+          cycle: 'year',
           name: 'Starter',
+          planId: 'starter',
           price: '$80',
           period: 'USD /año',
           label: 'Anual',
@@ -184,7 +190,9 @@ const content: Record<
         'Includes a public presence, authorized image avatar, AI-generated voice, chat, and audio replies within your monthly credits.',
       items: [
         {
+          cycle: 'month',
           name: 'Starter',
+          planId: 'starter',
           price: '$8',
           period: 'USD /month',
           label: 'Monthly',
@@ -201,7 +209,9 @@ const content: Record<
           trial: 'Try it free for 7 days, then $8 USD/month.',
         },
         {
+          cycle: 'year',
           name: 'Starter',
+          planId: 'starter',
           price: '$80',
           period: 'USD /year',
           label: 'Annual',
@@ -254,6 +264,36 @@ function getInitialLocale(): Locale {
   }
 
   return 'es';
+}
+
+function getPlanCheckoutUrl(plan: Plan): string {
+  const url = new URL('/auth/custom/sign-up', getAdminBaseUrl());
+
+  url.searchParams.set('intent', 'trial');
+  url.searchParams.set('plan', plan.planId ?? 'starter');
+  url.searchParams.set('cycle', plan.cycle);
+
+  return url.toString();
+}
+
+function getAdminBaseUrl(): string {
+  const configuredBaseUrl = import.meta.env.VITE_ADMIN_BASE_URL as string | undefined;
+
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/+$/u, '');
+  }
+
+  if (typeof window === 'undefined') {
+    return 'https://admin.bigmelo.com';
+  }
+
+  const { hostname, protocol } = window.location;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `${protocol}//localhost:3000`;
+  }
+
+  return 'https://admin.bigmelo.com';
 }
 
 export function Home() {
@@ -456,7 +496,7 @@ export function Home() {
                 ))}
               </ul>
 
-              <a className="button plan-button" href="#contact">
+              <a className="button plan-button" href={getPlanCheckoutUrl(plan)}>
                 {plan.cta}
               </a>
             </article>
