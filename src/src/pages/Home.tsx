@@ -15,6 +15,7 @@ type Plan = {
   description: string;
   features: string[];
   cta: string;
+  trial: string;
   highlighted?: boolean;
 };
 
@@ -111,6 +112,7 @@ const content: Record<
             '1.000 créditos mensuales incluidos',
           ],
           cta: 'Elegir Starter mensual',
+          trial: 'Prueba gratis por 7 días y luego $8 USD/mes.',
         },
         {
           name: 'Starter',
@@ -128,6 +130,7 @@ const content: Record<
             'Ahorro de $16 frente al pago mensual',
           ],
           cta: 'Elegir Starter anual',
+          trial: 'Prueba gratis por 7 días y luego $80 USD/año.',
           highlighted: true,
         },
       ],
@@ -195,6 +198,7 @@ const content: Record<
             '1,000 monthly credits included',
           ],
           cta: 'Choose Starter monthly',
+          trial: 'Try it free for 7 days, then $8 USD/month.',
         },
         {
           name: 'Starter',
@@ -212,6 +216,7 @@ const content: Record<
             'Save $16 compared with monthly billing',
           ],
           cta: 'Choose Starter annual',
+          trial: 'Try it free for 7 days, then $80 USD/year.',
           highlighted: true,
         },
       ],
@@ -442,6 +447,8 @@ export function Home() {
                 <strong>{plan.price}</strong>
                 <span>{plan.period}</span>
               </div>
+
+              <p className="plan-trial">{plan.trial}</p>
 
               <ul>
                 {plan.features.map((feature) => (

@@ -887,6 +887,22 @@ h1 {
   font-weight: 800;
 }
 
+.plan-trial {
+  margin: -10px 0 0;
+  padding: 12px 14px;
+  color: #05603a;
+  background: #ecfdf3;
+  border: 1px solid #abefc6;
+  border-radius: 8px;
+  font-weight: 720;
+}
+
+.plan-card.highlighted .plan-trial {
+  color: #d1fadf;
+  background: rgba(209, 250, 223, 0.1);
+  border-color: rgba(209, 250, 223, 0.32);
+}
+
 .plan-card ul {
   display: grid;
   gap: 12px;
