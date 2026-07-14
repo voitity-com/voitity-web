@@ -7,7 +7,6 @@ import {
   fetchProfileByAlias,
   ProfileApiError,
   ProfileData,
-  requestVoiceTest,
   sendProfileAudioMessage,
   sendProfileMessage,
 } from '../lib/profile-api';
@@ -31,7 +30,7 @@ type ProfileSession = {
   messages: ChatMessage[];
 };
 
-const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:';
+const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:v3:';
 const WAVEFORM_BAR_COUNT = 22;
 
 export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
@@ -92,18 +91,23 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
         setProfile(nextProfile);
         const storedSession = readProfileSession(profileAlias);
+        const initialMessage = nextProfile.conversationMessages.initial;
+        const hasStoredMessages = Boolean(storedSession?.messages.length);
         const initialMessages = [
           {
+            audioUrl: initialMessage.audioUrl,
             createdAt: new Date().toISOString(),
             id: crypto.randomUUID(),
             role: 'profile',
-            text: `Hola, soy ${nextProfile.name}. Puedes preguntarme sobre mi experiencia, historia o proyectos.`,
+            text:
+              initialMessage.text ??
+              `Hola, soy ${nextProfile.name}. Pregúntame sobre mi trabajo, mis proyectos o lo que quieres conocer de mí.`,
           },
         ] satisfies ChatMessage[];
 
         setChatId(storedSession?.chatId ?? null);
         shouldScrollToBottomRef.current = true;
-        setMessages(storedSession?.messages.length ? storedSession.messages : initialMessages);
+        setMessages(hasStoredMessages ? storedSession!.messages : initialMessages);
         setIsLoading(false);
 
         document.title = `${nextProfile.name} | Bigmelo`;
@@ -124,40 +128,18 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             }
           });
 
-        const greetingText = `Hola, un placer hablar contigo mi nombre es ${nextProfile.name}`;
+        const greetingAudioUrl = hasStoredMessages ? undefined : initialMessage.audioUrl;
+        const currentAudio = audioRef.current ?? audio;
 
-        try {
-          setGreetingAudioState('loading');
-          const greetingAudio = await requestVoiceTest(nextProfile.id, greetingText);
-
-          if (!isMounted || !audio) {
-            return;
-          }
-
-          setAudioSource(audio, greetingAudio.audioUrl, greetingAudio.blob);
-          if (greetingAudio.audioUrl) {
-            setMessages((current) =>
-              current.map((message, index) =>
-                index === 0 && message.role === 'profile'
-                  ? { ...message, audioUrl: greetingAudio.audioUrl }
-                  : message,
-              ),
-            );
-          }
+        if (greetingAudioUrl && currentAudio) {
+          setAudioSource(currentAudio, greetingAudioUrl);
           setGreetingAudioState('ready');
           setGreetingAudioError(null);
-          audio.play().catch(() => {
+          currentAudio.play().catch(() => {
             if (isMounted) {
               setGreetingAudioState('blocked');
             }
           });
-        } catch (voiceError) {
-          if (isMounted) {
-            setGreetingAudioState('unavailable');
-            setGreetingAudioError(
-              voiceError instanceof Error ? voiceError.message : 'No fue posible generar el audio inicial.',
-            );
-          }
         }
       } catch (loadError) {
         if (loadError instanceof ProfileApiError && loadError.status === 404) {

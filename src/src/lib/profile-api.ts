@@ -16,11 +16,29 @@ export class ProfileApiError extends Error {
 export type ProfileData = {
   id: string;
   alias: string;
+  conversationMessages: ProfileConversationMessages;
   name: string;
   headline: string;
   description: string;
   details: string[];
   networks: ProfileSocialNetwork[];
+};
+
+export type ProfileConversationMessageType = 'fallback_no_answer' | 'initial';
+
+export type ProfileConversationMessage = {
+  audioFormat?: string | null;
+  audioSource?: string | null;
+  audioUrl?: string;
+  enabled: boolean;
+  status?: string | null;
+  text: string | null;
+  type: ProfileConversationMessageType;
+};
+
+export type ProfileConversationMessages = {
+  fallbackNoAnswer: ProfileConversationMessage;
+  initial: ProfileConversationMessage;
 };
 
 export type ProfileSocialNetwork = {
@@ -318,6 +336,7 @@ function normalizeProfile(
 
   return {
     alias: pickString(source, ['alias', 'slug', 'profile_alias', 'profileAlias']) ?? fallbackAlias,
+    conversationMessages: buildConversationMessages(source, name),
     description,
     details: buildDetails(source),
     headline,
@@ -459,6 +478,53 @@ function buildProfileSocialNetworks(
   });
 }
 
+function buildConversationMessages(source: UnknownRecord, profileName: string): ProfileConversationMessages {
+  const rawMessages = source.conversation_messages ?? source.conversationMessages;
+  const messages = isRecord(rawMessages) ? rawMessages : {};
+
+  return {
+    fallbackNoAnswer: normalizeConversationMessage(
+      messages.fallback_no_answer ?? messages.fallbackNoAnswer,
+      'fallback_no_answer',
+      null,
+      false,
+    ),
+    initial: normalizeConversationMessage(
+      messages.initial,
+      'initial',
+      buildDefaultInitialMessage(profileName),
+      true,
+    ),
+  };
+}
+
+function normalizeConversationMessage(
+  value: unknown,
+  type: ProfileConversationMessageType,
+  fallbackText: string | null,
+  fallbackEnabled: boolean,
+): ProfileConversationMessage {
+  const source = isRecord(value) ? value : {};
+  const text = pickString(source, ['text', 'message', 'content']) ?? fallbackText;
+  const enabled = pickBoolean(source, ['enabled']) ?? fallbackEnabled;
+
+  return {
+    audioFormat: pickString(source, ['audio_format', 'audioFormat', 'format']) ?? null,
+    audioSource: pickString(source, ['audio_source', 'audioSource', 'source']) ?? null,
+    audioUrl: normalizeOptionalAssetUrl(pickString(source, ['audio_url', 'audioUrl', 'url'])),
+    enabled,
+    status: pickString(source, ['status']) ?? null,
+    text,
+    type,
+  };
+}
+
+function buildDefaultInitialMessage(profileName: string) {
+  const name = profileName.trim() || 'Bigmelo';
+
+  return `Hola, soy ${name}. Pregúntame sobre mi trabajo, mis proyectos o lo que quieres conocer de mí.`;
+}
+
 function formatNetworkName(key: string) {
   if (key.toLowerCase() === 'x') {
     return 'X';
@@ -504,6 +570,34 @@ function pickNestedString(source: UnknownRecord, path: string[]) {
 
   if (typeof current === 'number') {
     return String(current);
+  }
+
+  return undefined;
+}
+
+function pickBoolean(source: UnknownRecord, keys: string[]) {
+  for (const key of keys) {
+    const value = source[key];
+
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    if (typeof value === 'number') {
+      return value === 1;
+    }
+
+    if (typeof value === 'string') {
+      const normalizedValue = value.trim().toLowerCase();
+
+      if (['1', 'true', 'yes'].includes(normalizedValue)) {
+        return true;
+      }
+
+      if (['0', 'false', 'no'].includes(normalizedValue)) {
+        return false;
+      }
+    }
   }
 
   return undefined;
