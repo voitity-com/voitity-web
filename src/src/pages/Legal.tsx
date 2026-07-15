@@ -3,17 +3,20 @@ import { type ReactNode, useEffect } from 'react';
 import bigmeloLogo from '../assets/bigmelo-logo.png';
 
 export type LegalLocale = 'es' | 'en';
+type LegalKind = 'dataDeletion' | 'privacy' | 'terms';
 
 type LegalLayoutProps = {
   children: ReactNode;
   eyebrow: string;
-  kind: 'privacy' | 'terms';
+  kind: LegalKind;
   locale: LegalLocale;
   title: string;
+  updated?: string;
 };
 
 const legalCopy = {
   es: {
+    dataDeletion: 'Eliminación de datos',
     home: 'Inicio',
     privacy: 'Privacidad',
     terms: 'Términos',
@@ -21,6 +24,7 @@ const legalCopy = {
     footer: '© 2026 Bigmelo. Todos los derechos reservados.',
   },
   en: {
+    dataDeletion: 'Data Deletion',
     home: 'Home',
     privacy: 'Privacy',
     terms: 'Terms',
@@ -28,6 +32,21 @@ const legalCopy = {
     footer: '© 2026 Bigmelo. All rights reserved.',
   },
 } satisfies Record<LegalLocale, Record<string, string>>;
+
+const legalPaths = {
+  dataDeletion: {
+    en: '/data-deletion',
+    es: '/eliminacion-datos',
+  },
+  privacy: {
+    en: '/privacy',
+    es: '/privacidad',
+  },
+  terms: {
+    en: '/terms',
+    es: '/terminos',
+  },
+} satisfies Record<LegalKind, Record<LegalLocale, string>>;
 
 export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
   if (locale === 'en') {
@@ -303,6 +322,181 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           el cambio es material, podremos notificarlo por el sitio, correo o dentro del producto. El
           uso continuado del servicio después de una actualización implica aceptación de la versión
           vigente, salvo que la ley exija otro mecanismo.
+        </p>
+      </section>
+    </LegalLayout>
+  );
+}
+
+export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
+  if (locale === 'en') {
+    return (
+      <LegalLayout
+        eyebrow="User Data Deletion"
+        kind="dataDeletion"
+        locale="en"
+        title="Bigmelo User Data Deletion Instructions"
+        updated="Last updated: July 14, 2026"
+      >
+        <p>
+          This page explains how to request deletion of personal data processed by Bigmelo. It also
+          serves as Bigmelo's user data deletion instructions URL for Meta, Facebook, Instagram, or
+          related integrations.
+        </p>
+
+        <section>
+          <h2>1. Data you may ask us to delete</h2>
+          <p>You may request deletion of information associated with your Bigmelo account or profile, including:</p>
+          <ul>
+            <li>Account and contact information, such as name, email, and account identifiers.</li>
+            <li>Profile pages, aliases, biographies, contextual information, social links, and public profile content.</li>
+            <li>Images, videos, audio files, voice samples, generated avatar files, and generated audio files.</li>
+            <li>Connected integration data, such as Instagram or Meta account identifiers, access tokens, synced media, captions, and selected media notes.</li>
+            <li>Visitor chat messages and generated responses associated with profiles you control, where deletion is technically and legally available.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>2. How to request deletion</h2>
+          <p>
+            Send your request to <a href="mailto:privacy@bigmelo.com">privacy@bigmelo.com</a> with the
+            subject line "Data deletion request". Include enough information for us to find and verify
+            the data involved:
+          </p>
+          <ul>
+            <li>The email address used for your Bigmelo account.</li>
+            <li>The profile alias or profile URL, if your request is about a published profile.</li>
+            <li>The connected provider, such as Instagram, Facebook, or Meta, if your request relates to an integration.</li>
+            <li>A clear description of what you want deleted: account, profile, media, voice data, chats, integration data, or all available data.</li>
+          </ul>
+          <p>
+            If a deletion option is available inside the Bigmelo product, you may also use that option.
+            We may still contact you to confirm identity, authority, or scope.
+          </p>
+        </section>
+
+        <section>
+          <h2>3. Removing Meta, Facebook, or Instagram access</h2>
+          <p>
+            If you connected a Meta, Facebook, Instagram, or Threads account to Bigmelo, you can remove
+            Bigmelo's access from your Meta account settings or business integrations. Removing access
+            stops future access by Bigmelo, but you should also send us a deletion request if you want
+            previously synced data removed from Bigmelo systems.
+          </p>
+        </section>
+
+        <section>
+          <h2>4. Verification and processing time</h2>
+          <p>
+            We may ask for additional information to verify that you own the account, control the
+            profile, or have authority over the image, voice, or connected integration. We will process
+            valid requests within a reasonable period required by applicable law and operational
+            constraints.
+          </p>
+        </section>
+
+        <section>
+          <h2>5. What may be retained</h2>
+          <p>
+            Some information may be retained for a limited period when necessary for legal compliance,
+            payment records, security, fraud prevention, dispute resolution, abuse investigations,
+            backups, or technical logs. We may also retain aggregated or anonymized information that no
+            longer identifies you.
+          </p>
+        </section>
+
+        <section>
+          <h2>6. Contact</h2>
+          <p>
+            For questions about this process or to follow up on a request, contact{' '}
+            <a href="mailto:privacy@bigmelo.com">privacy@bigmelo.com</a>.
+          </p>
+        </section>
+      </LegalLayout>
+    );
+  }
+
+  return (
+    <LegalLayout
+      eyebrow="Eliminación de datos de usuario"
+      kind="dataDeletion"
+      locale="es"
+      title="Instrucciones para eliminación de datos de usuario en Bigmelo"
+      updated="Última actualización: 14 de julio de 2026"
+    >
+      <p>
+        Esta página explica cómo solicitar la eliminación de datos personales tratados por Bigmelo.
+        También sirve como URL de instrucciones de eliminación de datos de usuario para Meta, Facebook,
+        Instagram u otras integraciones relacionadas.
+      </p>
+
+      <section>
+        <h2>1. Datos que puedes pedir que eliminemos</h2>
+        <p>Puedes solicitar la eliminación de información asociada a tu cuenta o perfil de Bigmelo, incluyendo:</p>
+        <ul>
+          <li>Datos de cuenta y contacto, como nombre, correo e identificadores de usuario.</li>
+          <li>Páginas de perfil, alias, biografías, información contextual, enlaces sociales y contenido público del perfil.</li>
+          <li>Imágenes, videos, audios, muestras de voz, archivos de avatar generados y respuestas de audio generadas.</li>
+          <li>Datos de integraciones conectadas, como identificadores de Instagram o Meta, tokens de acceso, media sincronizada, captions y observaciones de imágenes seleccionadas.</li>
+          <li>Mensajes de visitantes y respuestas generadas asociadas a perfiles que controlas, cuando la eliminación sea técnica y legalmente posible.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. Cómo solicitar la eliminación</h2>
+        <p>
+          Envía tu solicitud a <a href="mailto:privacy@bigmelo.com">privacy@bigmelo.com</a> con el
+          asunto "Solicitud de eliminación de datos". Incluye suficiente información para ubicar y
+          verificar los datos involucrados:
+        </p>
+        <ul>
+          <li>El correo usado en tu cuenta de Bigmelo.</li>
+          <li>El alias o URL del perfil, si la solicitud se relaciona con un perfil publicado.</li>
+          <li>El proveedor conectado, como Instagram, Facebook o Meta, si la solicitud se relaciona con una integración.</li>
+          <li>Una descripción clara de lo que quieres eliminar: cuenta, perfil, media, datos de voz, chats, datos de integración o todos los datos disponibles.</li>
+        </ul>
+        <p>
+          Si existe una opción de eliminación dentro del producto Bigmelo, también puedes usarla.
+          Podemos contactarte para confirmar identidad, autoridad o alcance de la solicitud.
+        </p>
+      </section>
+
+      <section>
+        <h2>3. Retirar acceso de Meta, Facebook o Instagram</h2>
+        <p>
+          Si conectaste una cuenta de Meta, Facebook, Instagram o Threads a Bigmelo, puedes retirar el
+          acceso de Bigmelo desde la configuración de tu cuenta Meta o desde integraciones empresariales.
+          Retirar el acceso detiene accesos futuros de Bigmelo, pero también debes enviarnos una
+          solicitud de eliminación si quieres borrar datos previamente sincronizados en sistemas de
+          Bigmelo.
+        </p>
+      </section>
+
+      <section>
+        <h2>4. Verificación y tiempo de atención</h2>
+        <p>
+          Podemos pedir información adicional para verificar que eres titular de la cuenta, controlas
+          el perfil o tienes autoridad sobre la imagen, voz o integración conectada. Procesaremos las
+          solicitudes válidas dentro del plazo razonable exigido por la ley aplicable y las
+          restricciones operativas.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. Información que puede conservarse</h2>
+        <p>
+          Parte de la información puede conservarse durante un periodo limitado cuando sea necesario
+          para cumplimiento legal, registros de pago, seguridad, prevención de fraude, resolución de
+          disputas, investigaciones de abuso, respaldos o registros técnicos. También podemos conservar
+          información agregada o anonimizada que ya no te identifique.
+        </p>
+      </section>
+
+      <section>
+        <h2>6. Contacto</h2>
+        <p>
+          Para preguntas sobre este proceso o seguimiento de una solicitud, contáctanos en{' '}
+          <a href="mailto:privacy@bigmelo.com">privacy@bigmelo.com</a>.
         </p>
       </section>
     </LegalLayout>
@@ -711,12 +905,13 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
   );
 }
 
-function LegalLayout({ children, eyebrow, kind, locale, title }: LegalLayoutProps) {
+function LegalLayout({ children, eyebrow, kind, locale, title, updated }: LegalLayoutProps) {
   const copy = legalCopy[locale];
-  const privacyPath = locale === 'es' ? '/privacidad' : '/privacy';
-  const termsPath = locale === 'es' ? '/terminos' : '/terms';
-  const spanishPath = kind === 'privacy' ? '/privacidad' : '/terminos';
-  const englishPath = kind === 'privacy' ? '/privacy' : '/terms';
+  const dataDeletionPath = legalPaths.dataDeletion[locale];
+  const privacyPath = legalPaths.privacy[locale];
+  const termsPath = legalPaths.terms[locale];
+  const spanishPath = legalPaths[kind].es;
+  const englishPath = legalPaths[kind].en;
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -736,6 +931,7 @@ function LegalLayout({ children, eyebrow, kind, locale, title }: LegalLayoutProp
             <a href="/">{copy.home}</a>
             <a href={privacyPath}>{copy.privacy}</a>
             <a href={termsPath}>{copy.terms}</a>
+            <a href={dataDeletionPath}>{copy.dataDeletion}</a>
           </nav>
 
           <div className="legal-language-switch" aria-label={locale === 'es' ? 'Idioma' : 'Language'}>
@@ -748,7 +944,7 @@ function LegalLayout({ children, eyebrow, kind, locale, title }: LegalLayoutProp
       <article className="legal-document">
         <p className="eyebrow">{eyebrow}</p>
         <h1>{title}</h1>
-        <p className="legal-updated">{copy.updated}</p>
+        <p className="legal-updated">{updated ?? copy.updated}</p>
         {children}
       </article>
 

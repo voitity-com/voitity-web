@@ -63,6 +63,7 @@ const content: Record<
     };
     footer: {
       tagline: string;
+      dataDeletion: string;
       privacy: string;
       terms: string;
     };
@@ -154,6 +155,7 @@ const content: Record<
     },
     footer: {
       tagline: 'Presencias digitales con inteligencia artificial, voz autorizada e información verificada.',
+      dataDeletion: 'Eliminación de datos',
       privacy: 'Privacidad',
       terms: 'Términos',
     },
@@ -244,6 +246,7 @@ const content: Record<
     },
     footer: {
       tagline: 'AI-powered digital presences with authorized voice and verified information.',
+      dataDeletion: 'Data deletion',
       privacy: 'Privacy',
       terms: 'Terms',
     },
@@ -551,6 +554,7 @@ export function Home() {
         <div>
           <a href={locale === 'es' ? '/privacidad' : '/privacy'}>{t.footer.privacy}</a>
           <a href={locale === 'es' ? '/terminos' : '/terms'}>{t.footer.terms}</a>
+          <a href={locale === 'es' ? '/eliminacion-datos' : '/data-deletion'}>{t.footer.dataDeletion}</a>
         </div>
       </footer>
     </main>
