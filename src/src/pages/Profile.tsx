@@ -33,7 +33,14 @@ type ProfileSession = {
   messages: ChatMessage[];
 };
 
+type PulseMedia = {
+  mediaKey: string;
+  messageId: string;
+};
+
 const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:v3:';
+const MEDIA_MODAL_CLOSE_TRANSITION_MS = 460;
+const MEDIA_PULSE_DURATION_MS = 2000;
 const WAVEFORM_BAR_COUNT = 22;
 
 const profileCopy = {
@@ -127,6 +134,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioDraft, setAudioDraft] = useState<AudioDraft | null>(null);
+  const [pulseMedia, setPulseMedia] = useState<PulseMedia | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [previewDurationSeconds, setPreviewDurationSeconds] = useState(0);
   const copy = getProfileCopy(profile?.locale ?? 'es');
@@ -142,6 +150,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setIsLoading(true);
         setError(null);
         setChatId(null);
+        setPulseMedia(null);
         setGreetingAudioState('idle');
         setGreetingAudioError(null);
         setIsAudioPlaying(false);
@@ -332,18 +341,28 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setChatId(response.chatId);
       }
 
+      const answerMessageId = crypto.randomUUID();
+      const responseMedia = response.media ?? [];
+
       shouldScrollToBottomRef.current = true;
       setMessages((current) => [
         ...current,
         {
           audioUrl: response.audioUrl,
           createdAt: new Date().toISOString(),
-          id: crypto.randomUUID(),
-          ...(response.media?.length ? { media: response.media } : {}),
+          id: answerMessageId,
+          ...(responseMedia.length ? { media: responseMedia } : {}),
           role: 'profile',
           text: response.text,
         },
       ]);
+
+      if (responseMedia.length) {
+        setPulseMedia({
+          mediaKey: getMediaItemKey(responseMedia[0], 0),
+          messageId: answerMessageId,
+        });
+      }
 
       if (response.audioUrl && audioRef.current) {
         setAudioSource(audioRef.current, response.audioUrl);
@@ -592,18 +611,28 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         messageAudioBlobUrlsRef.current.delete(localAudioUrl);
       }
 
+      const answerMessageId = crypto.randomUUID();
+      const responseMedia = response.media ?? [];
+
       shouldScrollToBottomRef.current = true;
       setMessages((current) => [
         ...current.map((message) => (message.id === pendingMessageId ? resolvedVisitorMessage : message)),
         {
           audioUrl: response.audioUrl,
           createdAt: new Date().toISOString(),
-          id: crypto.randomUUID(),
-          ...(response.media?.length ? { media: response.media } : {}),
+          id: answerMessageId,
+          ...(responseMedia.length ? { media: responseMedia } : {}),
           role: 'profile',
           text: response.text,
         },
       ]);
+
+      if (responseMedia.length) {
+        setPulseMedia({
+          mediaKey: getMediaItemKey(responseMedia[0], 0),
+          messageId: answerMessageId,
+        });
+      }
 
       if (response.audioUrl && audioRef.current) {
         setAudioSource(audioRef.current, response.audioUrl);
@@ -828,7 +857,18 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                         </div>
                         <div className="profile-message-copy">
                           <p>{message.text}</p>
-                          {message.media?.length ? <ProfileMessageMedia copy={copy} media={message.media} /> : null}
+                          {message.media?.length ? (
+                            <ProfileMessageMedia
+                              copy={copy}
+                              media={message.media}
+                              onPulseComplete={() => {
+                                setPulseMedia((current) =>
+                                  current?.messageId === message.id ? null : current,
+                                );
+                              }}
+                              pulseMediaKey={pulseMedia?.messageId === message.id ? pulseMedia.mediaKey : null}
+                            />
+                          ) : null}
                           <time>{formatMessageTime(message.createdAt)}</time>
                         </div>
                       </div>
@@ -1091,8 +1131,122 @@ function getNetworkInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || '?';
 }
 
-function ProfileMessageMedia({ copy, media }: { copy: ReturnType<typeof getProfileCopy>; media: ChatMessageMedia[] }) {
+function ProfileMessageMedia({
+  copy,
+  media,
+  onPulseComplete,
+  pulseMediaKey,
+}: {
+  copy: ReturnType<typeof getProfileCopy>;
+  media: ChatMessageMedia[];
+  onPulseComplete?: () => void;
+  pulseMediaKey?: string | null;
+}) {
   const [selectedMedia, setSelectedMedia] = useState<ChatMessageMedia | null>(null);
+  const [modalPhase, setModalPhase] = useState<'opening' | 'open' | 'closing'>('opening');
+  const [pulsingMediaKey, setPulsingMediaKey] = useState<string | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const handledPulseKeyRef = useRef<string | null>(null);
+  const modalPhaseRef = useRef<'opening' | 'open' | 'closing'>('opening');
+  const pulseTimerRef = useRef<number | null>(null);
+  const selectedMediaRef = useRef<ChatMessageMedia | null>(null);
+
+  function clearCloseTimer() {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }
+
+  function clearPulseTimer() {
+    if (pulseTimerRef.current !== null) {
+      window.clearTimeout(pulseTimerRef.current);
+      pulseTimerRef.current = null;
+    }
+  }
+
+  function finishCloseMedia() {
+    selectedMediaRef.current = null;
+    modalPhaseRef.current = 'opening';
+    setSelectedMedia(null);
+    setModalPhase('opening');
+  }
+
+  function openMedia(item: ChatMessageMedia) {
+    clearCloseTimer();
+    selectedMediaRef.current = item;
+    modalPhaseRef.current = 'opening';
+    setSelectedMedia(item);
+    setModalPhase('opening');
+    window.requestAnimationFrame(() => {
+      modalPhaseRef.current = 'open';
+      setModalPhase('open');
+    });
+  }
+
+  function closeMedia() {
+    if (!selectedMediaRef.current || modalPhaseRef.current === 'closing') {
+      return;
+    }
+
+    modalPhaseRef.current = 'closing';
+    setModalPhase('closing');
+    clearCloseTimer();
+
+    const shouldReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (shouldReduceMotion) {
+      finishCloseMedia();
+      return;
+    }
+
+    closeTimerRef.current = window.setTimeout(() => {
+      finishCloseMedia();
+      closeTimerRef.current = null;
+    }, MEDIA_MODAL_CLOSE_TRANSITION_MS);
+  }
+
+  function startMediaPulse(mediaKey: string) {
+    if (!pulseMediaKey || mediaKey !== pulseMediaKey || handledPulseKeyRef.current === mediaKey) {
+      return;
+    }
+
+    handledPulseKeyRef.current = mediaKey;
+    clearPulseTimer();
+    setPulsingMediaKey(mediaKey);
+    pulseTimerRef.current = window.setTimeout(() => {
+      setPulsingMediaKey(null);
+      pulseTimerRef.current = null;
+      onPulseComplete?.();
+    }, MEDIA_PULSE_DURATION_MS);
+  }
+
+  useEffect(() => {
+    return () => {
+      clearCloseTimer();
+      clearPulseTimer();
+    };
+  }, []);
+
+  useEffect(() => {
+    selectedMediaRef.current = selectedMedia;
+  }, [selectedMedia]);
+
+  useEffect(() => {
+    modalPhaseRef.current = modalPhase;
+  }, [modalPhase]);
+
+  useEffect(() => {
+    if (!pulseMediaKey) {
+      handledPulseKeyRef.current = null;
+      return undefined;
+    }
+
+    return () => {
+      clearPulseTimer();
+      setPulsingMediaKey(null);
+    };
+  }, [pulseMediaKey]);
 
   useEffect(() => {
     if (!selectedMedia) {
@@ -1101,7 +1255,7 @@ function ProfileMessageMedia({ copy, media }: { copy: ReturnType<typeof getProfi
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setSelectedMedia(null);
+        closeMedia();
       }
     };
 
@@ -1110,7 +1264,7 @@ function ProfileMessageMedia({ copy, media }: { copy: ReturnType<typeof getProfi
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedMedia]);
+  }, [modalPhase, selectedMedia]);
 
   useEffect(() => {
     if (!selectedMedia) {
@@ -1130,10 +1284,10 @@ function ProfileMessageMedia({ copy, media }: { copy: ReturnType<typeof getProfi
         <div
           aria-label={copy.modalTitle}
           aria-modal="true"
-          className="profile-media-modal"
+          className={`profile-media-modal is-${modalPhase}`}
           role="dialog"
           onClick={() => {
-            setSelectedMedia(null);
+            closeMedia();
           }}
         >
           <div
@@ -1148,7 +1302,7 @@ function ProfileMessageMedia({ copy, media }: { copy: ReturnType<typeof getProfi
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                setSelectedMedia(null);
+                closeMedia();
               }}
             >
               <CloseIcon />
@@ -1184,22 +1338,38 @@ function ProfileMessageMedia({ copy, media }: { copy: ReturnType<typeof getProfi
       <div className="profile-message-media-list">
         {media.map((item, index) => {
           const body = getMediaDisplayText(item);
+          const mediaKey = getMediaItemKey(item, index);
           const provider = getMediaProviderLabel(item);
 
           return (
             <article
-              className="profile-message-media-card"
-              key={`${item.permalink ?? item.imageUrl ?? provider}-${index}`}
+              className={
+                pulsingMediaKey === mediaKey
+                  ? 'profile-message-media-card is-pulsing'
+                  : 'profile-message-media-card'
+              }
+              key={mediaKey}
             >
               <button
                 aria-label={`${copy.modalTitle}: ${body || provider}`}
                 className="profile-message-media-preview"
                 type="button"
                 onClick={() => {
-                  setSelectedMedia(item);
+                  openMedia(item);
                 }}
               >
-                {item.imageUrl ? <img alt={body ?? provider} src={item.imageUrl} /> : null}
+                {item.imageUrl ? (
+                  <img
+                    alt={body ?? provider}
+                    src={item.imageUrl}
+                    onError={() => {
+                      startMediaPulse(mediaKey);
+                    }}
+                    onLoad={() => {
+                      startMediaPulse(mediaKey);
+                    }}
+                  />
+                ) : null}
                 <span className="profile-message-media-body">
                   <span>{provider}</span>
                   {body ? <span>{body}</span> : null}
@@ -1232,6 +1402,10 @@ function getMediaDisplayText(item: ChatMessageMedia): string {
   const source = item.observation?.trim() || item.caption?.trim() || '';
 
   return cleanMediaDisplayText(source);
+}
+
+function getMediaItemKey(item: ChatMessageMedia, index: number): string {
+  return `${item.id ?? item.permalink ?? item.imageUrl ?? getMediaProviderLabel(item)}-${index}`;
 }
 
 function cleanMediaDisplayText(text: string): string {
