@@ -60,6 +60,7 @@ export type ChatMessage = {
 
 export type ChatMessageMedia = {
   caption?: string;
+  id?: string;
   imageUrl?: string;
   observation?: string;
   permalink?: string;
@@ -410,6 +411,7 @@ function normalizeMessageMedia(value: unknown): ChatMessageMedia[] {
     return [
       {
         ...(pickString(item, ['caption']) ? { caption: pickString(item, ['caption']) } : {}),
+        ...(pickString(item, ['id', 'media_id', 'mediaId']) ? { id: pickString(item, ['id', 'media_id', 'mediaId']) } : {}),
         ...(imageUrl ? { imageUrl } : {}),
         ...(pickString(item, ['observation', 'note']) ? { observation: pickString(item, ['observation', 'note']) } : {}),
         ...(permalink ? { permalink } : {}),
