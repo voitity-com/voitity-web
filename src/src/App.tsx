@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { Home } from './pages/Home';
-import { PrivacyPolicy, TermsAndConditions } from './pages/Legal';
+import { DataDeletionInstructions, PrivacyPolicy, TermsAndConditions } from './pages/Legal';
 import { Profile } from './pages/Profile';
 
 export function App() {
@@ -39,6 +39,14 @@ export function App() {
 
   if (profileAlias === 'terms') {
     return <TermsAndConditions locale="en" />;
+  }
+
+  if (profileAlias === 'eliminacion-datos' || profileAlias === 'eliminacion-de-datos') {
+    return <DataDeletionInstructions locale="es" />;
+  }
+
+  if (profileAlias === 'data-deletion' || profileAlias === 'user-data-deletion') {
+    return <DataDeletionInstructions locale="en" />;
   }
 
   if (profileAlias) {
