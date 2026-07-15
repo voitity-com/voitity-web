@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import {
   ChatMessage,
+  ChatMessageMedia,
   fetchAvatarMedia,
   fetchProfileChatMessages,
   fetchProfileByAlias,
@@ -18,6 +20,7 @@ type ProfileProps = {
 
 type GreetingAudioState = 'idle' | 'loading' | 'ready' | 'blocked' | 'unavailable';
 type RecordingState = 'idle' | 'preparing' | 'recording' | 'preview';
+type ProfileLocale = ProfileData['locale'];
 
 type AudioDraft = {
   blob: Blob;
@@ -32,6 +35,65 @@ type ProfileSession = {
 
 const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:v3:';
 const WAVEFORM_BAR_COUNT = 22;
+
+const profileCopy = {
+  en: {
+    audioInitialUnavailable: 'Initial audio is not available for this profile.',
+    audioMessage: 'Play message audio',
+    cancelRecording: 'Cancel recording',
+    defaultInitial: (name: string) =>
+      `Hi, I am ${name}. Ask me about my work, my projects, or anything you want to know about me.`,
+    discardAudio: 'Discard audio',
+    footerRights: 'All rights Reserved.',
+    goToBottom: 'Go to the end of the conversation',
+    loading: 'Loading profile...',
+    messagePlaceholder: 'Write your message...',
+    modalClose: 'Close photo',
+    modalTitle: 'Photo detail',
+    pauseRecordedAudio: 'Pause recorded audio',
+    preparing: 'Preparing...',
+    playRecordedAudio: 'Play recorded audio',
+    recordingNotAvailable: 'Your browser does not allow audio recording from this screen.',
+    sendAudio: 'Send audio',
+    sendFailed: 'The message could not be sent.',
+    sendMessage: 'Send message',
+    socialNav: 'Social networks',
+    startRecording: 'Record message',
+    stopRecording: 'Stop recording',
+    typing: 'Writing response...',
+    viewOnProvider: (provider: string) => `View on ${provider}`,
+  },
+  es: {
+    audioInitialUnavailable: 'Audio inicial no disponible para este perfil.',
+    audioMessage: 'Reproducir audio del mensaje',
+    cancelRecording: 'Cancelar grabación',
+    defaultInitial: (name: string) =>
+      `Hola, soy ${name}. Pregúntame sobre mi trabajo, mis proyectos o lo que quieres conocer de mí.`,
+    discardAudio: 'Descartar audio',
+    footerRights: 'Todos los derechos reservados.',
+    goToBottom: 'Ir al final de la conversación',
+    loading: 'Cargando perfil...',
+    messagePlaceholder: 'Escribe tu mensaje...',
+    modalClose: 'Cerrar foto',
+    modalTitle: 'Detalle de la foto',
+    pauseRecordedAudio: 'Pausar audio grabado',
+    preparing: 'Preparando...',
+    playRecordedAudio: 'Reproducir audio grabado',
+    recordingNotAvailable: 'Tu navegador no permite grabar audio desde esta pantalla.',
+    sendAudio: 'Enviar audio',
+    sendFailed: 'No fue posible enviar el mensaje.',
+    sendMessage: 'Enviar mensaje',
+    socialNav: 'Redes sociales',
+    startRecording: 'Grabar mensaje',
+    stopRecording: 'Detener grabación',
+    typing: 'Escribiendo respuesta...',
+    viewOnProvider: (provider: string) => `Ver en ${provider}`,
+  },
+} satisfies Record<ProfileLocale, Record<string, string | ((value: string) => string)>>;
+
+function getProfileCopy(locale: ProfileLocale) {
+  return profileCopy[locale] as typeof profileCopy.es;
+}
 
 export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -67,6 +129,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const [audioDraft, setAudioDraft] = useState<AudioDraft | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [previewDurationSeconds, setPreviewDurationSeconds] = useState(0);
+  const copy = getProfileCopy(profile?.locale ?? 'es');
   const [previewPlaybackSeconds, setPreviewPlaybackSeconds] = useState(0);
 
   useEffect(() => {
@@ -101,7 +164,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             role: 'profile',
             text:
               initialMessage.text ??
-              `Hola, soy ${nextProfile.name}. Pregúntame sobre mi trabajo, mis proyectos o lo que quieres conocer de mí.`,
+              getProfileCopy(nextProfile.locale).defaultInitial(nextProfile.name),
           },
         ] satisfies ChatMessage[];
 
@@ -276,6 +339,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           audioUrl: response.audioUrl,
           createdAt: new Date().toISOString(),
           id: crypto.randomUUID(),
+          ...(response.media?.length ? { media: response.media } : {}),
           role: 'profile',
           text: response.text,
         },
@@ -288,7 +352,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         });
       }
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : 'No fue posible enviar el mensaje.');
+      setError(sendError instanceof Error ? sendError.message : copy.sendFailed);
     } finally {
       setIsSending(false);
     }
@@ -300,7 +364,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     }
 
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      setError('Tu navegador no permite grabar audio desde esta pantalla.');
+      setError(copy.recordingNotAvailable);
       return;
     }
 
@@ -535,6 +599,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           audioUrl: response.audioUrl,
           createdAt: new Date().toISOString(),
           id: crypto.randomUUID(),
+          ...(response.media?.length ? { media: response.media } : {}),
           role: 'profile',
           text: response.text,
         },
@@ -547,7 +612,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         });
       }
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : 'No fue posible enviar el audio.');
+      setError(sendError instanceof Error ? sendError.message : copy.sendFailed);
       setMessages((current) =>
         current.map((message) =>
           message.id === pendingMessageId
@@ -703,7 +768,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
       <section className="profile-shell" aria-live="polite">
         {isLoading && !profile ? (
-          <div className="profile-state">Cargando perfil...</div>
+          <div className="profile-state">{copy.loading}</div>
         ) : null}
 
         {!isLoading && error && !profile ? (
@@ -715,7 +780,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             <header className="profile-title">
               <h1>{profile.name}</h1>
               {profile.networks.length ? (
-                <nav aria-label="Redes sociales" className="profile-social-links">
+                <nav aria-label={copy.socialNav} className="profile-social-links">
                   {profile.networks.map((network) => (
                     <a
                       aria-label={network.name}
@@ -751,10 +816,10 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                           ) : null}
                           <span aria-hidden="true">{profile.name.charAt(0).toUpperCase()}</span>
                           <button
-                            aria-label="Reproducir audio del mensaje"
+                            aria-label={copy.audioMessage}
                             className="profile-mini-play-button"
                             disabled={!message.audioUrl}
-                            title="Reproducir audio del mensaje"
+                            title={copy.audioMessage}
                             type="button"
                             onClick={() => playMessageAudio(message)}
                           >
@@ -763,6 +828,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                         </div>
                         <div className="profile-message-copy">
                           <p>{message.text}</p>
+                          {message.media?.length ? <ProfileMessageMedia copy={copy} media={message.media} /> : null}
                           <time>{formatMessageTime(message.createdAt)}</time>
                         </div>
                       </div>
@@ -771,9 +837,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                         <div className={message.audioUrl ? 'profile-message-copy has-audio' : 'profile-message-copy'}>
                           {message.audioUrl ? (
                             <button
-                              aria-label="Reproducir audio del mensaje"
+                              aria-label={copy.audioMessage}
                               className="profile-message-play-button"
-                              title="Reproducir audio del mensaje"
+                              title={copy.audioMessage}
                               type="button"
                               onClick={() => playMessageAudio(message)}
                             >
@@ -801,7 +867,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                         <span aria-hidden="true">{profile.name.charAt(0).toUpperCase()}</span>
                       </div>
                       <div className="profile-message-copy">
-                        <p>Escribiendo respuesta...</p>
+                        <p>{copy.typing}</p>
                       </div>
                     </div>
                   </article>
@@ -834,8 +900,8 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                 {greetingAudioState === 'unavailable' ? (
                   <p className="profile-audio-note profile-audio-note-error">
                     {greetingAudioError
-                      ? `Audio inicial no disponible: ${greetingAudioError}`
-                      : 'Audio inicial no disponible para este perfil.'}
+                      ? `${copy.audioInitialUnavailable}: ${greetingAudioError}`
+                      : copy.audioInitialUnavailable}
                   </p>
                 ) : null}
               </section>
@@ -851,7 +917,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                 {recordingState === 'preparing' ? (
                   <div className="profile-voice-recorder preparing" aria-live="polite">
                     <span className="profile-recording-dot is-waiting" />
-                    <span className="profile-recording-status">Preparando...</span>
+                    <span className="profile-recording-status">{copy.preparing}</span>
                     <VoiceWaveform />
                   </div>
                 ) : recordingState === 'recording' ? (
@@ -863,9 +929,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                 ) : audioDraft ? (
                   <div className="profile-voice-recorder preview" aria-live="polite">
                     <button
-                      aria-label={isPreviewPlaying ? 'Pausar audio grabado' : 'Reproducir audio grabado'}
+                      aria-label={isPreviewPlaying ? copy.pauseRecordedAudio : copy.playRecordedAudio}
                       className="profile-voice-play-button"
-                      title={isPreviewPlaying ? 'Pausar audio grabado' : 'Reproducir audio grabado'}
+                      title={isPreviewPlaying ? copy.pauseRecordedAudio : copy.playRecordedAudio}
                       type="button"
                       onClick={playAudioDraft}
                     >
@@ -878,7 +944,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                   <input
                     aria-label="Mensaje"
                     disabled={isSending}
-                    placeholder="Escribe tu mensaje..."
+                    placeholder={copy.messagePlaceholder}
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                   />
@@ -887,20 +953,20 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                 {recordingState === 'preparing' ? (
                   <>
                     <button
-                      aria-label="Cancelar grabación"
+                      aria-label={copy.cancelRecording}
                       className="profile-icon-button"
                       disabled={isSending}
-                      title="Cancelar grabación"
+                      title={copy.cancelRecording}
                       type="button"
                       onClick={cancelAudioRecording}
                     >
                       <TrashIcon />
                     </button>
                     <button
-                      aria-label="Detener grabación"
+                      aria-label={copy.stopRecording}
                       className="profile-icon-button recording-stop"
                       disabled
-                      title="Detener grabación"
+                      title={copy.stopRecording}
                       type="button"
                     >
                       <StopIcon />
@@ -909,20 +975,20 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                 ) : recordingState === 'recording' ? (
                   <>
                     <button
-                      aria-label="Cancelar grabación"
+                      aria-label={copy.cancelRecording}
                       className="profile-icon-button"
                       disabled={isSending}
-                      title="Cancelar grabación"
+                      title={copy.cancelRecording}
                       type="button"
                       onClick={cancelAudioRecording}
                     >
                       <TrashIcon />
                     </button>
                     <button
-                      aria-label="Detener grabación"
+                      aria-label={copy.stopRecording}
                       className="profile-icon-button recording-stop"
                       disabled={isSending}
-                      title="Detener grabación"
+                      title={copy.stopRecording}
                       type="button"
                       onClick={stopAudioRecording}
                     >
@@ -932,20 +998,20 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                 ) : audioDraft ? (
                   <>
                     <button
-                      aria-label="Descartar audio"
+                      aria-label={copy.discardAudio}
                       className="profile-icon-button"
                       disabled={isSending}
-                      title="Descartar audio"
+                      title={copy.discardAudio}
                       type="button"
                       onClick={clearAudioDraft}
                     >
                       <TrashIcon />
                     </button>
                     <button
-                      aria-label="Enviar audio"
+                      aria-label={copy.sendAudio}
                       className="profile-icon-button"
                       disabled={isSending}
-                      title="Enviar audio"
+                      title={copy.sendAudio}
                       type="button"
                       onClick={sendAudioDraft}
                     >
@@ -955,20 +1021,20 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                 ) : (
                   <>
                     <button
-                      aria-label="Grabar mensaje"
+                      aria-label={copy.startRecording}
                       className="profile-icon-button"
                       disabled={isSending}
-                      title="Grabar mensaje"
+                      title={copy.startRecording}
                       type="button"
                       onClick={startAudioRecording}
                     >
                       <MicrophoneIcon />
                     </button>
                     <button
-                      aria-label="Enviar mensaje"
+                      aria-label={copy.sendMessage}
                       className="profile-icon-button"
                       disabled={isSending || !draft.trim()}
-                      title="Enviar mensaje"
+                      title={copy.sendMessage}
                       type="submit"
                     >
                       <SendIcon />
@@ -978,15 +1044,15 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
               </form>
 
               <footer className="profile-footer-note">
-                © 2026 <a href="/">bigmelo.com</a> All rights Reserved.
+                © 2026 <a href="/">bigmelo.com</a> {copy.footerRights}
               </footer>
             </section>
 
             {showScrollToBottom ? (
               <button
-                aria-label="Ir al final de la conversación"
+                aria-label={copy.goToBottom}
                 className="profile-scroll-bottom-button"
-                title="Ir al final de la conversación"
+                title={copy.goToBottom}
                 type="button"
                 onClick={scrollToConversationBottom}
               >
@@ -1023,6 +1089,160 @@ function formatRecordingDuration(totalSeconds: number) {
 
 function getNetworkInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || '?';
+}
+
+function ProfileMessageMedia({ copy, media }: { copy: ReturnType<typeof getProfileCopy>; media: ChatMessageMedia[] }) {
+  const [selectedMedia, setSelectedMedia] = useState<ChatMessageMedia | null>(null);
+
+  useEffect(() => {
+    if (!selectedMedia) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedMedia(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedMedia]);
+
+  useEffect(() => {
+    if (!selectedMedia) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedMedia]);
+
+  const modal = selectedMedia
+    ? createPortal(
+        <div
+          aria-label={copy.modalTitle}
+          aria-modal="true"
+          className="profile-media-modal"
+          role="dialog"
+          onClick={() => {
+            setSelectedMedia(null);
+          }}
+        >
+          <div
+            className="profile-media-modal-panel"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <button
+              aria-label={copy.modalClose}
+              className="profile-media-modal-close"
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setSelectedMedia(null);
+              }}
+            >
+              <CloseIcon />
+            </button>
+            {selectedMedia.imageUrl ? (
+              <img
+                alt={selectedMedia.observation ?? selectedMedia.caption ?? getMediaProviderLabel(selectedMedia)}
+                className="profile-media-modal-image"
+                src={selectedMedia.imageUrl}
+              />
+            ) : null}
+            {getMediaDisplayText(selectedMedia) ? (
+              <p className="profile-media-modal-caption">{getMediaDisplayText(selectedMedia)}</p>
+            ) : null}
+            {selectedMedia.permalink ? (
+              <a
+                className="profile-media-modal-link"
+                href={selectedMedia.permalink}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {copy.viewOnProvider(getMediaProviderLabel(selectedMedia))}
+              </a>
+            ) : null}
+          </div>
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <>
+      <div className="profile-message-media-list">
+        {media.map((item, index) => {
+          const body = getMediaDisplayText(item);
+          const provider = getMediaProviderLabel(item);
+
+          return (
+            <article
+              className="profile-message-media-card"
+              key={`${item.permalink ?? item.imageUrl ?? provider}-${index}`}
+            >
+              <button
+                aria-label={`${copy.modalTitle}: ${body || provider}`}
+                className="profile-message-media-preview"
+                type="button"
+                onClick={() => {
+                  setSelectedMedia(item);
+                }}
+              >
+                {item.imageUrl ? <img alt={body ?? provider} src={item.imageUrl} /> : null}
+                <span className="profile-message-media-body">
+                  <span>{provider}</span>
+                  {body ? <span>{body}</span> : null}
+                </span>
+              </button>
+              {item.permalink ? (
+                <a
+                  className="profile-message-media-link"
+                  href={item.permalink}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {copy.viewOnProvider(provider)}
+                </a>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+      {modal}
+    </>
+  );
+}
+
+function getMediaProviderLabel(item: ChatMessageMedia): string {
+  return item.providerLabel ?? item.provider ?? 'Instagram';
+}
+
+function getMediaDisplayText(item: ChatMessageMedia): string {
+  const source = item.observation?.trim() || item.caption?.trim() || '';
+
+  return cleanMediaDisplayText(source);
+}
+
+function cleanMediaDisplayText(text: string): string {
+  const cleaned = text
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\s*,?\s*(mostrar|show)\b.*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.,;:]+$/g, '');
+
+  return cleaned.toLowerCase() === 'mexico' ? 'México' : cleaned;
 }
 
 function getPreferredRecordingMimeType() {
@@ -1122,6 +1342,7 @@ function normalizeStoredMessages(value: unknown): ChatMessage[] {
         role: message.role,
         text: message.text,
         ...(message.createdAt ? { createdAt: message.createdAt } : {}),
+        ...(message.media?.length ? { media: message.media.filter(isStoredMessageMedia) } : {}),
       },
     ];
   });
@@ -1136,6 +1357,17 @@ function isStoredMessage(value: unknown): value is ChatMessage {
   const hasValidRole = message.role === 'visitor' || message.role === 'profile';
 
   return typeof message.id === 'string' && hasValidRole && typeof message.text === 'string';
+}
+
+function isStoredMessageMedia(value: unknown): value is ChatMessageMedia {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const media = value as Partial<ChatMessageMedia>;
+  const hasImageOrLink = typeof media.imageUrl === 'string' || typeof media.permalink === 'string';
+
+  return hasImageOrLink;
 }
 
 function VoiceWaveform({
@@ -1243,6 +1475,19 @@ function TrashIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.9"
+      />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="m6.5 6.5 11 11M17.5 6.5l-11 11"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="2"
       />
     </svg>
   );

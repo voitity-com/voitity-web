@@ -17,6 +17,7 @@ export type ProfileData = {
   id: string;
   alias: string;
   conversationMessages: ProfileConversationMessages;
+  locale: 'en' | 'es';
   name: string;
   headline: string;
   description: string;
@@ -52,14 +53,28 @@ export type ChatMessage = {
   audioUrl?: string;
   createdAt?: string;
   id: string;
+  media?: ChatMessageMedia[];
   role: 'visitor' | 'profile';
   text: string;
+};
+
+export type ChatMessageMedia = {
+  caption?: string;
+  imageUrl?: string;
+  observation?: string;
+  permalink?: string;
+  provider?: string;
+  providerKey?: string;
+  providerLabel?: string;
+  takenAt?: string;
+  type?: string;
 };
 
 export type MessageResponse = {
   chatId?: string;
   text: string;
   audioUrl?: string;
+  media?: ChatMessageMedia[];
   requestAudioUrl?: string;
   requestMessageId?: string;
   requestText?: string;
@@ -333,14 +348,16 @@ function normalizeProfile(
   const description =
     pickString(source, ['description', 'bio', 'biography', 'summary', 'about']) ??
     'Haz una pregunta para conversar con este perfil.';
+  const locale = normalizeLocale(pickString(source, ['locale', 'language', 'language_code', 'languageCode']));
 
   return {
     alias: pickString(source, ['alias', 'slug', 'profile_alias', 'profileAlias']) ?? fallbackAlias,
-    conversationMessages: buildConversationMessages(source, name),
+    conversationMessages: buildConversationMessages(source, name, locale),
     description,
     details: buildDetails(source),
     headline,
     id,
+    locale,
     name,
     networks: buildProfileSocialNetworks(source, socialNetworkDefinitions),
   };
@@ -351,9 +368,10 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
   const audioUrl = normalizeOptionalAssetUrl(
     pickString(source, ['audio_url', 'audioUrl', 'voice_url', 'voiceUrl', 'url']),
   );
+  const media = normalizeMessageMedia(source.media);
   const text = pickString(source, ['response', 'answer', 'text', 'message', 'content']);
 
-  if (!text && !audioUrl) {
+  if (!text && !audioUrl && media.length === 0) {
     throw new Error(getMessageResponseError(payload, source));
   }
 
@@ -365,8 +383,44 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
     ),
     requestMessageId: pickString(source, ['request_message_id', 'requestMessageId']),
     requestText: pickString(source, ['request_text', 'requestText']),
+    ...(media.length ? { media } : {}),
     text: text ?? 'Respuesta de audio recibida.',
   };
+}
+
+function normalizeMessageMedia(value: unknown): ChatMessageMedia[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!isRecord(item)) {
+      return [];
+    }
+
+    const imageUrl = normalizeOptionalAssetUrl(
+      pickString(item, ['image_url', 'imageUrl', 'media_url', 'mediaUrl', 'thumbnail_url', 'thumbnailUrl']),
+    );
+    const permalink = pickString(item, ['permalink', 'link', 'instagram_url', 'instagramUrl']);
+
+    if (!imageUrl && !permalink) {
+      return [];
+    }
+
+    return [
+      {
+        ...(pickString(item, ['caption']) ? { caption: pickString(item, ['caption']) } : {}),
+        ...(imageUrl ? { imageUrl } : {}),
+        ...(pickString(item, ['observation', 'note']) ? { observation: pickString(item, ['observation', 'note']) } : {}),
+        ...(permalink ? { permalink } : {}),
+        ...(pickString(item, ['provider']) ? { provider: pickString(item, ['provider']) } : {}),
+        ...(pickString(item, ['provider_key', 'providerKey']) ? { providerKey: pickString(item, ['provider_key', 'providerKey']) } : {}),
+        ...(pickString(item, ['provider_label', 'providerLabel']) ? { providerLabel: pickString(item, ['provider_label', 'providerLabel']) } : {}),
+        ...(pickString(item, ['taken_at', 'takenAt', 'timestamp']) ? { takenAt: pickString(item, ['taken_at', 'takenAt', 'timestamp']) } : {}),
+        ...(pickString(item, ['type', 'media_type', 'mediaType']) ? { type: pickString(item, ['type', 'media_type', 'mediaType']) } : {}),
+      },
+    ];
+  });
 }
 
 function getMessageResponseError(payload: UnknownRecord, source: UnknownRecord) {
@@ -410,6 +464,8 @@ function normalizeChatMessage(value: unknown): ChatMessage[] {
     return [];
   }
 
+  const data = isRecord(value.data) ? value.data : {};
+  const media = normalizeMessageMedia(value.media ?? data.media);
   const text = pickString(value, ['text', 'message', 'content']);
   const id = pickString(value, ['id', 'message_id', 'messageId']);
   const source = pickString(value, ['source']);
@@ -424,6 +480,7 @@ function normalizeChatMessage(value: unknown): ChatMessage[] {
       audioUrl: normalizeOptionalAssetUrl(pickString(value, ['audio', 'audio_url', 'audioUrl'])),
       createdAt: pickString(value, ['created_at', 'createdAt']),
       id,
+      ...(media.length ? { media } : {}),
       role: source === 'api' || type === 'question' ? 'visitor' : 'profile',
       text,
     },
@@ -478,7 +535,7 @@ function buildProfileSocialNetworks(
   });
 }
 
-function buildConversationMessages(source: UnknownRecord, profileName: string): ProfileConversationMessages {
+function buildConversationMessages(source: UnknownRecord, profileName: string, locale: 'en' | 'es'): ProfileConversationMessages {
   const rawMessages = source.conversation_messages ?? source.conversationMessages;
   const messages = isRecord(rawMessages) ? rawMessages : {};
 
@@ -492,7 +549,7 @@ function buildConversationMessages(source: UnknownRecord, profileName: string): 
     initial: normalizeConversationMessage(
       messages.initial,
       'initial',
-      buildDefaultInitialMessage(profileName),
+      buildDefaultInitialMessage(profileName, locale),
       true,
     ),
   };
@@ -519,10 +576,18 @@ function normalizeConversationMessage(
   };
 }
 
-function buildDefaultInitialMessage(profileName: string) {
+function buildDefaultInitialMessage(profileName: string, locale: 'en' | 'es') {
   const name = profileName.trim() || 'Bigmelo';
 
+  if (locale === 'en') {
+    return `Hi, I am ${name}. Ask me about my work, my projects, or anything you want to know about me.`;
+  }
+
   return `Hola, soy ${name}. Pregúntame sobre mi trabajo, mis proyectos o lo que quieres conocer de mí.`;
+}
+
+function normalizeLocale(value: null | string | undefined): 'en' | 'es' {
+  return value?.toLowerCase().split('-')[0] === 'en' ? 'en' : 'es';
 }
 
 function formatNetworkName(key: string) {
