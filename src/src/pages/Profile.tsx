@@ -39,6 +39,7 @@ type PulseMedia = {
 };
 
 const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:v3:';
+const AVATAR_VIDEO_LOOP_DELAY_MS = 5000;
 const MEDIA_MODAL_CLOSE_TRANSITION_MS = 460;
 const MEDIA_PULSE_DURATION_MS = 2000;
 const WAVEFORM_BAR_COUNT = 22;
@@ -839,7 +840,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                       <div className="profile-thread-message profile">
                         <div className="profile-mini-avatar">
                           {avatarUrl && avatarKind === 'video' ? (
-                            <video loop muted playsInline src={avatarUrl} />
+                            <ProfileAvatarVideo src={avatarUrl} />
                           ) : avatarUrl ? (
                             <img alt="" src={avatarUrl} />
                           ) : null}
@@ -902,7 +903,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                     <div className="profile-thread-message profile">
                       <div className="profile-mini-avatar">
                         {avatarUrl && avatarKind === 'video' ? (
-                          <video loop muted playsInline src={avatarUrl} />
+                          <ProfileAvatarVideo src={avatarUrl} />
                         ) : avatarUrl ? (
                           <img alt="" src={avatarUrl} />
                         ) : null}
@@ -924,7 +925,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                   <span className="voice-ring voice-ring-three" />
 
                   {avatarUrl && avatarKind === 'video' ? (
-                    <video autoPlay loop muted playsInline src={avatarUrl} />
+                    <ProfileAvatarVideo autoPlay src={avatarUrl} />
                   ) : avatarUrl ? (
                     <img
                       alt={profile.name}
@@ -1131,6 +1132,79 @@ function formatRecordingDuration(totalSeconds: number) {
 
 function getNetworkInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || '?';
+}
+
+function ProfileAvatarVideo({ autoPlay = false, src }: { autoPlay?: boolean; src: string }) {
+  const replayTimerRef = useRef<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  function clearReplayTimer() {
+    if (replayTimerRef.current !== null) {
+      window.clearTimeout(replayTimerRef.current);
+      replayTimerRef.current = null;
+    }
+  }
+
+  function playFromStart() {
+    const video = videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    try {
+      video.currentTime = 0;
+    } catch {
+      // Some browsers can reject seeking before metadata is ready.
+    }
+
+    const playPromise = video.play();
+
+    if (playPromise) {
+      playPromise.catch(() => {
+        // Autoplay can be blocked in some browser contexts.
+      });
+    }
+  }
+
+  useEffect(() => {
+    clearReplayTimer();
+
+    if (autoPlay) {
+      playFromStart();
+    }
+
+    return clearReplayTimer;
+  }, [autoPlay, src]);
+
+  return (
+    <video
+      autoPlay={autoPlay}
+      muted
+      playsInline
+      ref={videoRef}
+      src={src}
+      onEnded={() => {
+        const video = videoRef.current;
+
+        if (video) {
+          try {
+            video.currentTime = 0;
+          } catch {
+            // Some browsers can reject seeking before metadata is ready.
+          }
+
+          video.pause();
+        }
+
+        clearReplayTimer();
+        replayTimerRef.current = window.setTimeout(() => {
+          replayTimerRef.current = null;
+          playFromStart();
+        }, AVATAR_VIDEO_LOOP_DELAY_MS);
+      }}
+    />
+  );
 }
 
 function ProfileMessageMedia({
