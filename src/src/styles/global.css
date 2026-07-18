@@ -2255,6 +2255,13 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.profile-message-content {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+
 .profile-message-copy.has-audio {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
@@ -2282,12 +2289,13 @@ h1 {
 .profile-message-media-card {
   width: min(100%, 260px);
   display: grid;
-  overflow: hidden;
+  gap: 8px;
+  overflow: visible;
   color: inherit;
-  background: #ffffff;
-  border: 1px solid rgba(16, 24, 40, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   transform-origin: center;
 }
 
@@ -2308,6 +2316,7 @@ h1 {
   font: inherit;
   padding: 0;
   text-align: left;
+  border-radius: 8px;
 }
 
 .profile-message-media-preview img {
@@ -2315,10 +2324,11 @@ h1 {
   aspect-ratio: 1 / 1;
   display: block;
   object-fit: cover;
+  border-radius: 8px;
 }
 
 .profile-message-media-body {
-  display: grid;
+  display: none;
   gap: 4px;
   padding: 10px 12px 12px;
 }
@@ -2341,18 +2351,19 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin: 0 10px 10px;
+  justify-self: start;
+  margin: 0;
   padding: 0 12px;
-  color: #111827;
+  color: #ffffff;
   font-size: 0.84rem;
   font-weight: 800;
   text-decoration: none;
-  background: #f2f4f7;
+  background: #111827;
   border-radius: 7px;
 }
 
 .profile-message-media-link:hover {
-  background: #e4e7ec;
+  background: #253044;
 }
 
 .profile-media-modal {
@@ -2382,11 +2393,12 @@ h1 {
   max-height: calc(100vh - 48px);
   display: grid;
   gap: 12px;
-  overflow: auto;
-  padding: 14px;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.3);
+  justify-items: start;
+  overflow: visible;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
   opacity: 0;
   transform: translateY(24px) scale(0.9);
   transform-origin: center bottom;
@@ -3190,7 +3202,7 @@ h1 {
   .profile-media-modal-panel {
     width: 100%;
     max-height: calc(100vh - 24px);
-    padding: 10px;
+    padding: 0;
     transform: translateY(28px) scale(0.86);
     transform-origin: center bottom;
   }
@@ -3204,7 +3216,7 @@ h1 {
   }
 
   .profile-media-modal-link {
-    width: 100%;
+    width: auto;
   }
 
   .profile-thread-message.visitor .profile-message-copy p {

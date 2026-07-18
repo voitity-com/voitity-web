@@ -855,8 +855,11 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                             <PlayIcon />
                           </button>
                         </div>
-                        <div className="profile-message-copy">
-                          <p>{message.text}</p>
+                        <div className={message.media?.length ? 'profile-message-content has-media' : 'profile-message-content'}>
+                          <div className="profile-message-copy">
+                            <p>{message.text}</p>
+                            <time>{formatMessageTime(message.createdAt)}</time>
+                          </div>
                           {message.media?.length ? (
                             <ProfileMessageMedia
                               copy={copy}
@@ -869,7 +872,6 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                               pulseMediaKey={pulseMedia?.messageId === message.id ? pulseMedia.mediaKey : null}
                             />
                           ) : null}
-                          <time>{formatMessageTime(message.createdAt)}</time>
                         </div>
                       </div>
                     ) : (
@@ -1314,9 +1316,6 @@ function ProfileMessageMedia({
                 src={selectedMedia.imageUrl}
               />
             ) : null}
-            {getMediaDisplayText(selectedMedia) ? (
-              <p className="profile-media-modal-caption">{getMediaDisplayText(selectedMedia)}</p>
-            ) : null}
             {selectedMedia.permalink ? (
               <a
                 className="profile-media-modal-link"
@@ -1337,7 +1336,6 @@ function ProfileMessageMedia({
     <>
       <div className="profile-message-media-list">
         {media.map((item, index) => {
-          const body = getMediaDisplayText(item);
           const mediaKey = getMediaItemKey(item, index);
           const provider = getMediaProviderLabel(item);
 
@@ -1351,7 +1349,7 @@ function ProfileMessageMedia({
               key={mediaKey}
             >
               <button
-                aria-label={`${copy.modalTitle}: ${body || provider}`}
+                aria-label={`${copy.modalTitle}: ${provider}`}
                 className="profile-message-media-preview"
                 type="button"
                 onClick={() => {
@@ -1360,7 +1358,7 @@ function ProfileMessageMedia({
               >
                 {item.imageUrl ? (
                   <img
-                    alt={body ?? provider}
+                    alt={item.observation ?? item.caption ?? provider}
                     src={item.imageUrl}
                     onError={() => {
                       startMediaPulse(mediaKey);
@@ -1370,10 +1368,6 @@ function ProfileMessageMedia({
                     }}
                   />
                 ) : null}
-                <span className="profile-message-media-body">
-                  <span>{provider}</span>
-                  {body ? <span>{body}</span> : null}
-                </span>
               </button>
               {item.permalink ? (
                 <a
@@ -1398,25 +1392,8 @@ function getMediaProviderLabel(item: ChatMessageMedia): string {
   return item.providerLabel ?? item.provider ?? 'Instagram';
 }
 
-function getMediaDisplayText(item: ChatMessageMedia): string {
-  const source = item.observation?.trim() || item.caption?.trim() || '';
-
-  return cleanMediaDisplayText(source);
-}
-
 function getMediaItemKey(item: ChatMessageMedia, index: number): string {
   return `${item.id ?? item.permalink ?? item.imageUrl ?? getMediaProviderLabel(item)}-${index}`;
-}
-
-function cleanMediaDisplayText(text: string): string {
-  const cleaned = text
-    .replace(/https?:\/\/\S+/gi, '')
-    .replace(/\s*,?\s*(mostrar|show)\b.*$/i, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/[.,;:]+$/g, '');
-
-  return cleaned.toLowerCase() === 'mexico' ? 'México' : cleaned;
 }
 
 function getPreferredRecordingMimeType() {
