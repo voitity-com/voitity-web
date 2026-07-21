@@ -1,7 +1,9 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { getCountries, getCountryCallingCode, type CountryCode } from 'libphonenumber-js';
 
 import bigmeloLogo from '../assets/bigmelo-logo.png';
 import valeriaAvatar from '../assets/valeria-rios-avatar.png';
+import { submitContactSubmission } from '../lib/contact-api';
 
 type Locale = 'es' | 'en';
 
@@ -57,9 +59,16 @@ const content: Record<
       lead: string;
       name: string;
       email: string;
+      phoneCountry: string;
+      phone: string;
       message: string;
+      consent: string;
       submit: string;
+      submitting: string;
       success: string;
+      error: string;
+      captchaRequired: string;
+      captchaError: string;
     };
     footer: {
       tagline: string;
@@ -149,9 +158,16 @@ const content: Record<
         'Ideal para profesionales, creadores, educadores, figuras públicas y marcas personales que quieren responder preguntas con inteligencia artificial.',
       name: 'Nombre',
       email: 'Correo',
+      phoneCountry: 'Indicativo',
+      phone: 'Teléfono',
       message: 'Mensaje',
+      consent: 'Acepto que Bigmelo use estos datos para responder mi solicitud.',
       submit: 'Solicitar mi presencia digital',
+      submitting: 'Enviando solicitud...',
       success: 'Gracias. Recibimos tu solicitud.',
+      error: 'No fue posible enviar tu solicitud. Intenta de nuevo.',
+      captchaRequired: 'Completa la verificación antes de enviar.',
+      captchaError: 'No fue posible completar la verificación. Recarga la página e intenta de nuevo.',
     },
     footer: {
       tagline: 'Presencias digitales con inteligencia artificial, voz autorizada e información verificada.',
@@ -240,9 +256,16 @@ const content: Record<
         'Built for professionals, creators, educators, public figures, and personal brands that want to answer questions with artificial intelligence.',
       name: 'Name',
       email: 'Email',
+      phoneCountry: 'Country code',
+      phone: 'Phone',
       message: 'Message',
+      consent: 'I allow Bigmelo to use this information to reply to my request.',
       submit: 'Request my digital presence',
+      submitting: 'Sending request...',
       success: 'Thanks. We received your request.',
+      error: 'We could not send your request. Please try again.',
+      captchaRequired: 'Complete the verification before sending.',
+      captchaError: 'We could not complete the verification. Reload the page and try again.',
     },
     footer: {
       tagline: 'AI-powered digital presences with authorized voice and verified information.',
@@ -251,6 +274,39 @@ const content: Record<
       terms: 'Terms',
     },
   },
+};
+
+const TURNSTILE_SITE_KEY = ((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ?? '').trim();
+const TURNSTILE_SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+
+type TurnstileWidgetId = string;
+
+type TurnstileRenderOptions = {
+  callback?: (token: string) => void;
+  'error-callback'?: () => void;
+  'expired-callback'?: () => void;
+  language?: string;
+  sitekey: string;
+  theme?: 'auto' | 'dark' | 'light';
+};
+
+declare global {
+  interface Window {
+    turnstile?: {
+      remove?: (widgetId: TurnstileWidgetId) => void;
+      render: (container: HTMLElement, options: TurnstileRenderOptions) => TurnstileWidgetId;
+      reset: (widgetId?: TurnstileWidgetId) => void;
+    };
+  }
+}
+
+let turnstileScriptPromise: Promise<void> | null = null;
+
+type CountryDialCodeOption = {
+  callingCode: string;
+  country: CountryCode;
+  label: string;
+  name: string;
 };
 
 function getInitialLocale(): Locale {
@@ -267,6 +323,74 @@ function getInitialLocale(): Locale {
   }
 
   return 'es';
+}
+
+function getCountryDialCodeOptions(locale: Locale): CountryDialCodeOption[] {
+  const displayNames = getRegionDisplayNames(locale);
+
+  return getCountries()
+    .map((country) => {
+      const callingCode = `+${getCountryCallingCode(country)}`;
+      const name = displayNames?.of(country) ?? country;
+
+      return {
+        callingCode,
+        country,
+        label: `${countryFlag(country)} ${name} (${callingCode})`,
+        name,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, locale));
+}
+
+function getRegionDisplayNames(locale: Locale): Intl.DisplayNames | null {
+  if (typeof Intl === 'undefined' || typeof Intl.DisplayNames === 'undefined') {
+    return null;
+  }
+
+  return new Intl.DisplayNames([locale], { type: 'region' });
+}
+
+function countryFlag(country: CountryCode): string {
+  return country
+    .toUpperCase()
+    .replace(/[A-Z]/gu, (letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)));
+}
+
+function loadTurnstileScript(): Promise<void> {
+  if (typeof window === 'undefined') {
+    return Promise.resolve();
+  }
+
+  if (window.turnstile) {
+    return Promise.resolve();
+  }
+
+  if (turnstileScriptPromise) {
+    return turnstileScriptPromise;
+  }
+
+  turnstileScriptPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${TURNSTILE_SCRIPT_SRC}"]`);
+
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(), { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('Turnstile script failed to load.')), { once: true });
+
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.async = true;
+    script.defer = true;
+    script.src = TURNSTILE_SCRIPT_SRC;
+    script.addEventListener('load', () => resolve(), { once: true });
+    script.addEventListener('error', () => reject(new Error('Turnstile script failed to load.')), { once: true });
+
+    document.head.appendChild(script);
+  });
+
+  return turnstileScriptPromise;
 }
 
 function getPlanCheckoutUrl(plan: Plan): string {
@@ -302,7 +426,15 @@ function getAdminBaseUrl(): string {
 export function Home() {
   const [locale, setLocale] = useState<Locale>(getInitialLocale);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaError, setCaptchaError] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const t = content[locale];
+  const countryDialCodes = useMemo(() => getCountryDialCodeOptions(locale), [locale]);
+  const isCaptchaEnabled = TURNSTILE_SITE_KEY !== '';
   const heroProof =
     locale === 'es'
       ? ['Presencia con IA', 'Imagen autorizada', 'Voz autorizada', 'Disponible 24/7']
@@ -331,9 +463,108 @@ export function Home() {
     }
   }, [locale]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (! isCaptchaEnabled) {
+      return undefined;
+    }
+
+    let isCancelled = false;
+    setCaptchaToken('');
+    setCaptchaError(false);
+
+    loadTurnstileScript()
+      .then(() => {
+        if (isCancelled || ! turnstileContainerRef.current || ! window.turnstile) {
+          return;
+        }
+
+        turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          theme: 'light',
+          language: locale,
+          callback: (token) => {
+            setCaptchaToken(token);
+            setCaptchaError(false);
+          },
+          'expired-callback': () => {
+            setCaptchaToken('');
+          },
+          'error-callback': () => {
+            setCaptchaToken('');
+            setCaptchaError(true);
+          },
+        });
+      })
+      .catch(() => {
+        if (! isCancelled) {
+          setCaptchaError(true);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+
+      if (turnstileWidgetIdRef.current && window.turnstile?.remove) {
+        window.turnstile.remove(turnstileWidgetIdRef.current);
+      }
+
+      turnstileWidgetIdRef.current = null;
+    };
+  }, [isCaptchaEnabled, locale]);
+
+  function resetCaptchaWidget() {
+    if (! isCaptchaEnabled) {
+      return;
+    }
+
+    setCaptchaToken('');
+
+    if (turnstileWidgetIdRef.current) {
+      window.turnstile?.reset(turnstileWidgetIdRef.current);
+    }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsSubmitted(true);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const fieldValue = (name: string) => String(formData.get(name) ?? '').trim();
+
+    setIsSubmitted(false);
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    if (isCaptchaEnabled && ! captchaToken) {
+      setSubmitError(t.contact.captchaRequired);
+      setIsSubmitting(false);
+
+      return;
+    }
+
+    try {
+      await submitContactSubmission({
+        captchaToken: captchaToken || undefined,
+        consentAccepted: formData.get('consent_accepted') === 'on',
+        email: fieldValue('email'),
+        locale,
+        message: fieldValue('message'),
+        name: fieldValue('name'),
+        pageUrl: window.location.href,
+        phoneCountryCode: fieldValue('phone_country_code'),
+        phoneNumber: fieldValue('phone_number'),
+        referrer: document.referrer || undefined,
+        source: 'landing_page',
+      });
+
+      form.reset();
+      setIsSubmitted(true);
+    } catch (error) {
+      setSubmitError(error instanceof Error && error.message ? error.message : t.contact.error);
+    } finally {
+      resetCaptchaWidget();
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -520,7 +751,7 @@ export function Home() {
           </div>
         </div>
 
-        <form className="contact-form" onSubmit={handleSubmit}>
+        <form aria-busy={isSubmitting} className="contact-form" onSubmit={handleSubmit}>
           <label>
             {t.contact.name}
             <input name="name" autoComplete="name" required />
@@ -531,15 +762,54 @@ export function Home() {
             <input name="email" type="email" autoComplete="email" required />
           </label>
 
+          <div className="contact-phone-row">
+            <label>
+              {t.contact.phoneCountry}
+              <select name="phone_country_code" autoComplete="tel-country-code" defaultValue="+57" required>
+                {countryDialCodes.map((country) => (
+                  <option key={country.country} value={country.callingCode}>
+                    {country.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              {t.contact.phone}
+              <input name="phone_number" type="tel" autoComplete="tel-national" required />
+            </label>
+          </div>
+
           <label>
             {t.contact.message}
             <textarea name="message" rows={5} required />
           </label>
 
-          <button className="button button-primary" type="submit">
-            {t.contact.submit}
+          <label className="contact-consent">
+            <input name="consent_accepted" type="checkbox" required />
+            <span>{t.contact.consent}</span>
+          </label>
+
+          {isCaptchaEnabled ? (
+            <div className="contact-captcha">
+              <div ref={turnstileContainerRef} />
+              {captchaError ? (
+                <p className="form-error" role="alert">
+                  {t.contact.captchaError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          <button className="button button-primary" disabled={isSubmitting || (isCaptchaEnabled && ! captchaToken)} type="submit">
+            {isSubmitting ? t.contact.submitting : t.contact.submit}
           </button>
 
+          {submitError ? (
+            <p className="form-error" role="alert">
+              {submitError}
+            </p>
+          ) : null}
           {isSubmitted ? <p className="form-success">{t.contact.success}</p> : null}
         </form>
       </section>
