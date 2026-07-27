@@ -2354,6 +2354,7 @@ h1 {
 }
 
 .profile-message-media-preview {
+  position: relative;
   width: 100%;
   display: grid;
   overflow: hidden;
@@ -2374,6 +2375,29 @@ h1 {
   display: block;
   object-fit: cover;
   border-radius: 8px;
+}
+
+.profile-message-media-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: rgba(17, 24, 39, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.3);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.profile-message-media-play svg {
+  width: 25px;
+  height: 25px;
+  margin-left: 2px;
 }
 
 .profile-message-media-body {
@@ -2496,6 +2520,25 @@ h1 {
   border-radius: 6px;
 }
 
+.profile-media-modal-video {
+  width: 100%;
+  max-height: min(70vh, 680px);
+  display: block;
+  object-fit: contain;
+  background: #000000;
+  border-radius: 6px;
+}
+
+.profile-media-modal-embed {
+  width: min(100%, 39.375vh, 394px);
+  height: min(70vh, 700px);
+  display: block;
+  justify-self: center;
+  background: #000000;
+  border: 0;
+  border-radius: 6px;
+}
+
 .profile-media-modal-caption {
   color: #344054;
   font-size: 0.95rem;
@@ -2614,7 +2657,7 @@ h1 {
   gap: 16px;
   padding-top: 0;
   transform: translateX(-50%);
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .profile-avatar {
@@ -3262,6 +3305,15 @@ h1 {
 
   .profile-media-modal-image {
     max-height: 66vh;
+  }
+
+  .profile-media-modal-video {
+    max-height: 66vh;
+  }
+
+  .profile-media-modal-embed {
+    width: min(100%, 37.125vh);
+    height: 66vh;
   }
 
   .profile-media-modal-link {

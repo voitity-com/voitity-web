@@ -56,8 +56,10 @@ const profileCopy = {
     goToBottom: 'Go to the end of the conversation',
     loading: 'Loading profile...',
     messagePlaceholder: 'Write your message...',
-    modalClose: 'Close photo',
-    modalTitle: 'Photo detail',
+    modalClose: 'Close media',
+    modalTitle: 'Media detail',
+    openPhoto: 'Open photo',
+    openVideo: 'Play video',
     pauseRecordedAudio: 'Pause recorded audio',
     preparing: 'Preparing...',
     playRecordedAudio: 'Play recorded audio',
@@ -82,8 +84,10 @@ const profileCopy = {
     goToBottom: 'Ir al final de la conversación',
     loading: 'Cargando perfil...',
     messagePlaceholder: 'Escribe tu mensaje...',
-    modalClose: 'Cerrar foto',
-    modalTitle: 'Detalle de la foto',
+    modalClose: 'Cerrar contenido',
+    modalTitle: 'Detalle del contenido',
+    openPhoto: 'Abrir foto',
+    openVideo: 'Reproducir video',
     pauseRecordedAudio: 'Pausar audio grabado',
     preparing: 'Preparando...',
     playRecordedAudio: 'Reproducir audio grabado',
@@ -1355,6 +1359,10 @@ function ProfileMessageMedia({
     };
   }, [selectedMedia]);
 
+  const selectedMediaIsVideo = selectedMedia ? isVideoMedia(selectedMedia) : false;
+  const selectedMediaEmbedUrl =
+    selectedMedia && selectedMediaIsVideo ? getVideoEmbedUrl(selectedMedia) : null;
+
   const modal = selectedMedia
     ? createPortal(
         <div
@@ -1383,7 +1391,24 @@ function ProfileMessageMedia({
             >
               <CloseIcon />
             </button>
-            {selectedMedia.imageUrl ? (
+            {selectedMediaIsVideo && selectedMediaEmbedUrl ? (
+              <iframe
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                className="profile-media-modal-embed"
+                src={selectedMediaEmbedUrl}
+                title={`${copy.openVideo}: ${getMediaProviderLabel(selectedMedia)}`}
+              />
+            ) : selectedMediaIsVideo && selectedMedia.mediaUrl ? (
+              <video
+                autoPlay
+                className="profile-media-modal-video"
+                controls
+                playsInline
+                poster={selectedMedia.imageUrl}
+                src={selectedMedia.mediaUrl}
+              />
+            ) : selectedMedia.imageUrl ? (
               <img
                 alt={selectedMedia.observation ?? selectedMedia.caption ?? getMediaProviderLabel(selectedMedia)}
                 className="profile-media-modal-image"
@@ -1412,6 +1437,7 @@ function ProfileMessageMedia({
         {media.map((item, index) => {
           const mediaKey = getMediaItemKey(item, index);
           const provider = getMediaProviderLabel(item);
+          const isVideo = isVideoMedia(item);
 
           return (
             <article
@@ -1423,7 +1449,7 @@ function ProfileMessageMedia({
               key={mediaKey}
             >
               <button
-                aria-label={`${copy.modalTitle}: ${provider}`}
+                aria-label={`${isVideo ? copy.openVideo : copy.openPhoto}: ${provider}`}
                 className="profile-message-media-preview"
                 type="button"
                 onClick={() => {
@@ -1441,6 +1467,11 @@ function ProfileMessageMedia({
                       startMediaPulse(mediaKey);
                     }}
                   />
+                ) : null}
+                {isVideo ? (
+                  <span aria-hidden="true" className="profile-message-media-play">
+                    <PlayIcon />
+                  </span>
                 ) : null}
               </button>
               {item.permalink ? (
@@ -1466,8 +1497,73 @@ function getMediaProviderLabel(item: ChatMessageMedia): string {
   return item.providerLabel ?? item.provider ?? 'Instagram';
 }
 
+function getMediaProviderKey(item: ChatMessageMedia): string {
+  return (item.providerKey ?? item.provider ?? item.providerLabel ?? '').trim().toLowerCase();
+}
+
+function isVideoMedia(item: ChatMessageMedia): boolean {
+  const type = item.type?.trim().toUpperCase() ?? '';
+
+  if (type.includes('VIDEO')) {
+    return true;
+  }
+
+  if (type.includes('IMAGE') || type.includes('PHOTO')) {
+    return false;
+  }
+
+  const providerKey = getMediaProviderKey(item);
+
+  if (providerKey.includes('tiktok')) {
+    return true;
+  }
+
+  return (
+    providerKey.includes('instagram') &&
+    typeof item.permalink === 'string' &&
+    /\/(?:reel|reels|tv)\//i.test(item.permalink)
+  );
+}
+
+function getVideoEmbedUrl(item: ChatMessageMedia): string | null {
+  if (getMediaProviderKey(item).includes('tiktok')) {
+    for (const value of [item.mediaUrl, item.permalink]) {
+      if (!value) {
+        continue;
+      }
+
+      try {
+        const url = new URL(value);
+        const videoId = url.pathname.match(/\/(?:video|v1|v2)\/(\d+)/)?.[1];
+
+        if (videoId) {
+          return `https://www.tiktok.com/player/v1/${videoId}?autoplay=1`;
+        }
+      } catch {
+        // Ignore malformed provider URLs and fall back to the original link.
+      }
+    }
+
+    return null;
+  }
+
+  if (getMediaProviderKey(item).includes('instagram') && !item.mediaUrl && item.permalink) {
+    try {
+      const url = new URL(item.permalink);
+
+      if (url.hostname === 'instagram.com' || url.hostname.endsWith('.instagram.com')) {
+        return `${url.origin}${url.pathname.replace(/\/+$/, '')}/embed/`;
+      }
+    } catch {
+      // A direct media URL may still be available for playback.
+    }
+  }
+
+  return null;
+}
+
 function getMediaItemKey(item: ChatMessageMedia, index: number): string {
-  return `${item.id ?? item.permalink ?? item.imageUrl ?? getMediaProviderLabel(item)}-${index}`;
+  return `${item.id ?? item.permalink ?? item.mediaUrl ?? item.imageUrl ?? getMediaProviderLabel(item)}-${index}`;
 }
 
 function getPreferredRecordingMimeType() {
@@ -1590,9 +1686,12 @@ function isStoredMessageMedia(value: unknown): value is ChatMessageMedia {
   }
 
   const media = value as Partial<ChatMessageMedia>;
-  const hasImageOrLink = typeof media.imageUrl === 'string' || typeof media.permalink === 'string';
+  const hasMediaOrLink =
+    typeof media.imageUrl === 'string' ||
+    typeof media.mediaUrl === 'string' ||
+    typeof media.permalink === 'string';
 
-  return hasImageOrLink;
+  return hasMediaOrLink;
 }
 
 function VoiceWaveform({
