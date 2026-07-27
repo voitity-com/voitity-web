@@ -39,6 +39,7 @@ type PulseMedia = {
 };
 
 const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:v3:';
+const ADULT_CONTENT_SESSION_KEY_PREFIX = 'bigmelo:adult-content:v1:';
 const AVATAR_VIDEO_LOOP_DELAY_MS = 5000;
 const MEDIA_MODAL_CLOSE_TRANSITION_MS = 460;
 const MEDIA_PULSE_DURATION_MS = 2000;
@@ -47,6 +48,10 @@ const WAVEFORM_BAR_COUNT = 22;
 const profileCopy = {
   en: {
     audioInitialUnavailable: 'Initial audio is not available for this profile.',
+    adultContentBody: 'This promotional media is marked for adults. Confirm that you are at least 18 years old to continue.',
+    adultContentCancel: 'Cancel',
+    adultContentConfirm: 'I am 18 or older',
+    adultContentTitle: 'Adult content',
     audioMessage: 'Play message audio',
     cancelRecording: 'Cancel recording',
     defaultInitial: (name: string) =>
@@ -75,6 +80,10 @@ const profileCopy = {
   },
   es: {
     audioInitialUnavailable: 'Audio inicial no disponible para este perfil.',
+    adultContentBody: 'Este contenido promocional está marcado para adultos. Confirma que tienes al menos 18 años para continuar.',
+    adultContentCancel: 'Cancelar',
+    adultContentConfirm: 'Soy mayor de 18 años',
+    adultContentTitle: 'Contenido para adultos',
     audioMessage: 'Reproducir audio del mensaje',
     cancelRecording: 'Cancelar grabación',
     defaultInitial: (name: string) =>
@@ -144,6 +153,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const [previewDurationSeconds, setPreviewDurationSeconds] = useState(0);
   const copy = getProfileCopy(profile?.locale ?? 'es');
   const [previewPlaybackSeconds, setPreviewPlaybackSeconds] = useState(0);
+  const [hasConfirmedAdultContent, setHasConfirmedAdultContent] = useState(() =>
+    readAdultContentConfirmation(profileAlias),
+  );
+
+  useEffect(() => {
+    setHasConfirmedAdultContent(readAdultContentConfirmation(profileAlias));
+  }, [profileAlias]);
 
   useEffect(() => {
     let isMounted = true;
@@ -868,7 +884,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                           {message.media?.length ? (
                             <ProfileMessageMedia
                               copy={copy}
+                              hasConfirmedAdultContent={hasConfirmedAdultContent}
                               media={message.media}
+                              onConfirmAdultContent={() => {
+                                writeAdultContentConfirmation(profileAlias);
+                                setHasConfirmedAdultContent(true);
+                              }}
                               onPulseComplete={() => {
                                 setPulseMedia((current) =>
                                   current?.messageId === message.id ? null : current,
@@ -1213,12 +1234,16 @@ function ProfileAvatarVideo({ autoPlay = false, src }: { autoPlay?: boolean; src
 
 function ProfileMessageMedia({
   copy,
+  hasConfirmedAdultContent,
   media,
+  onConfirmAdultContent,
   onPulseComplete,
   pulseMediaKey,
 }: {
   copy: ReturnType<typeof getProfileCopy>;
+  hasConfirmedAdultContent: boolean;
   media: ChatMessageMedia[];
+  onConfirmAdultContent: () => void;
   onPulseComplete?: () => void;
   pulseMediaKey?: string | null;
 }) {
@@ -1362,6 +1387,7 @@ function ProfileMessageMedia({
   const selectedMediaIsVideo = selectedMedia ? isVideoMedia(selectedMedia) : false;
   const selectedMediaEmbedUrl =
     selectedMedia && selectedMediaIsVideo ? getVideoEmbedUrl(selectedMedia) : null;
+  const selectedMediaIsLocked = Boolean(selectedMedia?.ageRestricted && !hasConfirmedAdultContent);
 
   const modal = selectedMedia
     ? createPortal(
@@ -1391,7 +1417,20 @@ function ProfileMessageMedia({
             >
               <CloseIcon />
             </button>
-            {selectedMediaIsVideo && selectedMediaEmbedUrl ? (
+            {selectedMediaIsLocked ? (
+              <div className="profile-media-modal-age-gate">
+                <strong>{copy.adultContentTitle}</strong>
+                <p>{copy.adultContentBody}</p>
+                <div>
+                  <button type="button" onClick={closeMedia}>
+                    {copy.adultContentCancel}
+                  </button>
+                  <button type="button" onClick={onConfirmAdultContent}>
+                    {copy.adultContentConfirm}
+                  </button>
+                </div>
+              </div>
+            ) : selectedMediaIsVideo && selectedMediaEmbedUrl ? (
               <iframe
                 allow="autoplay; fullscreen"
                 allowFullScreen
@@ -1415,7 +1454,7 @@ function ProfileMessageMedia({
                 src={selectedMedia.imageUrl}
               />
             ) : null}
-            {selectedMedia.permalink ? (
+            {!selectedMediaIsLocked && selectedMedia.permalink ? (
               <a
                 className="profile-media-modal-link"
                 href={selectedMedia.permalink}
@@ -1438,13 +1477,14 @@ function ProfileMessageMedia({
           const mediaKey = getMediaItemKey(item, index);
           const provider = getMediaProviderLabel(item);
           const isVideo = isVideoMedia(item);
+          const isAgeRestricted = Boolean(item.ageRestricted && !hasConfirmedAdultContent);
 
           return (
             <article
               className={
                 pulsingMediaKey === mediaKey
-                  ? 'profile-message-media-card is-pulsing'
-                  : 'profile-message-media-card'
+                  ? `profile-message-media-card is-pulsing${isAgeRestricted ? ' is-age-restricted' : ''}`
+                  : `profile-message-media-card${isAgeRestricted ? ' is-age-restricted' : ''}`
               }
               key={mediaKey}
             >
@@ -1468,13 +1508,19 @@ function ProfileMessageMedia({
                     }}
                   />
                 ) : null}
-                {isVideo ? (
+                {isVideo && !isAgeRestricted ? (
                   <span aria-hidden="true" className="profile-message-media-play">
                     <PlayIcon />
                   </span>
                 ) : null}
+                {isAgeRestricted ? (
+                  <span className="profile-message-media-age-gate">
+                    <strong>18+</strong>
+                    <span>{copy.adultContentTitle}</span>
+                  </span>
+                ) : null}
               </button>
-              {item.permalink ? (
+              {item.permalink && !isAgeRestricted ? (
                 <a
                   className="profile-message-media-link"
                   href={item.permalink}
@@ -1640,6 +1686,34 @@ function writeProfileSession(profileAlias: string, session: ProfileSession) {
   } catch {
     // sessionStorage can be unavailable in private or restricted browser contexts.
   }
+}
+
+function readAdultContentConfirmation(profileAlias: string): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    return window.sessionStorage.getItem(getAdultContentSessionKey(profileAlias)) === 'confirmed';
+  } catch {
+    return false;
+  }
+}
+
+function writeAdultContentConfirmation(profileAlias: string) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(getAdultContentSessionKey(profileAlias), 'confirmed');
+  } catch {
+    // The confirmation remains active in React state for the current page.
+  }
+}
+
+function getAdultContentSessionKey(profileAlias: string) {
+  return `${ADULT_CONTENT_SESSION_KEY_PREFIX}${encodeURIComponent(profileAlias)}`;
 }
 
 function getProfileSessionKey(profileAlias: string) {

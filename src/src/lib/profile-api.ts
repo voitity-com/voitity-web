@@ -59,6 +59,7 @@ export type ChatMessage = {
 };
 
 export type ChatMessageMedia = {
+  ageRestricted?: boolean;
   caption?: string;
   id?: string;
   imageUrl?: string;
@@ -418,6 +419,9 @@ function normalizeMessageMedia(value: unknown): ChatMessageMedia[] {
 
     return [
       {
+        ...(pickBoolean(item, ['age_restricted', 'ageRestricted']) !== undefined
+          ? { ageRestricted: pickBoolean(item, ['age_restricted', 'ageRestricted']) }
+          : {}),
         ...(pickString(item, ['caption']) ? { caption: pickString(item, ['caption']) } : {}),
         ...(pickString(item, ['id', 'media_id', 'mediaId']) ? { id: pickString(item, ['id', 'media_id', 'mediaId']) } : {}),
         ...(imageUrl ? { imageUrl } : {}),
