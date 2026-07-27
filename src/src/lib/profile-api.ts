@@ -59,15 +59,18 @@ export type ChatMessage = {
 };
 
 export type ChatMessageMedia = {
+  ageRestricted?: boolean;
   caption?: string;
   id?: string;
   imageUrl?: string;
+  mediaUrl?: string;
   observation?: string;
   permalink?: string;
   provider?: string;
   providerKey?: string;
   providerLabel?: string;
   takenAt?: string;
+  thumbnailUrl?: string;
   type?: string;
 };
 
@@ -399,27 +402,38 @@ function normalizeMessageMedia(value: unknown): ChatMessageMedia[] {
       return [];
     }
 
-    const imageUrl = normalizeOptionalAssetUrl(
-      pickString(item, ['image_url', 'imageUrl', 'media_url', 'mediaUrl', 'thumbnail_url', 'thumbnailUrl']),
+    const mediaType = pickString(item, ['media_type', 'mediaType', 'type']);
+    const mediaUrl = normalizeOptionalAssetUrl(pickString(item, ['media_url', 'mediaUrl']));
+    const thumbnailUrl = normalizeOptionalAssetUrl(
+      pickString(item, ['thumbnail_url', 'thumbnailUrl']),
     );
+    const imageUrl =
+      thumbnailUrl ??
+      normalizeOptionalAssetUrl(pickString(item, ['image_url', 'imageUrl'])) ??
+      (mediaType?.toUpperCase().includes('VIDEO') ? undefined : mediaUrl);
     const permalink = pickString(item, ['permalink', 'link', 'instagram_url', 'instagramUrl']);
 
-    if (!imageUrl && !permalink) {
+    if (!imageUrl && !mediaUrl && !permalink) {
       return [];
     }
 
     return [
       {
+        ...(pickBoolean(item, ['age_restricted', 'ageRestricted']) !== undefined
+          ? { ageRestricted: pickBoolean(item, ['age_restricted', 'ageRestricted']) }
+          : {}),
         ...(pickString(item, ['caption']) ? { caption: pickString(item, ['caption']) } : {}),
         ...(pickString(item, ['id', 'media_id', 'mediaId']) ? { id: pickString(item, ['id', 'media_id', 'mediaId']) } : {}),
         ...(imageUrl ? { imageUrl } : {}),
+        ...(mediaUrl ? { mediaUrl } : {}),
         ...(pickString(item, ['observation', 'note']) ? { observation: pickString(item, ['observation', 'note']) } : {}),
         ...(permalink ? { permalink } : {}),
         ...(pickString(item, ['provider']) ? { provider: pickString(item, ['provider']) } : {}),
         ...(pickString(item, ['provider_key', 'providerKey']) ? { providerKey: pickString(item, ['provider_key', 'providerKey']) } : {}),
         ...(pickString(item, ['provider_label', 'providerLabel']) ? { providerLabel: pickString(item, ['provider_label', 'providerLabel']) } : {}),
         ...(pickString(item, ['taken_at', 'takenAt', 'timestamp']) ? { takenAt: pickString(item, ['taken_at', 'takenAt', 'timestamp']) } : {}),
-        ...(pickString(item, ['type', 'media_type', 'mediaType']) ? { type: pickString(item, ['type', 'media_type', 'mediaType']) } : {}),
+        ...(thumbnailUrl ? { thumbnailUrl } : {}),
+        ...(mediaType ? { type: mediaType } : {}),
       },
     ];
   });
