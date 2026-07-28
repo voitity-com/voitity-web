@@ -2470,6 +2470,81 @@ h1 {
   background: #253044;
 }
 
+.profile-message-product-list {
+  width: min(100%, 360px);
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.profile-message-product-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #dfe4ea;
+  border-radius: 8px;
+}
+
+.profile-message-product-image {
+  min-height: 118px;
+  display: block;
+  overflow: hidden;
+  background: #eef1f4;
+}
+
+.profile-message-product-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.profile-message-product-body {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 5px;
+  padding: 12px;
+}
+
+.profile-message-product-body strong {
+  color: #101624;
+  font-size: 0.94rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.profile-message-product-body p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #667085;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.profile-message-product-body a {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 3px;
+  padding: 0 10px;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: #111827;
+  border-radius: 7px;
+}
+
+.profile-message-product-body a:hover {
+  background: #253044;
+}
+
 .profile-media-modal {
   position: fixed;
   inset: 0;
@@ -3356,6 +3431,18 @@ h1 {
   .profile-message-media-card {
     width: min(100%, 230px);
     border-radius: 8px;
+  }
+
+  .profile-message-product-list {
+    width: min(100%, 300px);
+  }
+
+  .profile-message-product-card {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .profile-message-product-image {
+    min-height: 108px;
   }
 
   .profile-message-media-body {
