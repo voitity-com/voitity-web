@@ -54,6 +54,7 @@ export type ChatMessage = {
   createdAt?: string;
   id: string;
   media?: ChatMessageMedia[];
+  products?: ChatMessageProduct[];
   role: 'visitor' | 'profile';
   text: string;
 };
@@ -74,11 +75,22 @@ export type ChatMessageMedia = {
   type?: string;
 };
 
+export type ChatMessageProduct = {
+  actionUrl: string;
+  description: string;
+  destinationType: 'external_url' | 'telegram' | 'whatsapp';
+  id: string;
+  imageUrl: string;
+  name: string;
+  publicUrl: string;
+};
+
 export type MessageResponse = {
   chatId?: string;
   text: string;
   audioUrl?: string;
   media?: ChatMessageMedia[];
+  products?: ChatMessageProduct[];
   requestAudioUrl?: string;
   requestMessageId?: string;
   requestText?: string;
@@ -373,9 +385,10 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
     pickString(source, ['audio_url', 'audioUrl', 'voice_url', 'voiceUrl', 'url']),
   );
   const media = normalizeMessageMedia(source.media);
+  const products = normalizeMessageProducts(source.products);
   const text = pickString(source, ['response', 'answer', 'text', 'message', 'content']);
 
-  if (!text && !audioUrl && media.length === 0) {
+  if (!text && !audioUrl && media.length === 0 && products.length === 0) {
     throw new Error(getMessageResponseError(payload, source));
   }
 
@@ -388,6 +401,7 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
     requestMessageId: pickString(source, ['request_message_id', 'requestMessageId']),
     requestText: pickString(source, ['request_text', 'requestText']),
     ...(media.length ? { media } : {}),
+    ...(products.length ? { products } : {}),
     text: text ?? 'Respuesta de audio recibida.',
   };
 }
@@ -439,6 +453,50 @@ function normalizeMessageMedia(value: unknown): ChatMessageMedia[] {
   });
 }
 
+function normalizeMessageProducts(value: unknown): ChatMessageProduct[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!isRecord(item)) {
+      return [];
+    }
+
+    const actionUrl = pickString(item, ['action_url', 'actionUrl']);
+    const description = pickString(item, ['description']);
+    const destinationType = pickString(item, ['destination_type', 'destinationType']);
+    const id = pickString(item, ['id', 'public_id', 'publicId']);
+    const imageUrl = normalizeOptionalAssetUrl(pickString(item, ['image_url', 'imageUrl']));
+    const name = pickString(item, ['name']);
+    const publicUrl = pickString(item, ['public_url', 'publicUrl']);
+
+    if (
+      !actionUrl ||
+      !description ||
+      !id ||
+      !imageUrl ||
+      !name ||
+      !publicUrl ||
+      !['external_url', 'telegram', 'whatsapp'].includes(destinationType ?? '')
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        actionUrl,
+        description,
+        destinationType: destinationType as ChatMessageProduct['destinationType'],
+        id,
+        imageUrl,
+        name,
+        publicUrl,
+      },
+    ];
+  });
+}
+
 function getMessageResponseError(payload: UnknownRecord, source: UnknownRecord) {
   const status = (
     pickString(source, ['status']) ??
@@ -482,6 +540,7 @@ function normalizeChatMessage(value: unknown): ChatMessage[] {
 
   const data = isRecord(value.data) ? value.data : {};
   const media = normalizeMessageMedia(value.media ?? data.media);
+  const products = normalizeMessageProducts(value.products ?? data.products);
   const text = pickString(value, ['text', 'message', 'content']);
   const id = pickString(value, ['id', 'message_id', 'messageId']);
   const source = pickString(value, ['source']);
@@ -497,6 +556,7 @@ function normalizeChatMessage(value: unknown): ChatMessage[] {
       createdAt: pickString(value, ['created_at', 'createdAt']),
       id,
       ...(media.length ? { media } : {}),
+      ...(products.length ? { products } : {}),
       role: source === 'api' || type === 'question' ? 'visitor' : 'profile',
       text,
     },

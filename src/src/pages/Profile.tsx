@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import {
   ChatMessage,
   ChatMessageMedia,
+  ChatMessageProduct,
   fetchAvatarMedia,
   fetchProfileChatMessages,
   fetchProfileByAlias,
@@ -77,6 +78,9 @@ const profileCopy = {
     stopRecording: 'Stop recording',
     typing: 'Writing response...',
     viewOnProvider: (provider: string) => `View on ${provider}`,
+    viewProduct: 'View product',
+    contactOnTelegram: 'Contact on Telegram',
+    contactOnWhatsapp: 'Contact on WhatsApp',
   },
   es: {
     audioInitialUnavailable: 'Audio inicial no disponible para este perfil.',
@@ -109,6 +113,9 @@ const profileCopy = {
     stopRecording: 'Detener grabación',
     typing: 'Escribiendo respuesta...',
     viewOnProvider: (provider: string) => `Ver en ${provider}`,
+    viewProduct: 'Ver producto',
+    contactOnTelegram: 'Contactar por Telegram',
+    contactOnWhatsapp: 'Contactar por WhatsApp',
   },
 } satisfies Record<ProfileLocale, Record<string, string | ((value: string) => string)>>;
 
@@ -364,6 +371,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
       const answerMessageId = crypto.randomUUID();
       const responseMedia = response.media ?? [];
+      const responseProducts = response.products ?? [];
 
       shouldScrollToBottomRef.current = true;
       setMessages((current) => [
@@ -373,6 +381,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           createdAt: new Date().toISOString(),
           id: answerMessageId,
           ...(responseMedia.length ? { media: responseMedia } : {}),
+          ...(responseProducts.length ? { products: responseProducts } : {}),
           role: 'profile',
           text: response.text,
         },
@@ -634,6 +643,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
       const answerMessageId = crypto.randomUUID();
       const responseMedia = response.media ?? [];
+      const responseProducts = response.products ?? [];
 
       shouldScrollToBottomRef.current = true;
       setMessages((current) => [
@@ -643,6 +653,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           createdAt: new Date().toISOString(),
           id: answerMessageId,
           ...(responseMedia.length ? { media: responseMedia } : {}),
+          ...(responseProducts.length ? { products: responseProducts } : {}),
           role: 'profile',
           text: response.text,
         },
@@ -876,7 +887,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                             <PlayIcon />
                           </button>
                         </div>
-                        <div className={message.media?.length ? 'profile-message-content has-media' : 'profile-message-content'}>
+                        <div
+                          className={
+                            message.media?.length || message.products?.length
+                              ? 'profile-message-content has-assets'
+                              : 'profile-message-content'
+                          }
+                        >
                           <div className="profile-message-copy">
                             <p>{message.text}</p>
                             <time>{formatMessageTime(message.createdAt)}</time>
@@ -896,6 +913,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                                 );
                               }}
                               pulseMediaKey={pulseMedia?.messageId === message.id ? pulseMedia.mediaKey : null}
+                            />
+                          ) : null}
+                          {message.products?.length ? (
+                            <ProfileMessageProducts
+                              copy={copy}
+                              products={message.products}
                             />
                           ) : null}
                         </div>
@@ -1543,6 +1566,54 @@ function getMediaProviderLabel(item: ChatMessageMedia): string {
   return item.providerLabel ?? item.provider ?? 'Instagram';
 }
 
+function ProfileMessageProducts({
+  copy,
+  products,
+}: {
+  copy: ReturnType<typeof getProfileCopy>;
+  products: ChatMessageProduct[];
+}) {
+  return (
+    <div className="profile-message-product-list">
+      {products.map((product) => (
+        <article className="profile-message-product-card" key={product.id}>
+          <a
+            aria-label={`${product.name}: ${getProductActionLabel(product, copy)}`}
+            className="profile-message-product-image"
+            href={product.actionUrl}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <img alt={product.name} src={product.imageUrl} />
+          </a>
+          <div className="profile-message-product-body">
+            <strong>{product.name}</strong>
+            <p>{product.description}</p>
+            <a href={product.actionUrl} rel="noopener noreferrer" target="_blank">
+              {getProductActionLabel(product, copy)}
+            </a>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function getProductActionLabel(
+  product: ChatMessageProduct,
+  copy: ReturnType<typeof getProfileCopy>,
+): string {
+  if (product.destinationType === 'whatsapp') {
+    return copy.contactOnWhatsapp;
+  }
+
+  if (product.destinationType === 'telegram') {
+    return copy.contactOnTelegram;
+  }
+
+  return copy.viewProduct;
+}
+
 function getMediaProviderKey(item: ChatMessageMedia): string {
   return (item.providerKey ?? item.provider ?? item.providerLabel ?? '').trim().toLowerCase();
 }
@@ -1738,6 +1809,9 @@ function normalizeStoredMessages(value: unknown): ChatMessage[] {
         text: message.text,
         ...(message.createdAt ? { createdAt: message.createdAt } : {}),
         ...(message.media?.length ? { media: message.media.filter(isStoredMessageMedia) } : {}),
+        ...(message.products?.length
+          ? { products: message.products.filter(isStoredMessageProduct) }
+          : {}),
       },
     ];
   });
@@ -1766,6 +1840,24 @@ function isStoredMessageMedia(value: unknown): value is ChatMessageMedia {
     typeof media.permalink === 'string';
 
   return hasMediaOrLink;
+}
+
+function isStoredMessageProduct(value: unknown): value is ChatMessageProduct {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+
+  const product = value as Partial<ChatMessageProduct>;
+
+  return (
+    typeof product.actionUrl === 'string' &&
+    typeof product.description === 'string' &&
+    typeof product.id === 'string' &&
+    typeof product.imageUrl === 'string' &&
+    typeof product.name === 'string' &&
+    typeof product.publicUrl === 'string' &&
+    ['external_url', 'telegram', 'whatsapp'].includes(product.destinationType ?? '')
+  );
 }
 
 function VoiceWaveform({
