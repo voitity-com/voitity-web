@@ -3,6 +3,7 @@ import { getCountries, getCountryCallingCode, type CountryCode } from 'libphonen
 
 import bigmeloLogo from '../assets/bigmelo-logo.png';
 import valeriaAvatar from '../assets/valeria-rios-avatar.png';
+import { getAdminBaseUrl, getAdminSignInUrl } from '../lib/admin-url';
 import { submitContactSubmission } from '../lib/contact-api';
 
 type Locale = 'es' | 'en';
@@ -30,6 +31,7 @@ const content: Record<
       product: string;
       plans: string;
       contact: string;
+      signIn: string;
     };
     hero: {
       eyebrow: string;
@@ -83,6 +85,7 @@ const content: Record<
       product: 'Producto',
       plans: 'Planes',
       contact: 'Contacto',
+      signIn: 'Ingresar',
     },
     hero: {
       eyebrow: 'Presencia digital con inteligencia artificial',
@@ -113,7 +116,7 @@ const content: Record<
           cycle: 'month',
           name: 'Starter',
           planId: 'starter',
-          price: '$8',
+          price: '$9.99',
           period: 'USD /mes',
           label: 'Mensual',
           description: 'Para crear y validar una presencia digital conversacional.',
@@ -126,13 +129,13 @@ const content: Record<
             '1.000 créditos mensuales incluidos',
           ],
           cta: 'Elegir Starter mensual',
-          trial: 'Prueba gratis por 7 días y luego $8 USD/mes.',
+          trial: 'Prueba gratis por 7 días y luego $9.99 USD/mes.',
         },
         {
           cycle: 'year',
           name: 'Starter',
           planId: 'starter',
-          price: '$80',
+          price: '$99',
           period: 'USD /año',
           label: 'Anual',
           description: 'Para mantener tu presencia digital activa todo el año con mejor precio.',
@@ -143,10 +146,10 @@ const content: Record<
             '500 créditos mensuales para chat, hasta 1.000 mensajes',
             '500 créditos mensuales para audio, hasta 10.000 caracteres',
             '1.000 créditos mensuales incluidos',
-            'Ahorro de $16 frente al pago mensual',
+            'Ahorro de $20.88 frente al pago mensual',
           ],
           cta: 'Elegir Starter anual',
-          trial: 'Prueba gratis por 7 días y luego $80 USD/año.',
+          trial: 'Prueba gratis por 7 días y luego $99 USD/año.',
           highlighted: true,
         },
       ],
@@ -181,6 +184,7 @@ const content: Record<
       product: 'Product',
       plans: 'Plans',
       contact: 'Contact',
+      signIn: 'Sign in',
     },
     hero: {
       eyebrow: 'AI-powered digital presence',
@@ -211,7 +215,7 @@ const content: Record<
           cycle: 'month',
           name: 'Starter',
           planId: 'starter',
-          price: '$8',
+          price: '$9.99',
           period: 'USD /month',
           label: 'Monthly',
           description: 'For creating and validating one conversational digital presence.',
@@ -224,13 +228,13 @@ const content: Record<
             '1,000 monthly credits included',
           ],
           cta: 'Choose Starter monthly',
-          trial: 'Try it free for 7 days, then $8 USD/month.',
+          trial: 'Try it free for 7 days, then $9.99 USD/month.',
         },
         {
           cycle: 'year',
           name: 'Starter',
           planId: 'starter',
-          price: '$80',
+          price: '$99',
           period: 'USD /year',
           label: 'Annual',
           description: 'For keeping your digital presence active all year at a better price.',
@@ -241,10 +245,10 @@ const content: Record<
             '500 monthly credits for chat, up to 1,000 messages',
             '500 monthly credits for audio, up to 10,000 characters',
             '1,000 monthly credits included',
-            'Save $16 compared with monthly billing',
+            'Save $20.88 compared with monthly billing',
           ],
           cta: 'Choose Starter annual',
-          trial: 'Try it free for 7 days, then $80 USD/year.',
+          trial: 'Try it free for 7 days, then $99 USD/year.',
           highlighted: true,
         },
       ],
@@ -393,34 +397,15 @@ function loadTurnstileScript(): Promise<void> {
   return turnstileScriptPromise;
 }
 
-function getPlanCheckoutUrl(plan: Plan): string {
+function getPlanCheckoutUrl(plan: Plan, locale: Locale): string {
   const url = new URL('/auth/custom/sign-up', getAdminBaseUrl());
 
   url.searchParams.set('intent', 'trial');
   url.searchParams.set('plan', plan.planId ?? 'starter');
   url.searchParams.set('cycle', plan.cycle);
+  url.searchParams.set('locale', locale);
 
   return url.toString();
-}
-
-function getAdminBaseUrl(): string {
-  const configuredBaseUrl = import.meta.env.VITE_ADMIN_BASE_URL as string | undefined;
-
-  if (configuredBaseUrl) {
-    return configuredBaseUrl.replace(/\/+$/u, '');
-  }
-
-  if (typeof window === 'undefined') {
-    return 'https://admin.bigmelo.com';
-  }
-
-  const { hostname, protocol } = window.location;
-
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `${protocol}//localhost:3000`;
-  }
-
-  return 'https://admin.bigmelo.com';
 }
 
 export function Home() {
@@ -433,6 +418,7 @@ export function Home() {
   const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const t = content[locale];
+  const adminSignInUrl = getAdminSignInUrl(locale);
   const countryDialCodes = useMemo(() => getCountryDialCodeOptions(locale), [locale]);
   const isCaptchaEnabled = TURNSTILE_SITE_KEY !== '';
   const heroProof =
@@ -580,21 +566,27 @@ export function Home() {
           <a href="#contact">{t.nav.contact}</a>
         </nav>
 
-        <div className="language-switch" aria-label="Language">
-          <button
-            className={locale === 'es' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setLocale('es')}
-          >
-            ES
-          </button>
-          <button
-            className={locale === 'en' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setLocale('en')}
-          >
-            EN
-          </button>
+        <div className="header-actions">
+          <a className="admin-link" href={adminSignInUrl}>
+            {t.nav.signIn}
+          </a>
+
+          <div className="language-switch" aria-label={locale === 'es' ? 'Idioma' : 'Language'}>
+            <button
+              className={locale === 'es' ? 'is-active' : ''}
+              type="button"
+              onClick={() => setLocale('es')}
+            >
+              ES
+            </button>
+            <button
+              className={locale === 'en' ? 'is-active' : ''}
+              type="button"
+              onClick={() => setLocale('en')}
+            >
+              EN
+            </button>
+          </div>
         </div>
       </header>
 
@@ -730,7 +722,7 @@ export function Home() {
                 ))}
               </ul>
 
-              <a className="button plan-button" href={getPlanCheckoutUrl(plan)}>
+              <a className="button plan-button" href={getPlanCheckoutUrl(plan, locale)}>
                 {plan.cta}
               </a>
             </article>

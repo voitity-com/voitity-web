@@ -108,7 +108,8 @@ a {
   gap: clamp(18px, 3vw, 36px);
 }
 
-.nav-links a {
+.nav-links a,
+.admin-link {
   position: relative;
   min-height: 34px;
   display: inline-flex;
@@ -119,7 +120,8 @@ a {
   font-weight: 650;
 }
 
-.nav-links a::after {
+.nav-links a::after,
+.admin-link::after {
   content: "";
   position: absolute;
   right: 0;
@@ -134,21 +136,37 @@ a {
     transform 160ms ease;
 }
 
-.nav-links a:hover {
+.nav-links a:hover,
+.admin-link:hover {
   color: #101624;
 }
 
 .nav-links a:hover::after,
-.nav-links a:focus-visible::after {
+.nav-links a:focus-visible::after,
+.admin-link:hover::after,
+.admin-link:focus-visible::after {
   opacity: 0.42;
   transform: scaleX(1);
 }
 
 .brand:focus-visible,
 .nav-links a:focus-visible,
+.admin-link:focus-visible,
 .language-switch button:focus-visible {
   outline: 3px solid rgba(16, 22, 36, 0.18);
   outline-offset: 4px;
+}
+
+.header-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-link {
+  white-space: nowrap;
 }
 
 .language-switch {
@@ -1148,6 +1166,7 @@ h1 {
 }
 
 .legal-nav {
+  flex: 1 1 auto;
   display: flex;
   flex-wrap: wrap;
   justify-content: end;
@@ -1162,7 +1181,12 @@ h1 {
   color: #111827;
 }
 
+.legal-admin-link {
+  flex: 0 0 auto;
+}
+
 .legal-language-switch {
+  flex: 0 0 auto;
   display: inline-grid;
   grid-template-columns: repeat(2, 38px);
   gap: 4px;
@@ -1383,6 +1407,11 @@ h1 {
     transform: none;
   }
 
+  .site-header .header-actions {
+    justify-self: end;
+    gap: 8px;
+  }
+
   .nav-links {
     display: none;
   }
@@ -1398,6 +1427,26 @@ h1 {
 
   .language-switch button {
     height: 30px;
+  }
+
+  @media (max-width: 420px) {
+    .site-header .header-actions {
+      gap: 6px;
+    }
+
+    .brand-logo {
+      max-width: 112px;
+    }
+
+    .language-switch {
+      grid-template-columns: repeat(2, 32px);
+      padding: 3px;
+    }
+
+    .language-switch button {
+      height: 28px;
+      font-size: 0.76rem;
+    }
   }
 
   .hero-section {
@@ -1635,7 +1684,16 @@ h1 {
   }
 
   .legal-nav {
+    flex-basis: 100%;
     justify-content: start;
+  }
+
+  .legal-admin-link {
+    order: 2;
+  }
+
+  .legal-language-switch {
+    order: 3;
   }
 
   .legal-document {
@@ -1653,6 +1711,20 @@ h1 {
 
   .legal-footer {
     justify-content: start;
+  }
+}
+
+@media (max-width: 340px) {
+  .site-header .header-actions {
+    gap: 5px;
+  }
+
+  .brand-logo {
+    max-width: 104px;
+  }
+
+  .language-switch {
+    grid-template-columns: repeat(2, 31px);
   }
 }
 
