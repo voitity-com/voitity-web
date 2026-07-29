@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect } from "react";
 
 import bigmeloLogo from "../assets/bigmelo-logo.png";
+import { getAdminSignInUrl } from "../lib/admin-url";
 
 export type LegalLocale = "es" | "en";
 type LegalKind = "dataDeletion" | "privacy" | "terms";
@@ -19,16 +20,18 @@ const legalCopy = {
     dataDeletion: "Eliminación de datos",
     home: "Inicio",
     privacy: "Privacidad",
+    signIn: "Ingresar",
     terms: "Términos",
-    updated: "Última actualización: 19 de junio de 2026",
+    updated: "Última actualización: 29 de julio de 2026",
     footer: "© 2026 Bigmelo. Todos los derechos reservados.",
   },
   en: {
     dataDeletion: "Data Deletion",
     home: "Home",
     privacy: "Privacy",
+    signIn: "Sign in",
     terms: "Terms",
-    updated: "Last updated: June 19, 2026",
+    updated: "Last updated: July 29, 2026",
     footer: "© 2026 Bigmelo. All rights reserved.",
   },
 } satisfies Record<LegalLocale, Record<string, string>>;
@@ -59,8 +62,10 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
       >
         <p>
           This policy explains how Bigmelo collects, uses, shares, and protects
-          information when a person creates a profile, uploads an image, records
-          or uploads audio, clones a voice, publishes a profile landing page, or
+          information when a person creates an account, signs in with connected
+          providers, creates a profile, uploads an image, records or uploads
+          audio, clones a voice, connects social accounts, publishes a profile
+          landing page, manages products or catalog content, pays for a plan, or
           chats with an avatar.
         </p>
 
@@ -70,11 +75,13 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           <ul>
             <li>
               Account and contact data, such as name, email, user identifiers,
-              and support information.
+              Google sign-in data when used, contact form messages, phone
+              numbers, and support information.
             </li>
             <li>
               Profile content, such as public name, alias, biography, texts,
-              links, instructions, and context.
+              links, instructions, contextual knowledge, uploaded files, CV or
+              resume information, facts, sources, and product or catalog data.
             </li>
             <li>
               Images, videos, audio files, and voice samples uploaded to create
@@ -90,11 +97,20 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
             </li>
             <li>
               Technical data, such as IP address, device, browser, usage logs,
-              errors, and security events.
+              errors, login events, notification events, security events,
+              cookies, local storage, session storage, analytics tags, and
+              anti-abuse verification tokens.
             </li>
             <li>
-              Payment, billing, or credit usage data when you purchase a plan or
-              credits.
+              Payment, billing, subscription, payment method reference, Wompi
+              transaction, or credit usage data when you purchase a plan or
+              credits. Bigmelo does not need to store full card numbers.
+            </li>
+            <li>
+              Connected integration data, such as Instagram, Meta, TikTok,
+              OnlyFans, or other platform account identifiers, access tokens,
+              selected media, captions, profile links, import status, and sync
+              history when you connect those services.
             </li>
           </ul>
         </section>
@@ -145,6 +161,16 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
               service availability.
             </li>
             <li>
+              Authenticate users, keep sessions active, personalize language,
+              send notifications, process contact requests, run security
+              checks, and remember browser preferences.
+            </li>
+            <li>
+              Connect social or creator-platform accounts, import selected
+              content, display links, process product information, and keep
+              authorized integrations working.
+            </li>
+            <li>
               Comply with legal, contractual, regulatory obligations, or valid
               authority requests.
             </li>
@@ -154,7 +180,37 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         <ExternalProviders locale="en" />
 
         <section>
-          <h2>5. Public profiles and visitor messages</h2>
+          <h2>5. Connected accounts, payments, and browser data</h2>
+          <p>
+            If you sign in with Google, we use the Google account information
+            provided to authenticate you, create or maintain your account, and
+            secure access. We do not sell Google user data or use it for
+            advertising.
+          </p>
+          <p>
+            If you connect Instagram, Meta, TikTok, OnlyFans, or similar
+            services, we use the connected data only for the features you
+            authorize, such as verification, importing selected media or
+            captions, showing social links, preparing profile context, and
+            keeping integrations synchronized.
+          </p>
+          <p>
+            Payment providers such as Wompi may process payment method tokens,
+            transaction references, authorization results, recurring payment
+            status, and fraud prevention data. Bigmelo stores the information
+            needed to manage plans, credits, invoices, support, disputes, and
+            legal records.
+          </p>
+          <p>
+            We may use cookies, local storage, session storage, Cloudflare
+            Turnstile verification, Google Tag Manager, analytics, and similar
+            browser technologies to remember language, maintain sessions,
+            measure usage, protect forms, and prevent abuse.
+          </p>
+        </section>
+
+        <section>
+          <h2>6. Public profiles and visitor messages</h2>
           <p>
             When you publish a profile, information marked as public may be
             viewed by anyone with access to the link. Visitors may send messages
@@ -171,7 +227,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         </section>
 
         <section>
-          <h2>6. Retention and deletion</h2>
+          <h2>7. Retention and deletion</h2>
           <p>
             We retain information while your account, profile, landing page,
             voice model, avatar, or commercial relationship is active, and for
@@ -180,15 +236,17 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           </p>
           <p>
             You may request deletion of profiles, images, audio files, voice
-            models, or personal data. Some deletions may take time to appear in
-            backups, technical logs, or provider systems. We may also retain
-            limited information when necessary by law or to investigate abuse,
-            fraud, or impersonation.
+            models, connected account data, imported media, product catalog
+            data, payment references, contact submissions, or personal data.
+            Some deletions may take time to appear in backups, technical logs,
+            browser storage, analytics systems, payment records, or provider
+            systems. We may also retain limited information when necessary by
+            law or to investigate abuse, fraud, or impersonation.
           </p>
         </section>
 
         <section>
-          <h2>7. Legal bases and consent</h2>
+          <h2>8. Legal bases and consent</h2>
           <p>
             Depending on your jurisdiction, we process data based on your
             consent, performance of a contract, our legitimate interest in
@@ -200,7 +258,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         </section>
 
         <section>
-          <h2>8. Security</h2>
+          <h2>9. Security</h2>
           <p>
             We apply reasonable technical and organizational measures to protect
             data, including access controls, logs, environment separation, and
@@ -210,7 +268,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         </section>
 
         <section>
-          <h2>9. Your rights</h2>
+          <h2>10. Your rights</h2>
           <p>
             Depending on applicable law, you may request access, correction,
             deletion, portability, objection, restriction of processing, or
@@ -226,7 +284,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         </section>
 
         <section>
-          <h2>10. Minors</h2>
+          <h2>11. Minors</h2>
           <p>
             The service is not directed to minors. Creating profiles, avatars,
             or cloned voices of minors is not allowed without valid
@@ -236,7 +294,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         </section>
 
         <section>
-          <h2>11. Changes</h2>
+          <h2>12. Changes</h2>
           <p>
             We may update this policy to reflect legal, technical, or service
             changes. If a change is material, we may notify you through the
@@ -258,9 +316,10 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
     >
       <p>
         Esta política explica cómo Bigmelo recopila, usa, comparte y protege
-        información cuando una persona crea un perfil, sube imagen, graba o
-        carga audio, clona una voz, publica un landing de perfil o conversa con
-        un avatar.
+        información cuando una persona crea una cuenta, ingresa con proveedores
+        conectados, crea un perfil, sube imagen, graba o carga audio, clona una
+        voz, conecta redes sociales, publica un landing de perfil, administra
+        productos o catálogo, paga un plan o conversa con un avatar.
       </p>
 
       <section>
@@ -269,11 +328,13 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         <ul>
           <li>
             Datos de contacto y cuenta, como nombre, correo, identificadores de
-            usuario y datos de soporte.
+            usuario, datos de ingreso con Google cuando se use, mensajes del
+            formulario de contacto, teléfono y datos de soporte.
           </li>
           <li>
             Contenido del perfil, como nombre público, alias, biografía, textos,
-            enlaces, instrucciones y contexto.
+            enlaces, instrucciones, conocimiento contextual, archivos subidos,
+            hoja de vida o CV, hechos, fuentes y datos de productos o catálogo.
           </li>
           <li>
             Imagen, video, audio y muestras de voz que subas para crear o animar
@@ -289,11 +350,22 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           </li>
           <li>
             Datos técnicos, como dirección IP, dispositivo, navegador, registros
-            de uso, errores y eventos de seguridad.
+            de uso, errores, eventos de ingreso, notificaciones, eventos de
+            seguridad, cookies, almacenamiento local, almacenamiento de sesión,
+            etiquetas de analítica y tokens de verificación contra abuso.
           </li>
           <li>
-            Datos de pago, facturación o consumo de créditos cuando contrates un
-            plan o compres créditos.
+            Datos de pago, facturación, suscripción, referencia de medio de
+            pago, transacciones de Wompi o consumo de créditos cuando contrates
+            un plan o compres créditos. Bigmelo no necesita almacenar números
+            completos de tarjeta.
+          </li>
+          <li>
+            Datos de integraciones conectadas, como identificadores de cuentas
+            de Instagram, Meta, TikTok, OnlyFans u otras plataformas, tokens de
+            acceso, media seleccionada, captions, enlaces de perfil, estado de
+            importación e historial de sincronización cuando conectas esos
+            servicios.
           </li>
         </ul>
       </section>
@@ -343,6 +415,16 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
             disponibilidad del servicio.
           </li>
           <li>
+            Autenticar usuarios, mantener sesiones activas, personalizar idioma,
+            enviar notificaciones, procesar solicitudes de contacto, ejecutar
+            verificaciones de seguridad y recordar preferencias del navegador.
+          </li>
+          <li>
+            Conectar cuentas sociales o de plataformas de creadores, importar
+            contenido seleccionado, mostrar enlaces, procesar información de
+            productos y mantener integraciones autorizadas.
+          </li>
+          <li>
             Cumplir obligaciones legales, contractuales, regulatorias o
             solicitudes válidas de autoridades.
           </li>
@@ -352,7 +434,37 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
       <ExternalProviders locale="es" />
 
       <section>
-        <h2>5. Perfiles públicos y mensajes de visitantes</h2>
+        <h2>5. Cuentas conectadas, pagos y datos del navegador</h2>
+        <p>
+          Si ingresas con Google, usamos la información de cuenta que Google
+          entregue para autenticarte, crear o mantener tu cuenta y proteger el
+          acceso. No vendemos datos de usuario de Google ni los usamos para
+          publicidad.
+        </p>
+        <p>
+          Si conectas Instagram, Meta, TikTok, OnlyFans o servicios similares,
+          usamos los datos conectados solo para las funciones que autorizas,
+          como verificación, importación de media o captions seleccionados,
+          mostrar enlaces sociales, preparar contexto del perfil y mantener
+          integraciones sincronizadas.
+        </p>
+        <p>
+          Proveedores de pago como Wompi pueden procesar tokens de medios de
+          pago, referencias de transacción, resultados de autorización, estado
+          de pagos recurrentes y datos de prevención de fraude. Bigmelo conserva
+          la información necesaria para administrar planes, créditos, facturas,
+          soporte, disputas y registros legales.
+        </p>
+        <p>
+          Podemos usar cookies, almacenamiento local, almacenamiento de sesión,
+          verificación de Cloudflare Turnstile, Google Tag Manager, analítica y
+          tecnologías similares del navegador para recordar idioma, mantener
+          sesiones, medir uso, proteger formularios y prevenir abuso.
+        </p>
+      </section>
+
+      <section>
+        <h2>6. Perfiles públicos y mensajes de visitantes</h2>
         <p>
           Cuando publicas un perfil, la información marcada como pública puede
           ser vista por cualquier persona con acceso al enlace. Los visitantes
@@ -370,7 +482,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
       </section>
 
       <section>
-        <h2>6. Conservación y eliminación</h2>
+        <h2>7. Conservación y eliminación</h2>
         <p>
           Conservamos información mientras tu cuenta, perfil, landing, modelo de
           voz, avatar o relación comercial estén activos, y por el tiempo
@@ -378,16 +490,20 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           prevención de abuso, resolución de disputas o copias de respaldo.
         </p>
         <p>
-          Puedes pedir eliminación de perfiles, imágenes, audios, modelos de voz
-          o datos personales. Algunas eliminaciones pueden tardar en reflejarse
-          en respaldos, registros técnicos o sistemas de proveedores. También
-          podemos conservar información limitada cuando sea necesario por ley o
-          para investigar abuso, fraude o suplantación.
+          Puedes pedir eliminación de perfiles, imágenes, audios, modelos de
+          voz, datos de cuentas conectadas, media importada, catálogo de
+          productos, referencias de pago, solicitudes de contacto o datos
+          personales.
+          Algunas eliminaciones pueden tardar en reflejarse en respaldos,
+          registros técnicos, almacenamiento del navegador, analítica, registros
+          de pago o sistemas de proveedores. También podemos conservar
+          información limitada cuando sea necesario por ley o para investigar
+          abuso, fraude o suplantación.
         </p>
       </section>
 
       <section>
-        <h2>7. Bases legales y consentimiento</h2>
+        <h2>8. Bases legales y consentimiento</h2>
         <p>
           Dependiendo de tu jurisdicción, tratamos datos con base en tu
           consentimiento, la ejecución de un contrato, nuestro interés legítimo
@@ -398,7 +514,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
       </section>
 
       <section>
-        <h2>8. Seguridad</h2>
+        <h2>9. Seguridad</h2>
         <p>
           Aplicamos medidas técnicas y organizativas razonables para proteger
           los datos, incluyendo controles de acceso, registros, separación de
@@ -409,7 +525,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
       </section>
 
       <section>
-        <h2>9. Tus derechos</h2>
+        <h2>10. Tus derechos</h2>
         <p>
           Según la ley aplicable, puedes solicitar acceso, corrección,
           eliminación, portabilidad, oposición, limitación del tratamiento o
@@ -425,7 +541,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
       </section>
 
       <section>
-        <h2>10. Menores de edad</h2>
+        <h2>11. Menores de edad</h2>
         <p>
           El servicio no está dirigido a menores. No se permite crear perfiles,
           avatares o voces clonadas de menores sin autorización válida de sus
@@ -434,7 +550,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
       </section>
 
       <section>
-        <h2>11. Cambios</h2>
+        <h2>12. Cambios</h2>
         <p>
           Podemos actualizar esta política para reflejar cambios legales,
           técnicos o del servicio. Si el cambio es material, podremos
@@ -456,7 +572,7 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
         kind="dataDeletion"
         locale="en"
         title="Bigmelo User Data Deletion Instructions"
-        updated="Last updated: July 27, 2026"
+        updated="Last updated: July 29, 2026"
       >
         <p>
           This page explains how to request deletion of personal data processed
@@ -474,11 +590,14 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
           <ul>
             <li>
               Account and contact information, such as name, email, and account
-              identifiers.
+              identifiers, Google sign-in data, phone numbers, contact form
+              submissions, and support records.
             </li>
             <li>
               Profile pages, aliases, biographies, contextual information,
-              social links, and public profile content.
+              social links, CV or resume information, uploaded files, facts,
+              sources, product catalog information, imported product images, and
+              public profile content.
             </li>
             <li>
               Images, videos, audio files, voice samples, generated avatar
@@ -486,8 +605,21 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
             </li>
             <li>
               Connected integration data, such as Instagram, Meta, or TikTok
-              account identifiers, access tokens, synced media, captions, and
-              selected media notes.
+              account identifiers, OnlyFans or similar platform identifiers,
+              access tokens, synced media, captions, selected media notes, and
+              sync history.
+            </li>
+            <li>
+              Payment-related Bigmelo records, such as Wompi transaction
+              references, payment source references, subscription status,
+              invoice metadata, credits, and plan history, except records that
+              must be retained for legal, tax, fraud, dispute, or accounting
+              reasons.
+            </li>
+            <li>
+              Notification preferences, in-app notification records, login
+              events, security events, analytics identifiers, and browser
+              storage that Bigmelo controls or can reasonably clear.
             </li>
             <li>
               Visitor chat messages and generated responses associated with
@@ -513,11 +645,14 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
             </li>
             <li>
               The connected provider, such as Instagram, Facebook, Meta, or
-              TikTok, if your request relates to an integration.
+              TikTok, Google, OnlyFans, Wompi, or another provider, if your
+              request relates to an integration or payment.
             </li>
             <li>
               A clear description of what you want deleted: account, profile,
-              media, voice data, chats, integration data, or all available data.
+              media, voice data, chats, products, contact submissions,
+              integration data, payment references, browser data, or all
+              available data.
             </li>
           </ul>
           <p>
@@ -530,12 +665,19 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
         <section>
           <h2>3. Removing connected provider access</h2>
           <p>
-            If you connected a Meta, Facebook, Instagram, Threads, or TikTok
-            account to Bigmelo, you can remove Bigmelo's access from the
-            provider account settings or connected app settings. Removing access
-            stops future access by Bigmelo, but you should also send us a
-            deletion request if you want previously synced data removed from
-            Bigmelo systems.
+            If you connected a Google, Meta, Facebook, Instagram, Threads,
+            TikTok, OnlyFans, or similar account to Bigmelo, you can remove
+            Bigmelo's access from the provider account settings or connected app
+            settings. Removing access stops future access by Bigmelo, but you
+            should also send us a deletion request if you want previously synced
+            data removed from Bigmelo systems.
+          </p>
+          <p>
+            Payment methods, payment source tokens, and transaction data may
+            also need to be managed through Wompi or the applicable payment
+            provider. We can delete or disable Bigmelo-side payment references
+            when legally and operationally available, but payment processors may
+            retain their own records under their policies and legal duties.
           </p>
         </section>
 
@@ -556,8 +698,10 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
             Some information may be retained for a limited period when necessary
             for legal compliance, payment records, security, fraud prevention,
             dispute resolution, abuse investigations, backups, or technical
-            logs. We may also retain aggregated or anonymized information that
-            no longer identifies you.
+            logs. Provider systems, analytics stores, browser storage, payment
+            processors, and backups may reflect deletions on different
+            timelines. We may also retain aggregated or anonymized information
+            that no longer identifies you.
           </p>
         </section>
 
@@ -579,7 +723,7 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
       kind="dataDeletion"
       locale="es"
       title="Instrucciones para eliminación de datos de usuario en Bigmelo"
-      updated="Última actualización: 27 de julio de 2026"
+      updated="Última actualización: 29 de julio de 2026"
     >
       <p>
         Esta página explica cómo solicitar la eliminación de datos personales
@@ -597,11 +741,14 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
         <ul>
           <li>
             Datos de cuenta y contacto, como nombre, correo e identificadores de
-            usuario.
+            usuario, datos de ingreso con Google, teléfonos, solicitudes del
+            formulario de contacto y registros de soporte.
           </li>
           <li>
             Páginas de perfil, alias, biografías, información contextual,
-            enlaces sociales y contenido público del perfil.
+            enlaces sociales, hoja de vida o CV, archivos subidos, hechos,
+            fuentes, información de catálogo de productos, imágenes importadas
+            de productos y contenido público del perfil.
           </li>
           <li>
             Imágenes, videos, audios, muestras de voz, archivos de avatar
@@ -609,8 +756,23 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
           </li>
           <li>
             Datos de integraciones conectadas, como identificadores de
-            Instagram, Meta o TikTok, tokens de acceso, media sincronizada,
-            captions y observaciones de contenido seleccionado.
+            Instagram, Meta o TikTok, identificadores de OnlyFans o plataformas
+            similares, tokens de acceso, media sincronizada, captions,
+            observaciones de contenido seleccionado e historial de
+            sincronización.
+          </li>
+          <li>
+            Registros de pago en Bigmelo, como referencias de transacciones de
+            Wompi, referencias de fuentes de pago, estado de suscripción,
+            metadatos de factura, créditos e historial de planes, salvo
+            registros que deban conservarse por razones legales, tributarias, de
+            fraude, disputas o contabilidad.
+          </li>
+          <li>
+            Preferencias de notificación, registros de notificaciones internas,
+            eventos de ingreso, eventos de seguridad, identificadores de
+            analítica y almacenamiento del navegador que Bigmelo controle o
+            pueda borrar razonablemente.
           </li>
           <li>
             Mensajes de visitantes y respuestas generadas asociadas a perfiles
@@ -636,12 +798,15 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
           </li>
           <li>
             El proveedor conectado, como Instagram, Facebook, Meta o TikTok, si
-            la solicitud se relaciona con una integración.
+            la solicitud se relaciona con una integración, o Google, OnlyFans,
+            Wompi u otro proveedor si la solicitud se relaciona con ingreso,
+            integración o pago.
           </li>
           <li>
             Una descripción clara de lo que quieres eliminar: cuenta, perfil,
-            media, datos de voz, chats, datos de integración o todos los datos
-            disponibles.
+            media, datos de voz, chats, productos, solicitudes de contacto,
+            datos de integración, referencias de pago, datos del navegador o
+            todos los datos disponibles.
           </li>
         </ul>
         <p>
@@ -654,12 +819,20 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
       <section>
         <h2>3. Retirar acceso de proveedores conectados</h2>
         <p>
-          Si conectaste una cuenta de Meta, Facebook, Instagram, Threads o
-          TikTok a Bigmelo, puedes retirar el acceso de Bigmelo desde la
-          configuración de tu cuenta del proveedor o desde apps conectadas.
-          Retirar el acceso detiene accesos futuros de Bigmelo, pero también
-          debes enviarnos una solicitud de eliminación si quieres borrar datos
-          previamente sincronizados en sistemas de Bigmelo.
+          Si conectaste una cuenta de Google, Meta, Facebook, Instagram, Threads,
+          TikTok, OnlyFans o similar a Bigmelo, puedes retirar el acceso de
+          Bigmelo desde la configuración de tu cuenta del proveedor o desde apps
+          conectadas. Retirar el acceso detiene accesos futuros de Bigmelo, pero
+          también debes enviarnos una solicitud de eliminación si quieres borrar
+          datos previamente sincronizados en sistemas de Bigmelo.
+        </p>
+        <p>
+          Los medios de pago, tokens de fuente de pago y datos de transacción
+          también pueden requerir gestión desde Wompi o el proveedor de pagos
+          aplicable. Podemos eliminar o desactivar referencias de pago del lado
+          de Bigmelo cuando sea legal y operativamente posible, pero los
+          procesadores de pago pueden conservar sus propios registros según sus
+          políticas y obligaciones legales.
         </p>
       </section>
 
@@ -680,9 +853,11 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
           Parte de la información puede conservarse durante un periodo limitado
           cuando sea necesario para cumplimiento legal, registros de pago,
           seguridad, prevención de fraude, resolución de disputas,
-          investigaciones de abuso, respaldos o registros técnicos. También
-          podemos conservar información agregada o anonimizada que ya no te
-          identifique.
+          investigaciones de abuso, respaldos o registros técnicos. Los sistemas
+          de proveedores, almacenes de analítica, almacenamiento del navegador,
+          procesadores de pago y respaldos pueden reflejar eliminaciones en
+          tiempos distintos. También podemos conservar información agregada o
+          anonimizada que ya no te identifique.
         </p>
       </section>
 
@@ -769,29 +944,33 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
             operate the service.
           </p>
           <p>
-            This license includes the right to send content to providers such as
-            Runway, ElevenLabs, and OpenAI, and to other necessary
-            subprocessors. If you delete a profile or request deletion, we will
-            stop using the content to operate that profile, except for backups,
-            legal obligations, security logs, or uses needed to investigate
-            abuse.
+            This license includes the right to send content to AI, social,
+            payment, storage, security, analytics, and other necessary
+            subprocessors, including the providers described in the privacy
+            policy. If you delete a profile or request deletion, we will stop
+            using the content to operate that profile, except for backups, legal
+            obligations, security logs, payment records, or uses needed to
+            investigate abuse.
           </p>
         </section>
 
         <section>
-          <h2>5. External providers</h2>
+          <h2>5. External providers and integrations</h2>
           <p>
-            Bigmelo uses third-party services for essential functions: Runway
-            for avatars and visual assets, ElevenLabs for voice and audio, and
-            OpenAI for message understanding and response generation. Your use
-            of the service depends on those providers being available and on
-            your content complying with their policies.
+            Bigmelo uses third-party services for essential functions, including
+            Runway for avatars and visual assets, ElevenLabs for voice and
+            audio, OpenAI for message understanding and response generation,
+            Google for authentication or platform services, Meta and Instagram,
+            TikTok, OnlyFans or similar services for connected account features,
+            Wompi for payments, Cloudflare Turnstile for anti-abuse checks, and
+            infrastructure, storage, email, notification, analytics, and logging
+            providers.
           </p>
           <p>
             We do not control changes, interruptions, limits, moderation
             decisions, retention rules, or policies of those providers. We may
             suspend, modify, or reject a generation if a provider or our system
-            detects legal, technical, or security risk.
+            detects legal, technical, security, payment, rights, or policy risk.
           </p>
         </section>
 
@@ -809,6 +988,16 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
             advice, guaranteed human statements, legal proof, medical diagnosis,
             personalized financial advice, or automated decisions with legal
             effects without competent human review.
+          </p>
+          <p>
+            If you publish social links, product cards, imported media, catalog
+            content, or creator-platform content, including Instagram, TikTok,
+            OnlyFans, or similar services, you are responsible for having the
+            necessary rights, permissions, age restrictions, disclosures, and
+            legal basis for that content. Adult or restricted content may only
+            be used where it is lawful, consensual, age appropriate, and
+            compliant with platform rules. Non-consensual sexual content and any
+            content involving minors are prohibited.
           </p>
         </section>
 
@@ -854,6 +1043,16 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
             site or in the applicable offer. Unless required by law, payments,
             consumed credits, expired credits, and services already provided are
             not refundable.
+          </p>
+          <p>
+            Payments may be processed by Wompi or another payment provider. By
+            starting a trial, subscription, recurring payment, plan purchase, or
+            credit purchase, you authorize the applicable charges and agree that
+            the payment provider may tokenize payment sources, validate payment
+            methods, process authorizations and captures, report transaction
+            status, and run fraud prevention checks. Trials or subscriptions may
+            renew automatically unless cancelled before the renewal or trial end
+            date shown in the offer or account settings.
           </p>
         </section>
 
@@ -993,29 +1192,34 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
           soporte, prevenir abuso y operar el servicio.
         </p>
         <p>
-          Esta licencia incluye el derecho de enviar contenido a proveedores
-          como Runway, ElevenLabs y OpenAI, y a otros subprocesadores
-          necesarios. Si eliminas un perfil o solicitas eliminación, dejaremos
-          de usar el contenido para operar ese perfil, salvo copias de respaldo,
-          obligaciones legales, registros de seguridad o usos necesarios para
-          investigar abuso.
+          Esta licencia incluye el derecho de enviar contenido a proveedores de
+          IA, redes sociales, pagos, almacenamiento, seguridad, analítica y otros
+          subprocesadores necesarios, incluyendo los proveedores descritos en la
+          política de privacidad. Si eliminas un perfil o solicitas eliminación,
+          dejaremos de usar el contenido para operar ese perfil, salvo copias de
+          respaldo, obligaciones legales, registros de seguridad, registros de
+          pago o usos necesarios para investigar abuso.
         </p>
       </section>
 
       <section>
-        <h2>5. Proveedores externos</h2>
+        <h2>5. Proveedores externos e integraciones</h2>
         <p>
-          Bigmelo usa servicios de terceros para funciones esenciales: Runway
-          para avatar y recursos visuales, ElevenLabs para voz y audio, y OpenAI
-          para comprensión de mensajes y generación de respuestas. Tu uso del
-          servicio está condicionado a que esos proveedores estén disponibles y
-          a que el contenido cumpla sus políticas.
+          Bigmelo usa servicios de terceros para funciones esenciales,
+          incluyendo Runway para avatar y recursos visuales, ElevenLabs para voz
+          y audio, OpenAI para comprensión de mensajes y generación de
+          respuestas, Google para autenticación o servicios de plataforma, Meta
+          e Instagram, TikTok, OnlyFans o servicios similares para funciones de
+          cuentas conectadas, Wompi para pagos, Cloudflare Turnstile para
+          verificaciones contra abuso, y proveedores de infraestructura,
+          almacenamiento, correo, notificaciones, analítica y registros.
         </p>
         <p>
           No controlamos cambios, interrupciones, límites, decisiones de
           moderación, reglas de retención o políticas de esos proveedores.
           Podemos suspender, modificar o rechazar una generación si un proveedor
-          o nuestro sistema detecta riesgo legal, técnico o de seguridad.
+          o nuestro sistema detecta riesgo legal, técnico, de seguridad, pago,
+          derechos o políticas.
         </p>
       </section>
 
@@ -1033,6 +1237,17 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
           definitiva, declaración humana garantizada, prueba legal, diagnóstico
           médico, recomendación financiera personalizada o decisión automatizada
           con efectos legales sin revisión humana competente.
+        </p>
+        <p>
+          Si publicas enlaces sociales, tarjetas de producto, media importada,
+          contenido de catálogo o contenido de plataformas de creadores,
+          incluyendo Instagram, TikTok, OnlyFans o servicios similares, eres
+          responsable de contar con los derechos, permisos, restricciones de
+          edad, avisos y base legal necesarios para ese contenido. El contenido
+          adulto o restringido solo puede usarse cuando sea legal, consentido,
+          apto para la edad correspondiente y cumpla reglas de plataforma. Está
+          prohibido el contenido sexual no consentido y cualquier contenido que
+          involucre menores.
         </p>
       </section>
 
@@ -1077,6 +1292,17 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
           en el sitio o en la oferta aplicable. Salvo que la ley exija lo
           contrario, pagos, créditos consumidos, créditos vencidos y servicios
           ya prestados no son reembolsables.
+        </p>
+        <p>
+          Los pagos pueden ser procesados por Wompi u otro proveedor de pagos.
+          Al iniciar una prueba, suscripción, pago recurrente, compra de plan o
+          compra de créditos, autorizas los cargos aplicables y aceptas que el
+          proveedor de pagos pueda tokenizar fuentes de pago, validar medios de
+          pago, procesar autorizaciones y capturas, reportar estado de
+          transacciones y ejecutar controles de prevención de fraude. Las
+          pruebas o suscripciones pueden renovarse automáticamente salvo que se
+          cancelen antes de la fecha de renovación o fin de prueba indicada en
+          la oferta o configuración de cuenta.
         </p>
       </section>
 
@@ -1151,7 +1377,7 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
   if (locale === "en") {
     return (
       <section>
-        <h2>4. Artificial intelligence providers</h2>
+        <h2>4. External providers and integrations</h2>
         <p>
           To operate the service, we use specialized external providers. By
           using Bigmelo, you accept that the content needed to provide the
@@ -1179,6 +1405,45 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
             , for understanding messages, organizing context, and generating
             responses.
           </li>
+          <li>
+            <a href="https://www.google.com/" rel="noreferrer" target="_blank">
+              Google
+            </a>
+            , for sign-in, account authentication, analytics, tag management, or
+            related platform services when enabled.
+          </li>
+          <li>
+            <a href="https://www.meta.com/" rel="noreferrer" target="_blank">
+              Meta and Instagram
+            </a>
+            , for connected social accounts, profile links, media selection, and
+            account verification features when authorized.
+          </li>
+          <li>
+            <a href="https://www.tiktok.com/" rel="noreferrer" target="_blank">
+              TikTok
+            </a>
+            , for connected account verification, selected media imports, and
+            related social integration features when authorized.
+          </li>
+          <li>
+            <a href="https://wompi.com/" rel="noreferrer" target="_blank">
+              Wompi
+            </a>
+            , for payment processing, payment source tokens, transaction status,
+            fraud prevention, and recurring payment operations.
+          </li>
+          <li>
+            <a href="https://www.cloudflare.com/" rel="noreferrer" target="_blank">
+              Cloudflare
+            </a>
+            , for Turnstile verification and abuse prevention on public forms.
+          </li>
+          <li>
+            Infrastructure, storage, email, notification, analytics, and logging
+            providers, for hosting, backups, media storage, support, operations,
+            and service reliability.
+          </li>
         </ul>
         <p>
           Each provider processes data according to its own terms, privacy
@@ -1192,7 +1457,7 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
 
   return (
     <section>
-      <h2>4. Proveedores de inteligencia artificial</h2>
+      <h2>4. Proveedores externos e integraciones</h2>
       <p>
         Para operar el servicio usamos proveedores externos especializados. Al
         usar Bigmelo, aceptas que el contenido necesario pueda enviarse a estos
@@ -1218,6 +1483,49 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
             OpenAI
           </a>
           , para comprender mensajes, organizar contexto y generar respuestas.
+        </li>
+        <li>
+          <a href="https://www.google.com/" rel="noreferrer" target="_blank">
+            Google
+          </a>
+          , para ingreso, autenticación de cuenta, analítica, administración de
+          etiquetas o servicios relacionados de plataforma cuando estén
+          habilitados.
+        </li>
+        <li>
+          <a href="https://www.meta.com/" rel="noreferrer" target="_blank">
+            Meta e Instagram
+          </a>
+          , para cuentas sociales conectadas, enlaces de perfil, selección de
+          media y funciones de verificación de cuenta cuando se autoricen.
+        </li>
+        <li>
+          <a href="https://www.tiktok.com/" rel="noreferrer" target="_blank">
+            TikTok
+          </a>
+          , para verificación de cuentas conectadas, importación de media
+          seleccionada y funciones relacionadas de integración social cuando se
+          autoricen.
+        </li>
+        <li>
+          <a href="https://wompi.com/" rel="noreferrer" target="_blank">
+            Wompi
+          </a>
+          , para procesamiento de pagos, tokens de fuentes de pago, estado de
+          transacciones, prevención de fraude y operaciones de pagos recurrentes.
+        </li>
+        <li>
+          <a href="https://www.cloudflare.com/" rel="noreferrer" target="_blank">
+            Cloudflare
+          </a>
+          , para verificación Turnstile y prevención de abuso en formularios
+          públicos.
+        </li>
+        <li>
+          Proveedores de infraestructura, almacenamiento, correo,
+          notificaciones, analítica y registros, para alojamiento, respaldos,
+          almacenamiento de media, soporte, operación y confiabilidad del
+          servicio.
         </li>
       </ul>
       <p>
@@ -1245,6 +1553,7 @@ function LegalLayout({
   const termsPath = legalPaths.terms[locale];
   const spanishPath = legalPaths[kind].es;
   const englishPath = legalPaths[kind].en;
+  const adminSignInUrl = getAdminSignInUrl();
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -1271,6 +1580,10 @@ function LegalLayout({
             <a href={termsPath}>{copy.terms}</a>
             <a href={dataDeletionPath}>{copy.dataDeletion}</a>
           </nav>
+
+          <a className="admin-link legal-admin-link" href={adminSignInUrl}>
+            {copy.signIn}
+          </a>
 
           <div
             className="legal-language-switch"

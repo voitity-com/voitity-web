@@ -3,6 +3,7 @@ import { getCountries, getCountryCallingCode, type CountryCode } from 'libphonen
 
 import bigmeloLogo from '../assets/bigmelo-logo.png';
 import valeriaAvatar from '../assets/valeria-rios-avatar.png';
+import { getAdminBaseUrl, getAdminSignInUrl } from '../lib/admin-url';
 import { submitContactSubmission } from '../lib/contact-api';
 
 type Locale = 'es' | 'en';
@@ -30,6 +31,7 @@ const content: Record<
       product: string;
       plans: string;
       contact: string;
+      signIn: string;
     };
     hero: {
       eyebrow: string;
@@ -83,6 +85,7 @@ const content: Record<
       product: 'Producto',
       plans: 'Planes',
       contact: 'Contacto',
+      signIn: 'Ingresar',
     },
     hero: {
       eyebrow: 'Presencia digital con inteligencia artificial',
@@ -181,6 +184,7 @@ const content: Record<
       product: 'Product',
       plans: 'Plans',
       contact: 'Contact',
+      signIn: 'Sign in',
     },
     hero: {
       eyebrow: 'AI-powered digital presence',
@@ -403,26 +407,6 @@ function getPlanCheckoutUrl(plan: Plan): string {
   return url.toString();
 }
 
-function getAdminBaseUrl(): string {
-  const configuredBaseUrl = import.meta.env.VITE_ADMIN_BASE_URL as string | undefined;
-
-  if (configuredBaseUrl) {
-    return configuredBaseUrl.replace(/\/+$/u, '');
-  }
-
-  if (typeof window === 'undefined') {
-    return 'https://admin.bigmelo.com';
-  }
-
-  const { hostname, protocol } = window.location;
-
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `${protocol}//localhost:3000`;
-  }
-
-  return 'https://admin.bigmelo.com';
-}
-
 export function Home() {
   const [locale, setLocale] = useState<Locale>(getInitialLocale);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -433,6 +417,7 @@ export function Home() {
   const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const t = content[locale];
+  const adminSignInUrl = getAdminSignInUrl();
   const countryDialCodes = useMemo(() => getCountryDialCodeOptions(locale), [locale]);
   const isCaptchaEnabled = TURNSTILE_SITE_KEY !== '';
   const heroProof =
@@ -580,21 +565,27 @@ export function Home() {
           <a href="#contact">{t.nav.contact}</a>
         </nav>
 
-        <div className="language-switch" aria-label="Language">
-          <button
-            className={locale === 'es' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setLocale('es')}
-          >
-            ES
-          </button>
-          <button
-            className={locale === 'en' ? 'is-active' : ''}
-            type="button"
-            onClick={() => setLocale('en')}
-          >
-            EN
-          </button>
+        <div className="header-actions">
+          <a className="admin-link" href={adminSignInUrl}>
+            {t.nav.signIn}
+          </a>
+
+          <div className="language-switch" aria-label={locale === 'es' ? 'Idioma' : 'Language'}>
+            <button
+              className={locale === 'es' ? 'is-active' : ''}
+              type="button"
+              onClick={() => setLocale('es')}
+            >
+              ES
+            </button>
+            <button
+              className={locale === 'en' ? 'is-active' : ''}
+              type="button"
+              onClick={() => setLocale('en')}
+            >
+              EN
+            </button>
+          </div>
         </div>
       </header>
 
