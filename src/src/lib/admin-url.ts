@@ -18,6 +18,12 @@ export function getAdminBaseUrl(): string {
   return 'https://admin.bigmelo.com';
 }
 
-export function getAdminSignInUrl(): string {
-  return new URL('/auth/custom/sign-in', getAdminBaseUrl()).toString();
+export function getAdminSignInUrl(locale?: 'en' | 'es'): string {
+  const url = new URL('/auth/custom/sign-in', getAdminBaseUrl());
+
+  if (locale) {
+    url.searchParams.set('locale', locale);
+  }
+
+  return url.toString();
 }

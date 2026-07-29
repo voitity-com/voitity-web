@@ -1054,6 +1054,26 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
             renew automatically unless cancelled before the renewal or trial end
             date shown in the offer or account settings.
           </p>
+          <p>
+            Bigmelo may change prices for future purchases and renewals. If a
+            change affects an active subscription, we will provide at least 30
+            calendar days&apos; prior notice stating the new price, currency, and
+            effective date. The new price will apply only to renewals after that
+            date, never retroactively or during a period already paid. You may
+            cancel automatic renewal before the change takes effect without a
+            penalty.
+          </p>
+          <p>
+            Before confirming an electronic purchase, we will show the
+            applicable plan, billing cycle, displayed price, and total amount to
+            be processed. Prices may be displayed in USD. For immediate charges,
+            Wompi processes the exact COP amount shown at checkout using the
+            exchange rate presented before acceptance. For a trial conversion or
+            future renewal, the COP equivalent is calculated using the exchange
+            rate applicable on the charge date; a rate shown when starting the
+            trial is informational and may change. The payment record will show
+            the rate and COP amount actually processed.
+          </p>
         </section>
 
         <section>
@@ -1304,6 +1324,27 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
           cancelen antes de la fecha de renovación o fin de prueba indicada en
           la oferta o configuración de cuenta.
         </p>
+        <p>
+          Bigmelo podrá modificar los precios aplicables a futuras compras y
+          renovaciones. Si un cambio afecta una suscripción activa, informaremos
+          con al menos 30 días calendario de anticipación el nuevo precio, la
+          moneda y la fecha de entrada en vigor. El nuevo precio se aplicará
+          únicamente a renovaciones posteriores a esa fecha, nunca de forma
+          retroactiva ni durante un período ya pagado. Podrás cancelar la
+          renovación automática antes de que el cambio entre en vigor, sin
+          penalidad.
+        </p>
+        <p>
+          Antes de confirmar una compra electrónica mostraremos el plan, el
+          ciclo de facturación, el precio anunciado y el monto total que será
+          procesado. Los precios pueden mostrarse en USD. Para cobros inmediatos,
+          Wompi procesa en COP el monto exacto presentado en el checkout, usando
+          la tasa de cambio informada antes de la aceptación. Para la conversión
+          de una prueba o una renovación futura, el equivalente en COP se
+          calcula con la tasa aplicable en la fecha del cobro; una tasa mostrada
+          al iniciar la prueba es informativa y puede cambiar. El comprobante
+          indicará la tasa y el monto COP efectivamente procesados.
+        </p>
       </section>
 
       <section>
@@ -1553,7 +1594,7 @@ function LegalLayout({
   const termsPath = legalPaths.terms[locale];
   const spanishPath = legalPaths[kind].es;
   const englishPath = legalPaths[kind].en;
-  const adminSignInUrl = getAdminSignInUrl();
+  const adminSignInUrl = getAdminSignInUrl(locale);
 
   useEffect(() => {
     document.documentElement.lang = locale;
