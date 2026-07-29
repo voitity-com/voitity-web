@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
   ChatMessage,
@@ -10,18 +10,20 @@ import {
   fetchProfileByAlias,
   ProfileApiError,
   ProfileData,
+  ProfileFeatureSetting,
   sendProfileAudioMessage,
   sendProfileMessage,
-} from '../lib/profile-api';
+} from "../lib/profile-api";
 
 type ProfileProps = {
   onProfileNotFound: () => void;
   profileAlias: string;
 };
 
-type GreetingAudioState = 'idle' | 'loading' | 'ready' | 'blocked' | 'unavailable';
-type RecordingState = 'idle' | 'preparing' | 'recording' | 'preview';
-type ProfileLocale = ProfileData['locale'];
+type GreetingAudioState =
+  "idle" | "loading" | "ready" | "blocked" | "unavailable";
+type RecordingState = "idle" | "preparing" | "recording" | "preview";
+type ProfileLocale = ProfileData["locale"];
 
 type AudioDraft = {
   blob: Blob;
@@ -39,8 +41,8 @@ type PulseMedia = {
   messageId: string;
 };
 
-const PROFILE_SESSION_KEY_PREFIX = 'bigmelo:profile-session:v3:';
-const ADULT_CONTENT_SESSION_KEY_PREFIX = 'bigmelo:adult-content:v1:';
+const PROFILE_SESSION_KEY_PREFIX = "bigmelo:profile-session:v3:";
+const ADULT_CONTENT_SESSION_KEY_PREFIX = "bigmelo:adult-content:v1:";
 const AVATAR_VIDEO_LOOP_DELAY_MS = 5000;
 const MEDIA_MODAL_CLOSE_TRANSITION_MS = 460;
 const MEDIA_PULSE_DURATION_MS = 2000;
@@ -48,76 +50,83 @@ const WAVEFORM_BAR_COUNT = 22;
 
 const profileCopy = {
   en: {
-    audioInitialUnavailable: 'Initial audio is not available for this profile.',
-    adultContentBody: 'This promotional media is marked for adults. Confirm that you are at least 18 years old to continue.',
-    adultContentCancel: 'Cancel',
-    adultContentConfirm: 'I am 18 or older',
-    adultContentTitle: 'Adult content',
-    audioMessage: 'Play message audio',
-    cancelRecording: 'Cancel recording',
+    audioInitialUnavailable: "Initial audio is not available for this profile.",
+    adultContentBody:
+      "This promotional media is marked for adults. Confirm that you are at least 18 years old to continue.",
+    adultContentCancel: "Cancel",
+    adultContentConfirm: "I am 18 or older",
+    adultContentTitle: "Adult content",
+    audioMessage: "Play message audio",
+    cancelRecording: "Cancel recording",
     defaultInitial: (name: string) =>
       `Hi, I am ${name}. Ask me about my work, my projects, or anything you want to know about me.`,
-    discardAudio: 'Discard audio',
-    footerRights: 'All rights Reserved.',
-    goToBottom: 'Go to the end of the conversation',
-    loading: 'Loading profile...',
-    messagePlaceholder: 'Write your message...',
-    modalClose: 'Close media',
-    modalTitle: 'Media detail',
-    openPhoto: 'Open photo',
-    openVideo: 'Play video',
-    pauseRecordedAudio: 'Pause recorded audio',
-    preparing: 'Preparing...',
-    playRecordedAudio: 'Play recorded audio',
-    recordingNotAvailable: 'Your browser does not allow audio recording from this screen.',
-    sendAudio: 'Send audio',
-    sendFailed: 'The message could not be sent.',
-    sendMessage: 'Send message',
-    socialNav: 'Social networks',
-    startRecording: 'Record message',
-    stopRecording: 'Stop recording',
-    typing: 'Writing response...',
+    discardAudio: "Discard audio",
+    footerRights: "All rights Reserved.",
+    goToBottom: "Go to the end of the conversation",
+    loading: "Loading profile...",
+    messagePlaceholder: "Write your message...",
+    modalClose: "Close media",
+    modalTitle: "Media detail",
+    openPhoto: "Open photo",
+    openVideo: "Play video",
+    pauseRecordedAudio: "Pause recorded audio",
+    preparing: "Preparing...",
+    playRecordedAudio: "Play recorded audio",
+    recordingNotAvailable:
+      "Your browser does not allow audio recording from this screen.",
+    sendAudio: "Send audio",
+    sendFailed: "The message could not be sent.",
+    sendMessage: "Send message",
+    socialNav: "Social networks",
+    startRecording: "Record message",
+    stopRecording: "Stop recording",
+    typing: "Writing response...",
     viewOnProvider: (provider: string) => `View on ${provider}`,
-    viewProduct: 'View product',
-    contactOnTelegram: 'Contact on Telegram',
-    contactOnWhatsapp: 'Contact on WhatsApp',
+    viewProduct: "View product",
+    contactOnTelegram: "Contact on Telegram",
+    contactOnWhatsapp: "Contact on WhatsApp",
   },
   es: {
-    audioInitialUnavailable: 'Audio inicial no disponible para este perfil.',
-    adultContentBody: 'Este contenido promocional está marcado para adultos. Confirma que tienes al menos 18 años para continuar.',
-    adultContentCancel: 'Cancelar',
-    adultContentConfirm: 'Soy mayor de 18 años',
-    adultContentTitle: 'Contenido para adultos',
-    audioMessage: 'Reproducir audio del mensaje',
-    cancelRecording: 'Cancelar grabación',
+    audioInitialUnavailable: "Audio inicial no disponible para este perfil.",
+    adultContentBody:
+      "Este contenido promocional está marcado para adultos. Confirma que tienes al menos 18 años para continuar.",
+    adultContentCancel: "Cancelar",
+    adultContentConfirm: "Soy mayor de 18 años",
+    adultContentTitle: "Contenido para adultos",
+    audioMessage: "Reproducir audio del mensaje",
+    cancelRecording: "Cancelar grabación",
     defaultInitial: (name: string) =>
       `Hola, soy ${name}. Pregúntame sobre mi trabajo, mis proyectos o lo que quieres conocer de mí.`,
-    discardAudio: 'Descartar audio',
-    footerRights: 'Todos los derechos reservados.',
-    goToBottom: 'Ir al final de la conversación',
-    loading: 'Cargando perfil...',
-    messagePlaceholder: 'Escribe tu mensaje...',
-    modalClose: 'Cerrar contenido',
-    modalTitle: 'Detalle del contenido',
-    openPhoto: 'Abrir foto',
-    openVideo: 'Reproducir video',
-    pauseRecordedAudio: 'Pausar audio grabado',
-    preparing: 'Preparando...',
-    playRecordedAudio: 'Reproducir audio grabado',
-    recordingNotAvailable: 'Tu navegador no permite grabar audio desde esta pantalla.',
-    sendAudio: 'Enviar audio',
-    sendFailed: 'No fue posible enviar el mensaje.',
-    sendMessage: 'Enviar mensaje',
-    socialNav: 'Redes sociales',
-    startRecording: 'Grabar mensaje',
-    stopRecording: 'Detener grabación',
-    typing: 'Escribiendo respuesta...',
+    discardAudio: "Descartar audio",
+    footerRights: "Todos los derechos reservados.",
+    goToBottom: "Ir al final de la conversación",
+    loading: "Cargando perfil...",
+    messagePlaceholder: "Escribe tu mensaje...",
+    modalClose: "Cerrar contenido",
+    modalTitle: "Detalle del contenido",
+    openPhoto: "Abrir foto",
+    openVideo: "Reproducir video",
+    pauseRecordedAudio: "Pausar audio grabado",
+    preparing: "Preparando...",
+    playRecordedAudio: "Reproducir audio grabado",
+    recordingNotAvailable:
+      "Tu navegador no permite grabar audio desde esta pantalla.",
+    sendAudio: "Enviar audio",
+    sendFailed: "No fue posible enviar el mensaje.",
+    sendMessage: "Enviar mensaje",
+    socialNav: "Redes sociales",
+    startRecording: "Grabar mensaje",
+    stopRecording: "Detener grabación",
+    typing: "Escribiendo respuesta...",
     viewOnProvider: (provider: string) => `Ver en ${provider}`,
-    viewProduct: 'Ver producto',
-    contactOnTelegram: 'Contactar por Telegram',
-    contactOnWhatsapp: 'Contactar por WhatsApp',
+    viewProduct: "Ver producto",
+    contactOnTelegram: "Contactar por Telegram",
+    contactOnWhatsapp: "Contactar por WhatsApp",
   },
-} satisfies Record<ProfileLocale, Record<string, string | ((value: string) => string)>>;
+} satisfies Record<
+  ProfileLocale,
+  Record<string, string | ((value: string) => string)>
+>;
 
 function getProfileCopy(locale: ProfileLocale) {
   return profileCopy[locale] as typeof profileCopy.es;
@@ -141,24 +150,27 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const shouldScrollToBottomRef = useRef(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
-  const [avatarKind, setAvatarKind] = useState<'image' | 'video'>('image');
-  const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatarKind, setAvatarKind] = useState<"image" | "video">("image");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [greetingAudioState, setGreetingAudioState] = useState<GreetingAudioState>('idle');
-  const [greetingAudioError, setGreetingAudioError] = useState<string | null>(null);
-  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [greetingAudioState, setGreetingAudioState] =
+    useState<GreetingAudioState>("idle");
+  const [greetingAudioError, setGreetingAudioError] = useState<string | null>(
+    null,
+  );
+  const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioDraft, setAudioDraft] = useState<AudioDraft | null>(null);
   const [pulseMedia, setPulseMedia] = useState<PulseMedia | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [previewDurationSeconds, setPreviewDurationSeconds] = useState(0);
-  const copy = getProfileCopy(profile?.locale ?? 'es');
+  const copy = getProfileCopy(profile?.locale ?? "es");
   const [previewPlaybackSeconds, setPreviewPlaybackSeconds] = useState(0);
   const [hasConfirmedAdultContent, setHasConfirmedAdultContent] = useState(() =>
     readAdultContentConfirmation(profileAlias),
@@ -171,7 +183,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   useEffect(() => {
     let isMounted = true;
     const audio = audioRef.current;
-    let nextAvatarUrl = '';
+    let nextAvatarUrl = "";
 
     async function loadProfile() {
       try {
@@ -179,7 +191,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setError(null);
         setChatId(null);
         setPulseMedia(null);
-        setGreetingAudioState('idle');
+        setGreetingAudioState("idle");
         setGreetingAudioError(null);
         setIsAudioPlaying(false);
 
@@ -198,16 +210,25 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             audioUrl: initialMessage.audioUrl,
             createdAt: new Date().toISOString(),
             id: crypto.randomUUID(),
-            role: 'profile',
+            role: "profile",
             text:
               initialMessage.text ??
-              getProfileCopy(nextProfile.locale).defaultInitial(nextProfile.name),
+              getProfileCopy(nextProfile.locale).defaultInitial(
+                nextProfile.name,
+              ),
           },
         ] satisfies ChatMessage[];
 
         setChatId(storedSession?.chatId ?? null);
         shouldScrollToBottomRef.current = true;
-        setMessages(hasStoredMessages ? storedSession!.messages : initialMessages);
+        setMessages(
+          hasStoredMessages
+            ? filterMessagesByProfileFeatures(
+                storedSession!.messages,
+                nextProfile.featureSettings,
+              )
+            : initialMessages,
+        );
         setIsLoading(false);
 
         document.title = `${nextProfile.name} | Bigmelo`;
@@ -224,20 +245,22 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           })
           .catch(() => {
             if (isMounted) {
-              setAvatarKind('image');
+              setAvatarKind("image");
             }
           });
 
-        const greetingAudioUrl = hasStoredMessages ? undefined : initialMessage.audioUrl;
+        const greetingAudioUrl = hasStoredMessages
+          ? undefined
+          : initialMessage.audioUrl;
         const currentAudio = audioRef.current ?? audio;
 
         if (greetingAudioUrl && currentAudio) {
           setAudioSource(currentAudio, greetingAudioUrl);
-          setGreetingAudioState('ready');
+          setGreetingAudioState("ready");
           setGreetingAudioError(null);
           currentAudio.play().catch(() => {
             if (isMounted) {
-              setGreetingAudioState('blocked');
+              setGreetingAudioState("blocked");
             }
           });
         }
@@ -248,7 +271,11 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         }
 
         if (isMounted) {
-          setError(loadError instanceof Error ? loadError.message : 'No fue posible cargar el perfil.');
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "No fue posible cargar el perfil.",
+          );
         }
       } finally {
         if (isMounted) {
@@ -276,12 +303,15 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
       clearRecordingTimer();
       stopRecordingStream();
 
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
         recordingCanceledRef.current = true;
         mediaRecorderRef.current.stop();
       }
 
-      if (audioDraftRef.current?.url.startsWith('blob:')) {
+      if (audioDraftRef.current?.url.startsWith("blob:")) {
         URL.revokeObjectURL(audioDraftRef.current.url);
       }
 
@@ -328,12 +358,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     }
 
     updateScrollButton();
-    window.addEventListener('scroll', updateScrollButton, { passive: true });
-    window.addEventListener('resize', updateScrollButton);
+    window.addEventListener("scroll", updateScrollButton, { passive: true });
+    window.addEventListener("resize", updateScrollButton);
 
     return () => {
-      window.removeEventListener('scroll', updateScrollButton);
-      window.removeEventListener('resize', updateScrollButton);
+      window.removeEventListener("scroll", updateScrollButton);
+      window.removeEventListener("resize", updateScrollButton);
     };
   }, [isSending, messages.length, profile]);
 
@@ -352,26 +382,36 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     const visitorMessage: ChatMessage = {
       createdAt: new Date().toISOString(),
       id: crypto.randomUUID(),
-      role: 'visitor',
+      role: "visitor",
       text: draft.trim(),
     };
 
-    setDraft('');
+    setDraft("");
     setIsSending(true);
     setError(null);
     shouldScrollToBottomRef.current = true;
     setMessages((current) => [...current, visitorMessage]);
 
     try {
-      const response = await sendProfileMessage(profile.id, visitorMessage.text, chatId);
+      const response = await sendProfileMessage(
+        profile.id,
+        visitorMessage.text,
+        chatId,
+      );
 
       if (response.chatId) {
         setChatId(response.chatId);
       }
 
       const answerMessageId = crypto.randomUUID();
-      const responseMedia = response.media ?? [];
-      const responseProducts = response.products ?? [];
+      const responseMedia = filterMediaByProfileFeatures(
+        response.media ?? [],
+        profile.featureSettings,
+      );
+      const responseProducts = filterProductsByProfileFeatures(
+        response.products ?? [],
+        profile.featureSettings,
+      );
 
       shouldScrollToBottomRef.current = true;
       setMessages((current) => [
@@ -382,7 +422,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           id: answerMessageId,
           ...(responseMedia.length ? { media: responseMedia } : {}),
           ...(responseProducts.length ? { products: responseProducts } : {}),
-          role: 'profile',
+          role: "profile",
           text: response.text,
         },
       ]);
@@ -397,22 +437,27 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
       if (response.audioUrl && audioRef.current) {
         setAudioSource(audioRef.current, response.audioUrl);
         audioRef.current.play().catch(() => {
-          setGreetingAudioState('blocked');
+          setGreetingAudioState("blocked");
         });
       }
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : copy.sendFailed);
+      setError(
+        sendError instanceof Error ? sendError.message : copy.sendFailed,
+      );
     } finally {
       setIsSending(false);
     }
   }
 
   async function startAudioRecording() {
-    if (isSending || recordingState !== 'idle') {
+    if (isSending || recordingState !== "idle") {
       return;
     }
 
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+    if (
+      !navigator.mediaDevices?.getUserMedia ||
+      typeof MediaRecorder === "undefined"
+    ) {
       setError(copy.recordingNotAvailable);
       return;
     }
@@ -425,7 +470,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
       setError(null);
       setIsPreviewPlaying(false);
       setRecordingSeconds(0);
-      setRecordingState('preparing');
+      setRecordingState("preparing");
       recordingCanceledRef.current = false;
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -440,20 +485,22 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
       }
 
       const mimeType = getPreferredRecordingMimeType();
-      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
 
       recordingChunksRef.current = [];
       recordingStreamRef.current = stream;
       mediaRecorderRef.current = recorder;
       recordingStartedAtRef.current = 0;
 
-      recorder.addEventListener('dataavailable', (event) => {
+      recorder.addEventListener("dataavailable", (event) => {
         if (event.data.size > 0) {
           recordingChunksRef.current.push(event.data);
         }
       });
 
-      recorder.addEventListener('start', () => {
+      recorder.addEventListener("start", () => {
         if (
           recordingCanceledRef.current ||
           recordingSessionId !== recordingSessionRef.current ||
@@ -464,14 +511,19 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
         recordingStartedAtRef.current = Date.now();
         setRecordingSeconds(0);
-        setRecordingState('recording');
+        setRecordingState("recording");
         clearRecordingTimer();
         recordingTimerRef.current = window.setInterval(() => {
-          setRecordingSeconds(Math.max(0, Math.floor((Date.now() - recordingStartedAtRef.current) / 1000)));
+          setRecordingSeconds(
+            Math.max(
+              0,
+              Math.floor((Date.now() - recordingStartedAtRef.current) / 1000),
+            ),
+          );
         }, 250);
       });
 
-      recorder.addEventListener('stop', () => {
+      recorder.addEventListener("stop", () => {
         clearRecordingTimer();
         stopRecordingStream();
 
@@ -481,32 +533,37 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           !isComponentMountedRef.current
         ) {
           recordingChunksRef.current = [];
-          setRecordingState('idle');
+          setRecordingState("idle");
           setRecordingSeconds(0);
           return;
         }
 
-        const recordedMimeType = recorder.mimeType || mimeType || 'audio/webm';
-        const blob = new Blob(recordingChunksRef.current, { type: recordedMimeType });
+        const recordedMimeType = recorder.mimeType || mimeType || "audio/webm";
+        const blob = new Blob(recordingChunksRef.current, {
+          type: recordedMimeType,
+        });
         const startedAt = recordingStartedAtRef.current || Date.now();
-        const duration = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+        const duration = Math.max(
+          1,
+          Math.round((Date.now() - startedAt) / 1000),
+        );
         const url = URL.createObjectURL(blob);
 
         recordingChunksRef.current = [];
         setNextAudioDraft({ blob, duration, url });
         setRecordingSeconds(duration);
-        setRecordingState('preview');
+        setRecordingState("preview");
       });
 
       recorder.start();
     } catch (recordingError) {
       clearRecordingTimer();
       stopRecordingStream();
-      setRecordingState('idle');
+      setRecordingState("idle");
       setError(
         recordingError instanceof Error
           ? recordingError.message
-          : 'No fue posible acceder al micrófono.',
+          : "No fue posible acceder al micrófono.",
       );
     }
   }
@@ -514,7 +571,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   function stopAudioRecording() {
     const recorder = mediaRecorderRef.current;
 
-    if (!recorder || recorder.state === 'inactive') {
+    if (!recorder || recorder.state === "inactive") {
       return;
     }
 
@@ -532,19 +589,19 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     stopAudioRecording();
     clearRecordingTimer();
     stopRecordingStream();
-    setRecordingState('idle');
+    setRecordingState("idle");
     setRecordingSeconds(0);
   }
 
   function clearAudioDraft() {
     const currentDraft = audioDraftRef.current;
 
-    if (currentDraft?.url.startsWith('blob:')) {
+    if (currentDraft?.url.startsWith("blob:")) {
       URL.revokeObjectURL(currentDraft.url);
     }
 
     setNextAudioDraft(null);
-    setRecordingState('idle');
+    setRecordingState("idle");
     setRecordingSeconds(0);
     setIsPreviewPlaying(false);
     setPreviewDurationSeconds(0);
@@ -552,7 +609,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
     if (recordingAudioRef.current) {
       recordingAudioRef.current.pause();
-      recordingAudioRef.current.removeAttribute('src');
+      recordingAudioRef.current.removeAttribute("src");
       recordingAudioRef.current.load();
     }
   }
@@ -598,12 +655,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
       audioUrl: localAudioUrl,
       createdAt: new Date().toISOString(),
       id: pendingMessageId,
-      role: 'visitor',
-      text: 'Procesando audio...',
+      role: "visitor",
+      text: "Procesando audio...",
     };
 
     setNextAudioDraft(null);
-    setRecordingState('idle');
+    setRecordingState("idle");
     setRecordingSeconds(0);
     setIsPreviewPlaying(false);
     setPreviewDurationSeconds(0);
@@ -615,7 +672,11 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     setMessages((current) => [...current, pendingMessage]);
 
     try {
-      const response = await sendProfileAudioMessage(profile.id, localAudioBlob, chatId);
+      const response = await sendProfileAudioMessage(
+        profile.id,
+        localAudioBlob,
+        chatId,
+      );
       const nextChatId = response.chatId ?? chatId;
 
       if (nextChatId) {
@@ -630,31 +691,48 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             text: response.requestText,
           }
         : nextChatId
-        ? await resolveSentAudioMessage(profile.id, nextChatId, pendingMessageId, localAudioUrl, localDuration)
-        : {
-            ...pendingMessage,
-            text: 'Mensaje de audio enviado.',
-          };
+          ? await resolveSentAudioMessage(
+              profile.id,
+              nextChatId,
+              pendingMessageId,
+              localAudioUrl,
+              localDuration,
+            )
+          : {
+              ...pendingMessage,
+              text: "Mensaje de audio enviado.",
+            };
 
-      if (resolvedVisitorMessage.audioUrl !== localAudioUrl && localAudioUrl.startsWith('blob:')) {
+      if (
+        resolvedVisitorMessage.audioUrl !== localAudioUrl &&
+        localAudioUrl.startsWith("blob:")
+      ) {
         URL.revokeObjectURL(localAudioUrl);
         messageAudioBlobUrlsRef.current.delete(localAudioUrl);
       }
 
       const answerMessageId = crypto.randomUUID();
-      const responseMedia = response.media ?? [];
-      const responseProducts = response.products ?? [];
+      const responseMedia = filterMediaByProfileFeatures(
+        response.media ?? [],
+        profile.featureSettings,
+      );
+      const responseProducts = filterProductsByProfileFeatures(
+        response.products ?? [],
+        profile.featureSettings,
+      );
 
       shouldScrollToBottomRef.current = true;
       setMessages((current) => [
-        ...current.map((message) => (message.id === pendingMessageId ? resolvedVisitorMessage : message)),
+        ...current.map((message) =>
+          message.id === pendingMessageId ? resolvedVisitorMessage : message,
+        ),
         {
           audioUrl: response.audioUrl,
           createdAt: new Date().toISOString(),
           id: answerMessageId,
           ...(responseMedia.length ? { media: responseMedia } : {}),
           ...(responseProducts.length ? { products: responseProducts } : {}),
-          role: 'profile',
+          role: "profile",
           text: response.text,
         },
       ]);
@@ -669,15 +747,17 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
       if (response.audioUrl && audioRef.current) {
         setAudioSource(audioRef.current, response.audioUrl);
         audioRef.current.play().catch(() => {
-          setGreetingAudioState('blocked');
+          setGreetingAudioState("blocked");
         });
       }
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : copy.sendFailed);
+      setError(
+        sendError instanceof Error ? sendError.message : copy.sendFailed,
+      );
       setMessages((current) =>
         current.map((message) =>
           message.id === pendingMessageId
-            ? { ...message, text: 'No fue posible procesar este audio.' }
+            ? { ...message, text: "No fue posible procesar este audio." }
             : message,
         ),
       );
@@ -694,10 +774,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     localDuration: number,
   ): Promise<ChatMessage> {
     try {
-      const chatMessages = await fetchProfileChatMessages(profileId, nextChatId);
+      const chatMessages = await fetchProfileChatMessages(
+        profileId,
+        nextChatId,
+      );
       const latestAudioVisitorMessage = [...chatMessages]
         .reverse()
-        .find((message) => message.role === 'visitor' && message.audioUrl);
+        .find((message) => message.role === "visitor" && message.audioUrl);
 
       if (latestAudioVisitorMessage) {
         return {
@@ -713,7 +796,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
       audioUrl: localAudioUrl,
       createdAt: new Date().toISOString(),
       id: pendingMessageId,
-      role: 'visitor',
+      role: "visitor",
       text: `Mensaje de audio (${formatRecordingDuration(localDuration)})`,
     };
   }
@@ -725,7 +808,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
     setAudioSource(audioRef.current, message.audioUrl);
     audioRef.current.play().catch(() => {
-      setGreetingAudioState('blocked');
+      setGreetingAudioState("blocked");
     });
   }
 
@@ -735,8 +818,8 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     window.requestAnimationFrame(() => {
       scrollMessageListToBottom();
       conversationEndRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'end',
+        behavior: "smooth",
+        block: "end",
       });
     });
   }
@@ -758,7 +841,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     setPreviewDurationSeconds(nextDraft?.duration ?? 0);
   }
 
-  function updatePreviewPlayback(audio: HTMLAudioElement | null = recordingAudioRef.current) {
+  function updatePreviewPlayback(
+    audio: HTMLAudioElement | null = recordingAudioRef.current,
+  ) {
     const currentDraft = audioDraftRef.current;
 
     if (!currentDraft || !audio) {
@@ -768,13 +853,17 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     }
 
     const duration = currentDraft.duration;
-    const currentTime = Number.isFinite(audio.currentTime) ? Math.min(audio.currentTime, duration) : 0;
+    const currentTime = Number.isFinite(audio.currentTime)
+      ? Math.min(audio.currentTime, duration)
+      : 0;
 
     setPreviewDurationSeconds(duration);
     setPreviewPlaybackSeconds(currentTime);
   }
 
-  function resetPreviewPlayback(audio: HTMLAudioElement | null = recordingAudioRef.current) {
+  function resetPreviewPlayback(
+    audio: HTMLAudioElement | null = recordingAudioRef.current,
+  ) {
     if (audio) {
       audio.currentTime = 0;
     }
@@ -795,8 +884,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     recordingStreamRef.current = null;
   }
 
-  const previewDuration = audioDraft ? previewDurationSeconds || audioDraft.duration : 0;
-  const previewProgress = previewDuration > 0 ? Math.min(1, previewPlaybackSeconds / previewDuration) : 0;
+  const previewDuration = audioDraft
+    ? previewDurationSeconds || audioDraft.duration
+    : 0;
+  const previewProgress =
+    previewDuration > 0
+      ? Math.min(1, previewPlaybackSeconds / previewDuration)
+      : 0;
   const previewRemainingSeconds = audioDraft
     ? Math.max(0, Math.ceil(previewDuration - previewPlaybackSeconds))
     : 0;
@@ -841,7 +935,10 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             <header className="profile-title">
               <h1>{profile.name}</h1>
               {profile.networks.length ? (
-                <nav aria-label={copy.socialNav} className="profile-social-links">
+                <nav
+                  aria-label={copy.socialNav}
+                  className="profile-social-links"
+                >
                   {profile.networks.map((network) => (
                     <a
                       aria-label={network.name}
@@ -853,9 +950,15 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                       title={network.name}
                     >
                       {network.iconUrl ? (
-                        <img alt={network.name} src={network.iconUrl} title={network.name} />
+                        <img
+                          alt={network.name}
+                          src={network.iconUrl}
+                          title={network.name}
+                        />
                       ) : (
-                        <span aria-hidden="true">{getNetworkInitial(network.name)}</span>
+                        <span aria-hidden="true">
+                          {getNetworkInitial(network.name)}
+                        </span>
                       )}
                     </a>
                   ))}
@@ -866,16 +969,21 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             <section className="profile-conversation" aria-label="Conversación">
               <div ref={messageListRef} className="profile-message-list">
                 {messages.map((message) => (
-                  <article className={`profile-conversation-row ${message.role}`} key={message.id}>
-                    {message.role === 'profile' ? (
+                  <article
+                    className={`profile-conversation-row ${message.role}`}
+                    key={message.id}
+                  >
+                    {message.role === "profile" ? (
                       <div className="profile-thread-message profile">
                         <div className="profile-mini-avatar">
-                          {avatarUrl && avatarKind === 'video' ? (
+                          {avatarUrl && avatarKind === "video" ? (
                             <ProfileAvatarVideo src={avatarUrl} />
                           ) : avatarUrl ? (
                             <img alt="" src={avatarUrl} />
                           ) : null}
-                          <span aria-hidden="true">{profile.name.charAt(0).toUpperCase()}</span>
+                          <span aria-hidden="true">
+                            {profile.name.charAt(0).toUpperCase()}
+                          </span>
                           <button
                             aria-label={copy.audioMessage}
                             className="profile-mini-play-button"
@@ -890,8 +998,8 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                         <div
                           className={
                             message.media?.length || message.products?.length
-                              ? 'profile-message-content has-assets'
-                              : 'profile-message-content'
+                              ? "profile-message-content has-assets"
+                              : "profile-message-content"
                           }
                         >
                           <div className="profile-message-copy">
@@ -901,7 +1009,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                           {message.media?.length ? (
                             <ProfileMessageMedia
                               copy={copy}
-                              hasConfirmedAdultContent={hasConfirmedAdultContent}
+                              hasConfirmedAdultContent={
+                                hasConfirmedAdultContent
+                              }
                               media={message.media}
                               onConfirmAdultContent={() => {
                                 writeAdultContentConfirmation(profileAlias);
@@ -909,10 +1019,16 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                               }}
                               onPulseComplete={() => {
                                 setPulseMedia((current) =>
-                                  current?.messageId === message.id ? null : current,
+                                  current?.messageId === message.id
+                                    ? null
+                                    : current,
                                 );
                               }}
-                              pulseMediaKey={pulseMedia?.messageId === message.id ? pulseMedia.mediaKey : null}
+                              pulseMediaKey={
+                                pulseMedia?.messageId === message.id
+                                  ? pulseMedia.mediaKey
+                                  : null
+                              }
                             />
                           ) : null}
                           {message.products?.length ? (
@@ -925,7 +1041,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                       </div>
                     ) : (
                       <div className="profile-thread-message visitor">
-                        <div className={message.audioUrl ? 'profile-message-copy has-audio' : 'profile-message-copy'}>
+                        <div
+                          className={
+                            message.audioUrl
+                              ? "profile-message-copy has-audio"
+                              : "profile-message-copy"
+                          }
+                        >
                           {message.audioUrl ? (
                             <button
                               aria-label={copy.audioMessage}
@@ -950,12 +1072,14 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                   <article className="profile-conversation-row profile">
                     <div className="profile-thread-message profile">
                       <div className="profile-mini-avatar">
-                        {avatarUrl && avatarKind === 'video' ? (
+                        {avatarUrl && avatarKind === "video" ? (
                           <ProfileAvatarVideo src={avatarUrl} />
                         ) : avatarUrl ? (
                           <img alt="" src={avatarUrl} />
                         ) : null}
-                        <span aria-hidden="true">{profile.name.charAt(0).toUpperCase()}</span>
+                        <span aria-hidden="true">
+                          {profile.name.charAt(0).toUpperCase()}
+                        </span>
                       </div>
                       <div className="profile-message-copy">
                         <p>{copy.typing}</p>
@@ -963,23 +1087,35 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                     </div>
                   </article>
                 ) : null}
-                <div ref={conversationEndRef} className="profile-scroll-anchor" />
+                <div
+                  ref={conversationEndRef}
+                  className="profile-scroll-anchor"
+                />
               </div>
 
-              <section className="profile-avatar-stage" aria-label={profile.name}>
-                <div className={isAudioPlaying ? 'profile-avatar is-speaking' : 'profile-avatar'}>
+              <section
+                className="profile-avatar-stage"
+                aria-label={profile.name}
+              >
+                <div
+                  className={
+                    isAudioPlaying
+                      ? "profile-avatar is-speaking"
+                      : "profile-avatar"
+                  }
+                >
                   <span className="voice-ring voice-ring-one" />
                   <span className="voice-ring voice-ring-two" />
                   <span className="voice-ring voice-ring-three" />
 
-                  {avatarUrl && avatarKind === 'video' ? (
+                  {avatarUrl && avatarKind === "video" ? (
                     <ProfileAvatarVideo autoPlay src={avatarUrl} />
                   ) : avatarUrl ? (
                     <img
                       alt={profile.name}
                       src={avatarUrl}
                       onError={(event) => {
-                        event.currentTarget.style.display = 'none';
+                        event.currentTarget.style.display = "none";
                       }}
                     />
                   ) : null}
@@ -988,7 +1124,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                     {profile.name.charAt(0).toUpperCase()}
                   </div>
                 </div>
-                {greetingAudioState === 'unavailable' ? (
+                {greetingAudioState === "unavailable" ? (
                   <p className="profile-audio-note profile-audio-note-error">
                     {greetingAudioError
                       ? `${copy.audioInitialUnavailable}: ${greetingAudioError}`
@@ -999,37 +1135,66 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             </section>
 
             <section className="profile-composer-row">
-              {error && profile ? <p className="profile-inline-error">{error}</p> : null}
+              {error && profile ? (
+                <p className="profile-inline-error">{error}</p>
+              ) : null}
 
               <form
-                className={recordingState !== 'idle' || audioDraft ? 'profile-message-form is-voice-mode' : 'profile-message-form'}
+                className={
+                  recordingState !== "idle" || audioDraft
+                    ? "profile-message-form is-voice-mode"
+                    : "profile-message-form"
+                }
                 onSubmit={handleSubmit}
               >
-                {recordingState === 'preparing' ? (
-                  <div className="profile-voice-recorder preparing" aria-live="polite">
+                {recordingState === "preparing" ? (
+                  <div
+                    className="profile-voice-recorder preparing"
+                    aria-live="polite"
+                  >
                     <span className="profile-recording-dot is-waiting" />
-                    <span className="profile-recording-status">{copy.preparing}</span>
+                    <span className="profile-recording-status">
+                      {copy.preparing}
+                    </span>
                     <VoiceWaveform />
                   </div>
-                ) : recordingState === 'recording' ? (
+                ) : recordingState === "recording" ? (
                   <div className="profile-voice-recorder" aria-live="polite">
                     <span className="profile-recording-dot" />
-                    <span className="profile-recording-time">{formatRecordingDuration(recordingSeconds)}</span>
+                    <span className="profile-recording-time">
+                      {formatRecordingDuration(recordingSeconds)}
+                    </span>
                     <VoiceWaveform isRecording />
                   </div>
                 ) : audioDraft ? (
-                  <div className="profile-voice-recorder preview" aria-live="polite">
+                  <div
+                    className="profile-voice-recorder preview"
+                    aria-live="polite"
+                  >
                     <button
-                      aria-label={isPreviewPlaying ? copy.pauseRecordedAudio : copy.playRecordedAudio}
+                      aria-label={
+                        isPreviewPlaying
+                          ? copy.pauseRecordedAudio
+                          : copy.playRecordedAudio
+                      }
                       className="profile-voice-play-button"
-                      title={isPreviewPlaying ? copy.pauseRecordedAudio : copy.playRecordedAudio}
+                      title={
+                        isPreviewPlaying
+                          ? copy.pauseRecordedAudio
+                          : copy.playRecordedAudio
+                      }
                       type="button"
                       onClick={playAudioDraft}
                     >
                       {isPreviewPlaying ? <PauseIcon /> : <PlayIcon />}
                     </button>
-                    <VoiceWaveform isPlaying={isPreviewPlaying} progress={previewProgress} />
-                    <span className="profile-recording-time">{formatRecordingDuration(previewRemainingSeconds)}</span>
+                    <VoiceWaveform
+                      isPlaying={isPreviewPlaying}
+                      progress={previewProgress}
+                    />
+                    <span className="profile-recording-time">
+                      {formatRecordingDuration(previewRemainingSeconds)}
+                    </span>
                   </div>
                 ) : (
                   <input
@@ -1041,7 +1206,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                   />
                 )}
 
-                {recordingState === 'preparing' ? (
+                {recordingState === "preparing" ? (
                   <>
                     <button
                       aria-label={copy.cancelRecording}
@@ -1063,7 +1228,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                       <StopIcon />
                     </button>
                   </>
-                ) : recordingState === 'recording' ? (
+                ) : recordingState === "recording" ? (
                   <>
                     <button
                       aria-label={copy.cancelRecording}
@@ -1161,12 +1326,12 @@ function formatMessageTime(value?: string) {
   const date = value ? new Date(value) : new Date();
 
   if (Number.isNaN(date.getTime())) {
-    return '';
+    return "";
   }
 
   return new Intl.DateTimeFormat(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
+    hour: "numeric",
+    minute: "2-digit",
   }).format(date);
 }
 
@@ -1175,14 +1340,20 @@ function formatRecordingDuration(totalSeconds: number) {
   const minutes = Math.floor(safeSeconds / 60);
   const seconds = safeSeconds % 60;
 
-  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function getNetworkInitial(name: string) {
-  return name.trim().charAt(0).toUpperCase() || '?';
+  return name.trim().charAt(0).toUpperCase() || "?";
 }
 
-function ProfileAvatarVideo({ autoPlay = false, src }: { autoPlay?: boolean; src: string }) {
+function ProfileAvatarVideo({
+  autoPlay = false,
+  src,
+}: {
+  autoPlay?: boolean;
+  src: string;
+}) {
   const replayTimerRef = useRef<number | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -1270,12 +1441,16 @@ function ProfileMessageMedia({
   onPulseComplete?: () => void;
   pulseMediaKey?: string | null;
 }) {
-  const [selectedMedia, setSelectedMedia] = useState<ChatMessageMedia | null>(null);
-  const [modalPhase, setModalPhase] = useState<'opening' | 'open' | 'closing'>('opening');
+  const [selectedMedia, setSelectedMedia] = useState<ChatMessageMedia | null>(
+    null,
+  );
+  const [modalPhase, setModalPhase] = useState<"opening" | "open" | "closing">(
+    "opening",
+  );
   const [pulsingMediaKey, setPulsingMediaKey] = useState<string | null>(null);
   const closeTimerRef = useRef<number | null>(null);
   const handledPulseKeyRef = useRef<string | null>(null);
-  const modalPhaseRef = useRef<'opening' | 'open' | 'closing'>('opening');
+  const modalPhaseRef = useRef<"opening" | "open" | "closing">("opening");
   const pulseTimerRef = useRef<number | null>(null);
   const selectedMediaRef = useRef<ChatMessageMedia | null>(null);
 
@@ -1295,33 +1470,35 @@ function ProfileMessageMedia({
 
   function finishCloseMedia() {
     selectedMediaRef.current = null;
-    modalPhaseRef.current = 'opening';
+    modalPhaseRef.current = "opening";
     setSelectedMedia(null);
-    setModalPhase('opening');
+    setModalPhase("opening");
   }
 
   function openMedia(item: ChatMessageMedia) {
     clearCloseTimer();
     selectedMediaRef.current = item;
-    modalPhaseRef.current = 'opening';
+    modalPhaseRef.current = "opening";
     setSelectedMedia(item);
-    setModalPhase('opening');
+    setModalPhase("opening");
     window.requestAnimationFrame(() => {
-      modalPhaseRef.current = 'open';
-      setModalPhase('open');
+      modalPhaseRef.current = "open";
+      setModalPhase("open");
     });
   }
 
   function closeMedia() {
-    if (!selectedMediaRef.current || modalPhaseRef.current === 'closing') {
+    if (!selectedMediaRef.current || modalPhaseRef.current === "closing") {
       return;
     }
 
-    modalPhaseRef.current = 'closing';
-    setModalPhase('closing');
+    modalPhaseRef.current = "closing";
+    setModalPhase("closing");
     clearCloseTimer();
 
-    const shouldReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const shouldReduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     if (shouldReduceMotion) {
       finishCloseMedia();
@@ -1335,7 +1512,11 @@ function ProfileMessageMedia({
   }
 
   function startMediaPulse(mediaKey: string) {
-    if (!pulseMediaKey || mediaKey !== pulseMediaKey || handledPulseKeyRef.current === mediaKey) {
+    if (
+      !pulseMediaKey ||
+      mediaKey !== pulseMediaKey ||
+      handledPulseKeyRef.current === mediaKey
+    ) {
       return;
     }
 
@@ -1382,15 +1563,15 @@ function ProfileMessageMedia({
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         closeMedia();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [modalPhase, selectedMedia]);
 
@@ -1400,17 +1581,23 @@ function ProfileMessageMedia({
     }
 
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
     return () => {
       document.body.style.overflow = previousOverflow;
     };
   }, [selectedMedia]);
 
-  const selectedMediaIsVideo = selectedMedia ? isVideoMedia(selectedMedia) : false;
+  const selectedMediaIsVideo = selectedMedia
+    ? isVideoMedia(selectedMedia)
+    : false;
   const selectedMediaEmbedUrl =
-    selectedMedia && selectedMediaIsVideo ? getVideoEmbedUrl(selectedMedia) : null;
-  const selectedMediaIsLocked = Boolean(selectedMedia?.ageRestricted && !hasConfirmedAdultContent);
+    selectedMedia && selectedMediaIsVideo
+      ? getVideoEmbedUrl(selectedMedia)
+      : null;
+  const selectedMediaIsLocked = Boolean(
+    selectedMedia?.ageRestricted && !hasConfirmedAdultContent,
+  );
 
   const modal = selectedMedia
     ? createPortal(
@@ -1472,7 +1659,11 @@ function ProfileMessageMedia({
               />
             ) : selectedMedia.imageUrl ? (
               <img
-                alt={selectedMedia.observation ?? selectedMedia.caption ?? getMediaProviderLabel(selectedMedia)}
+                alt={
+                  selectedMedia.observation ??
+                  selectedMedia.caption ??
+                  getMediaProviderLabel(selectedMedia)
+                }
                 className="profile-media-modal-image"
                 src={selectedMedia.imageUrl}
               />
@@ -1500,14 +1691,16 @@ function ProfileMessageMedia({
           const mediaKey = getMediaItemKey(item, index);
           const provider = getMediaProviderLabel(item);
           const isVideo = isVideoMedia(item);
-          const isAgeRestricted = Boolean(item.ageRestricted && !hasConfirmedAdultContent);
+          const isAgeRestricted = Boolean(
+            item.ageRestricted && !hasConfirmedAdultContent,
+          );
 
           return (
             <article
               className={
                 pulsingMediaKey === mediaKey
-                  ? `profile-message-media-card is-pulsing${isAgeRestricted ? ' is-age-restricted' : ''}`
-                  : `profile-message-media-card${isAgeRestricted ? ' is-age-restricted' : ''}`
+                  ? `profile-message-media-card is-pulsing${isAgeRestricted ? " is-age-restricted" : ""}`
+                  : `profile-message-media-card${isAgeRestricted ? " is-age-restricted" : ""}`
               }
               key={mediaKey}
             >
@@ -1532,7 +1725,10 @@ function ProfileMessageMedia({
                   />
                 ) : null}
                 {isVideo && !isAgeRestricted ? (
-                  <span aria-hidden="true" className="profile-message-media-play">
+                  <span
+                    aria-hidden="true"
+                    className="profile-message-media-play"
+                  >
                     <PlayIcon />
                   </span>
                 ) : null}
@@ -1563,7 +1759,7 @@ function ProfileMessageMedia({
 }
 
 function getMediaProviderLabel(item: ChatMessageMedia): string {
-  return item.providerLabel ?? item.provider ?? 'Instagram';
+  return item.providerLabel ?? item.provider ?? "Instagram";
 }
 
 function ProfileMessageProducts({
@@ -1589,7 +1785,11 @@ function ProfileMessageProducts({
           <div className="profile-message-product-body">
             <strong>{product.name}</strong>
             <p>{product.description}</p>
-            <a href={product.actionUrl} rel="noopener noreferrer" target="_blank">
+            <a
+              href={product.actionUrl}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
               {getProductActionLabel(product, copy)}
             </a>
           </div>
@@ -1603,11 +1803,11 @@ function getProductActionLabel(
   product: ChatMessageProduct,
   copy: ReturnType<typeof getProfileCopy>,
 ): string {
-  if (product.destinationType === 'whatsapp') {
+  if (product.destinationType === "whatsapp") {
     return copy.contactOnWhatsapp;
   }
 
-  if (product.destinationType === 'telegram') {
+  if (product.destinationType === "telegram") {
     return copy.contactOnTelegram;
   }
 
@@ -1615,35 +1815,37 @@ function getProductActionLabel(
 }
 
 function getMediaProviderKey(item: ChatMessageMedia): string {
-  return (item.providerKey ?? item.provider ?? item.providerLabel ?? '').trim().toLowerCase();
+  return (item.providerKey ?? item.provider ?? item.providerLabel ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function isVideoMedia(item: ChatMessageMedia): boolean {
-  const type = item.type?.trim().toUpperCase() ?? '';
+  const type = item.type?.trim().toUpperCase() ?? "";
 
-  if (type.includes('VIDEO')) {
+  if (type.includes("VIDEO")) {
     return true;
   }
 
-  if (type.includes('IMAGE') || type.includes('PHOTO')) {
+  if (type.includes("IMAGE") || type.includes("PHOTO")) {
     return false;
   }
 
   const providerKey = getMediaProviderKey(item);
 
-  if (providerKey.includes('tiktok')) {
+  if (providerKey.includes("tiktok")) {
     return true;
   }
 
   return (
-    providerKey.includes('instagram') &&
-    typeof item.permalink === 'string' &&
+    providerKey.includes("instagram") &&
+    typeof item.permalink === "string" &&
     /\/(?:reel|reels|tv)\//i.test(item.permalink)
   );
 }
 
 function getVideoEmbedUrl(item: ChatMessageMedia): string | null {
-  if (getMediaProviderKey(item).includes('tiktok')) {
+  if (getMediaProviderKey(item).includes("tiktok")) {
     for (const value of [item.mediaUrl, item.permalink]) {
       if (!value) {
         continue;
@@ -1664,12 +1866,19 @@ function getVideoEmbedUrl(item: ChatMessageMedia): string | null {
     return null;
   }
 
-  if (getMediaProviderKey(item).includes('instagram') && !item.mediaUrl && item.permalink) {
+  if (
+    getMediaProviderKey(item).includes("instagram") &&
+    !item.mediaUrl &&
+    item.permalink
+  ) {
     try {
       const url = new URL(item.permalink);
 
-      if (url.hostname === 'instagram.com' || url.hostname.endsWith('.instagram.com')) {
-        return `${url.origin}${url.pathname.replace(/\/+$/, '')}/embed/`;
+      if (
+        url.hostname === "instagram.com" ||
+        url.hostname.endsWith(".instagram.com")
+      ) {
+        return `${url.origin}${url.pathname.replace(/\/+$/, "")}/embed/`;
       }
     } catch {
       // A direct media URL may still be available for playback.
@@ -1685,17 +1894,25 @@ function getMediaItemKey(item: ChatMessageMedia, index: number): string {
 
 function getPreferredRecordingMimeType() {
   const supportedTypes = [
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/mp4',
-    'audio/ogg;codecs=opus',
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/ogg;codecs=opus",
   ];
 
-  return supportedTypes.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) ?? '';
+  return (
+    supportedTypes.find((mimeType) =>
+      MediaRecorder.isTypeSupported(mimeType),
+    ) ?? ""
+  );
 }
 
-function setAudioSource(audio: HTMLAudioElement, audioUrl?: string, blob?: Blob) {
-  if (audio.src.startsWith('blob:')) {
+function setAudioSource(
+  audio: HTMLAudioElement,
+  audioUrl?: string,
+  blob?: Blob,
+) {
+  if (audio.src.startsWith("blob:")) {
     URL.revokeObjectURL(audio.src);
   }
 
@@ -1718,12 +1935,14 @@ function getScrollDistanceFromBottom() {
 }
 
 function readProfileSession(profileAlias: string): ProfileSession | null {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return null;
   }
 
   try {
-    const storedValue = window.sessionStorage.getItem(getProfileSessionKey(profileAlias));
+    const storedValue = window.sessionStorage.getItem(
+      getProfileSessionKey(profileAlias),
+    );
 
     if (!storedValue) {
       return null;
@@ -1733,7 +1952,10 @@ function readProfileSession(profileAlias: string): ProfileSession | null {
     const messages = normalizeStoredMessages(parsedValue.messages);
 
     return {
-      chatId: typeof parsedValue.chatId === 'string' && parsedValue.chatId ? parsedValue.chatId : null,
+      chatId:
+        typeof parsedValue.chatId === "string" && parsedValue.chatId
+          ? parsedValue.chatId
+          : null,
       messages,
     };
   } catch {
@@ -1742,7 +1964,7 @@ function readProfileSession(profileAlias: string): ProfileSession | null {
 }
 
 function writeProfileSession(profileAlias: string, session: ProfileSession) {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -1760,27 +1982,98 @@ function writeProfileSession(profileAlias: string, session: ProfileSession) {
 }
 
 function readAdultContentConfirmation(profileAlias: string): boolean {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return false;
   }
 
   try {
-    return window.sessionStorage.getItem(getAdultContentSessionKey(profileAlias)) === 'confirmed';
+    return (
+      window.sessionStorage.getItem(getAdultContentSessionKey(profileAlias)) ===
+      "confirmed"
+    );
   } catch {
     return false;
   }
 }
 
 function writeAdultContentConfirmation(profileAlias: string) {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 
   try {
-    window.sessionStorage.setItem(getAdultContentSessionKey(profileAlias), 'confirmed');
+    window.sessionStorage.setItem(
+      getAdultContentSessionKey(profileAlias),
+      "confirmed",
+    );
   } catch {
     // The confirmation remains active in React state for the current page.
   }
+}
+
+function filterMessagesByProfileFeatures(
+  messages: ChatMessage[],
+  features: ProfileFeatureSetting[],
+) {
+  return messages.map((message) => {
+    const media = message.media
+      ? filterMediaByProfileFeatures(message.media, features)
+      : [];
+    const products = message.products
+      ? filterProductsByProfileFeatures(message.products, features)
+      : [];
+
+    return {
+      ...message,
+      ...(media.length ? { media } : { media: undefined }),
+      ...(products.length ? { products } : { products: undefined }),
+    };
+  });
+}
+
+function filterMediaByProfileFeatures(
+  media: ChatMessageMedia[],
+  features: ProfileFeatureSetting[],
+) {
+  const enabledProviders = new Set(
+    features
+      .filter(
+        (feature) =>
+          feature.group === "integrations" &&
+          feature.effective &&
+          feature.provider,
+      )
+      .map((feature) => normalizeFeatureProvider(feature.provider)),
+  );
+
+  if (!enabledProviders.size) {
+    return [];
+  }
+
+  return media.filter((item) =>
+    enabledProviders.has(normalizeMediaProvider(item)),
+  );
+}
+
+function filterProductsByProfileFeatures(
+  products: ChatMessageProduct[],
+  features: ProfileFeatureSetting[],
+) {
+  return features.some(
+    (feature) => feature.key === "products" && feature.effective,
+  )
+    ? products
+    : [];
+}
+
+function normalizeMediaProvider(item: ChatMessageMedia) {
+  return normalizeFeatureProvider(
+    item.providerKey ?? item.provider ?? item.providerLabel ?? "",
+  );
+}
+
+function normalizeFeatureProvider(value?: string) {
+  return (value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function getAdultContentSessionKey(profileAlias: string) {
@@ -1808,7 +2101,9 @@ function normalizeStoredMessages(value: unknown): ChatMessage[] {
         role: message.role,
         text: message.text,
         ...(message.createdAt ? { createdAt: message.createdAt } : {}),
-        ...(message.media?.length ? { media: message.media.filter(isStoredMessageMedia) } : {}),
+        ...(message.media?.length
+          ? { media: message.media.filter(isStoredMessageMedia) }
+          : {}),
         ...(message.products?.length
           ? { products: message.products.filter(isStoredMessageProduct) }
           : {}),
@@ -1818,45 +2113,51 @@ function normalizeStoredMessages(value: unknown): ChatMessage[] {
 }
 
 function isStoredMessage(value: unknown): value is ChatMessage {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
 
   const message = value as Partial<ChatMessage>;
-  const hasValidRole = message.role === 'visitor' || message.role === 'profile';
+  const hasValidRole = message.role === "visitor" || message.role === "profile";
 
-  return typeof message.id === 'string' && hasValidRole && typeof message.text === 'string';
+  return (
+    typeof message.id === "string" &&
+    hasValidRole &&
+    typeof message.text === "string"
+  );
 }
 
 function isStoredMessageMedia(value: unknown): value is ChatMessageMedia {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
 
   const media = value as Partial<ChatMessageMedia>;
   const hasMediaOrLink =
-    typeof media.imageUrl === 'string' ||
-    typeof media.mediaUrl === 'string' ||
-    typeof media.permalink === 'string';
+    typeof media.imageUrl === "string" ||
+    typeof media.mediaUrl === "string" ||
+    typeof media.permalink === "string";
 
   return hasMediaOrLink;
 }
 
 function isStoredMessageProduct(value: unknown): value is ChatMessageProduct {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
 
   const product = value as Partial<ChatMessageProduct>;
 
   return (
-    typeof product.actionUrl === 'string' &&
-    typeof product.description === 'string' &&
-    typeof product.id === 'string' &&
-    typeof product.imageUrl === 'string' &&
-    typeof product.name === 'string' &&
-    typeof product.publicUrl === 'string' &&
-    ['external_url', 'telegram', 'whatsapp'].includes(product.destinationType ?? '')
+    typeof product.actionUrl === "string" &&
+    typeof product.description === "string" &&
+    typeof product.id === "string" &&
+    typeof product.imageUrl === "string" &&
+    typeof product.name === "string" &&
+    typeof product.publicUrl === "string" &&
+    ["external_url", "telegram", "whatsapp"].includes(
+      product.destinationType ?? "",
+    )
   );
 }
 
@@ -1870,26 +2171,31 @@ function VoiceWaveform({
   progress?: number;
 }) {
   const safeProgress = Math.min(1, Math.max(0, progress));
-  const activeBars = safeProgress > 0 ? Math.ceil(safeProgress * WAVEFORM_BAR_COUNT) : isPlaying ? 1 : 0;
+  const activeBars =
+    safeProgress > 0
+      ? Math.ceil(safeProgress * WAVEFORM_BAR_COUNT)
+      : isPlaying
+        ? 1
+        : 0;
   const currentBar = activeBars > 0 ? activeBars - 1 : -1;
   const className = [
-    'profile-voice-waveform',
-    isRecording ? 'is-recording' : '',
-    isPlaying ? 'is-playing' : '',
+    "profile-voice-waveform",
+    isRecording ? "is-recording" : "",
+    isPlaying ? "is-playing" : "",
   ]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 
   return (
     <span className={className} aria-hidden="true">
       {Array.from({ length: WAVEFORM_BAR_COUNT }).map((_, index) => (
         <span
           className={[
-            index < activeBars ? 'is-active' : '',
-            isPlaying && index === currentBar ? 'is-current' : '',
+            index < activeBars ? "is-active" : "",
+            isPlaying && index === currentBar ? "is-current" : "",
           ]
             .filter(Boolean)
-            .join(' ')}
+            .join(" ")}
           key={index}
         />
       ))}
