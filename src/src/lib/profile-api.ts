@@ -9,11 +9,20 @@ export class ProfileApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly code?: string,
+    public readonly messagingCapabilities?: ProfileMessagingCapabilities,
   ) {
     super(message);
     this.name = "ProfileApiError";
   }
 }
+
+export type ProfileMessagingCapabilities = {
+  audioMessagesEnabled: boolean;
+  audioMaxDurationSeconds: number;
+  reason?: string | null;
+  textMessagesEnabled: boolean;
+};
 
 export type ProfileData = {
   id: string;
@@ -25,6 +34,7 @@ export type ProfileData = {
   headline: string;
   description: string;
   details: string[];
+  messagingCapabilities: ProfileMessagingCapabilities;
   networks: ProfileSocialNetwork[];
 };
 
@@ -104,6 +114,7 @@ export type MessageResponse = {
   requestAudioUrl?: string;
   requestMessageId?: string;
   requestText?: string;
+  messagingCapabilities?: ProfileMessagingCapabilities;
 };
 
 export type AudioResponse = {
@@ -153,12 +164,9 @@ export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {
   const response = await profileResponsePromise;
 
   if (!response.ok) {
-    throw new ProfileApiError(
-      await getResponseErrorMessage(
-        response,
-        "No fue posible cargar el perfil.",
-      ),
-      response.status,
+    throw await createProfileApiError(
+      response,
+      "No fue posible cargar el perfil.",
     );
   }
 
@@ -265,11 +273,9 @@ export async function sendProfileMessage(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await getResponseErrorMessage(
-        response,
-        "No fue posible enviar el mensaje.",
-      ),
+    throw await createProfileApiError(
+      response,
+      "No fue posible enviar el mensaje.",
     );
   }
 
@@ -309,11 +315,9 @@ export async function sendProfileAudioMessage(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await getResponseErrorMessage(
-        response,
-        "No fue posible enviar el audio.",
-      ),
+    throw await createProfileApiError(
+      response,
+      "No fue posible enviar el audio.",
     );
   }
 
@@ -328,6 +332,30 @@ export async function sendProfileAudioMessage(
     audioUrl: URL.createObjectURL(blob),
     text: "Respuesta de audio recibida.",
   };
+}
+
+export async function fetchProfileMessagingCapabilities(
+  profileId: string,
+): Promise<ProfileMessagingCapabilities> {
+  const response = await fetch(
+    apiUrl(
+      `/api/profile/${encodeURIComponent(profileId)}/messaging-capabilities`,
+    ),
+    {
+      headers: authHeaders(),
+    },
+  );
+
+  if (!response.ok) {
+    throw await createProfileApiError(
+      response,
+      "No fue posible actualizar la disponibilidad de mensajes.",
+    );
+  }
+
+  return normalizeMessagingCapabilities(
+    unwrapPayload((await response.json()) as UnknownRecord),
+  );
 }
 
 export async function fetchProfileChatMessages(
@@ -469,6 +497,9 @@ function normalizeProfile(
     headline,
     id,
     locale,
+    messagingCapabilities: normalizeMessagingCapabilities(
+      source.messaging_capabilities ?? source.messagingCapabilities,
+    ),
     name,
     networks: buildProfileSocialNetworks(source, socialNetworkDefinitions),
   };
@@ -542,9 +573,39 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
       "requestMessageId",
     ]),
     requestText: pickString(source, ["request_text", "requestText"]),
+    messagingCapabilities: normalizeMessagingCapabilities(
+      source.messaging_capabilities ?? source.messagingCapabilities,
+    ),
     ...(media.length ? { media } : {}),
     ...(products.length ? { products } : {}),
     text: text ?? "Respuesta de audio recibida.",
+  };
+}
+
+function normalizeMessagingCapabilities(
+  value: unknown,
+): ProfileMessagingCapabilities {
+  const source = isRecord(value) ? value : {};
+
+  return {
+    audioMessagesEnabled:
+      pickBoolean(source, [
+        "audio_messages_enabled",
+        "audioMessagesEnabled",
+      ]) ?? true,
+    audioMaxDurationSeconds: Math.max(
+      1,
+      Number(
+        pickString(source, [
+          "audio_max_duration_seconds",
+          "audioMaxDurationSeconds",
+        ]) ?? 30,
+      ),
+    ),
+    reason: pickString(source, ["reason"]) ?? null,
+    textMessagesEnabled:
+      pickBoolean(source, ["text_messages_enabled", "textMessagesEnabled"]) ??
+      true,
   };
 }
 
@@ -1023,6 +1084,39 @@ async function getResponseErrorMessage(response: Response, fallback: string) {
     return message ?? fallback;
   } catch {
     return fallback;
+  }
+}
+
+async function createProfileApiError(
+  response: Response,
+  fallback: string,
+): Promise<ProfileApiError> {
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+
+  if (!contentType.includes("application/json")) {
+    return new ProfileApiError(fallback, response.status);
+  }
+
+  try {
+    const payload = (await response.json()) as UnknownRecord;
+    const source = unwrapPayload(payload);
+    const message =
+      pickString(payload, ["message", "error"]) ??
+      pickString(source, ["error"]) ??
+      fallback;
+    const capabilitiesValue =
+      source.messaging_capabilities ?? source.messagingCapabilities;
+
+    return new ProfileApiError(
+      message,
+      response.status,
+      pickString(payload, ["code"]),
+      isRecord(capabilitiesValue)
+        ? normalizeMessagingCapabilities(capabilitiesValue)
+        : undefined,
+    );
+  } catch {
+    return new ProfileApiError(fallback, response.status);
   }
 }
 
