@@ -8,9 +8,11 @@ import {
   fetchAvatarMedia,
   fetchProfileChatMessages,
   fetchProfileByAlias,
+  fetchProfileMessagingCapabilities,
   ProfileApiError,
   ProfileData,
   ProfileFeatureSetting,
+  ProfileMessagingCapabilities,
   sendProfileAudioMessage,
   sendProfileMessage,
 } from "../lib/profile-api";
@@ -47,6 +49,12 @@ const AVATAR_VIDEO_LOOP_DELAY_MS = 5000;
 const MEDIA_MODAL_CLOSE_TRANSITION_MS = 460;
 const MEDIA_PULSE_DURATION_MS = 2000;
 const WAVEFORM_BAR_COUNT = 22;
+const DEFAULT_MESSAGING_CAPABILITIES: ProfileMessagingCapabilities = {
+  audioMessagesEnabled: true,
+  audioMaxDurationSeconds: 30,
+  reason: null,
+  textMessagesEnabled: true,
+};
 
 const profileCopy = {
   en: {
@@ -57,7 +65,13 @@ const profileCopy = {
     adultContentConfirm: "I am 18 or older",
     adultContentTitle: "Adult content",
     audioMessage: "Play message audio",
+    audioLimitReached:
+      "This profile reached its monthly incoming audio limit. You can continue by text.",
+    audioMaxDuration: (seconds: string) =>
+      `Audio messages can be up to ${seconds} seconds long.`,
     cancelRecording: "Cancel recording",
+    chatLimitReached:
+      "This profile reached its monthly visitor message limit.",
     defaultInitial: (name: string) =>
       `Hi, I am ${name}. Ask me about my work, my projects, or anything you want to know about me.`,
     discardAudio: "Discard audio",
@@ -74,6 +88,8 @@ const profileCopy = {
     playRecordedAudio: "Play recorded audio",
     recordingNotAvailable:
       "Your browser does not allow audio recording from this screen.",
+    subscriptionInactive:
+      "This profile is not available for new messages right now.",
     sendAudio: "Send audio",
     sendFailed: "The message could not be sent.",
     sendMessage: "Send message",
@@ -94,7 +110,13 @@ const profileCopy = {
     adultContentConfirm: "Soy mayor de 18 años",
     adultContentTitle: "Contenido para adultos",
     audioMessage: "Reproducir audio del mensaje",
+    audioLimitReached:
+      "Este perfil alcanzó el límite mensual de audios entrantes. Puedes continuar por texto.",
+    audioMaxDuration: (seconds: string) =>
+      `Los mensajes de audio pueden durar máximo ${seconds} segundos.`,
     cancelRecording: "Cancelar grabación",
+    chatLimitReached:
+      "Este perfil alcanzó el límite mensual de mensajes de visitantes.",
     defaultInitial: (name: string) =>
       `Hola, soy ${name}. Pregúntame sobre mi trabajo, mis proyectos o lo que quieres conocer de mí.`,
     discardAudio: "Descartar audio",
@@ -111,6 +133,8 @@ const profileCopy = {
     playRecordedAudio: "Reproducir audio grabado",
     recordingNotAvailable:
       "Tu navegador no permite grabar audio desde esta pantalla.",
+    subscriptionInactive:
+      "Este perfil no está disponible para nuevos mensajes en este momento.",
     sendAudio: "Enviar audio",
     sendFailed: "No fue posible enviar el mensaje.",
     sendMessage: "Enviar mensaje",
@@ -130,6 +154,24 @@ const profileCopy = {
 
 function getProfileCopy(locale: ProfileLocale) {
   return profileCopy[locale] as typeof profileCopy.es;
+}
+
+function getMessagingUnavailableMessage(
+  capabilities: ProfileMessagingCapabilities,
+  copy: ReturnType<typeof getProfileCopy>,
+): string {
+  if (
+    capabilities.textMessagesEnabled &&
+    !capabilities.audioMessagesEnabled
+  ) {
+    return copy.audioLimitReached;
+  }
+
+  if (capabilities.reason === "chat_message_limit_reached") {
+    return copy.chatLimitReached;
+  }
+
+  return copy.subscriptionInactive;
 }
 
 export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
@@ -167,10 +209,16 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioDraft, setAudioDraft] = useState<AudioDraft | null>(null);
+  const [messagingCapabilities, setMessagingCapabilities] =
+    useState<ProfileMessagingCapabilities>(DEFAULT_MESSAGING_CAPABILITIES);
   const [pulseMedia, setPulseMedia] = useState<PulseMedia | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [previewDurationSeconds, setPreviewDurationSeconds] = useState(0);
   const copy = getProfileCopy(profile?.locale ?? "es");
+  const audioMaxDurationSeconds = Math.max(
+    1,
+    messagingCapabilities.audioMaxDurationSeconds,
+  );
   const [previewPlaybackSeconds, setPreviewPlaybackSeconds] = useState(0);
   const [hasConfirmedAdultContent, setHasConfirmedAdultContent] = useState(() =>
     readAdultContentConfirmation(profileAlias),
@@ -194,6 +242,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setGreetingAudioState("idle");
         setGreetingAudioError(null);
         setIsAudioPlaying(false);
+        setMessagingCapabilities(DEFAULT_MESSAGING_CAPABILITIES);
 
         const nextProfile = await fetchProfileByAlias(profileAlias);
 
@@ -202,6 +251,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         }
 
         setProfile(nextProfile);
+        setMessagingCapabilities(nextProfile.messagingCapabilities);
         const storedSession = readProfileSession(profileAlias);
         const initialMessage = nextProfile.conversationMessages.initial;
         const hasStoredMessages = Boolean(storedSession?.messages.length);
@@ -296,6 +346,40 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   }, [onProfileNotFound, profileAlias]);
 
   useEffect(() => {
+    if (!profile) {
+      return;
+    }
+
+    let active = true;
+
+    const refreshCapabilities = () => {
+      fetchProfileMessagingCapabilities(profile.id)
+        .then((capabilities) => {
+          if (active) {
+            setMessagingCapabilities(capabilities);
+          }
+        })
+        .catch(() => {
+          // The latest known server state remains in effect until the next request.
+        });
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshCapabilities();
+      }
+    };
+
+    window.addEventListener("focus", refreshCapabilities);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refreshCapabilities);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [profile]);
+
+  useEffect(() => {
     isComponentMountedRef.current = true;
 
     return () => {
@@ -371,11 +455,25 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     event.preventDefault();
 
     if (audioDraft) {
+      if (!messagingCapabilities.audioMessagesEnabled) {
+        setError(getMessagingUnavailableMessage(messagingCapabilities, copy));
+        return;
+      }
+
       await sendAudioDraft();
       return;
     }
 
-    if (!profile || !draft.trim() || isSending) {
+    if (
+      !profile ||
+      !draft.trim() ||
+      isSending ||
+      !messagingCapabilities.textMessagesEnabled
+    ) {
+      if (!messagingCapabilities.textMessagesEnabled) {
+        setError(getMessagingUnavailableMessage(messagingCapabilities, copy));
+      }
+
       return;
     }
 
@@ -401,6 +499,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
       if (response.chatId) {
         setChatId(response.chatId);
+      }
+      if (response.messagingCapabilities) {
+        setMessagingCapabilities(response.messagingCapabilities);
       }
 
       const answerMessageId = crypto.randomUUID();
@@ -441,6 +542,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         });
       }
     } catch (sendError) {
+      if (
+        sendError instanceof ProfileApiError &&
+        sendError.messagingCapabilities
+      ) {
+        setMessagingCapabilities(sendError.messagingCapabilities);
+      }
       setError(
         sendError instanceof Error ? sendError.message : copy.sendFailed,
       );
@@ -450,7 +557,15 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   }
 
   async function startAudioRecording() {
-    if (isSending || recordingState !== "idle") {
+    if (
+      isSending ||
+      recordingState !== "idle" ||
+      !messagingCapabilities.audioMessagesEnabled
+    ) {
+      if (!messagingCapabilities.audioMessagesEnabled) {
+        setError(getMessagingUnavailableMessage(messagingCapabilities, copy));
+      }
+
       return;
     }
 
@@ -514,12 +629,18 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setRecordingState("recording");
         clearRecordingTimer();
         recordingTimerRef.current = window.setInterval(() => {
-          setRecordingSeconds(
-            Math.max(
-              0,
-              Math.floor((Date.now() - recordingStartedAtRef.current) / 1000),
-            ),
+          const elapsedSeconds = Math.max(
+            0,
+            Math.floor((Date.now() - recordingStartedAtRef.current) / 1000),
           );
+
+          setRecordingSeconds(
+            Math.min(audioMaxDurationSeconds, elapsedSeconds),
+          );
+
+          if (elapsedSeconds >= audioMaxDurationSeconds) {
+            stopAudioRecording();
+          }
         }, 250);
       });
 
@@ -545,7 +666,10 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         const startedAt = recordingStartedAtRef.current || Date.now();
         const duration = Math.max(
           1,
-          Math.round((Date.now() - startedAt) / 1000),
+          Math.min(
+            audioMaxDurationSeconds,
+            Math.round((Date.now() - startedAt) / 1000),
+          ),
         );
         const url = URL.createObjectURL(blob);
 
@@ -643,7 +767,21 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   }
 
   async function sendAudioDraft() {
-    if (!profile || !audioDraft || isSending) {
+    if (
+      !profile ||
+      !audioDraft ||
+      isSending ||
+      !messagingCapabilities.audioMessagesEnabled
+    ) {
+      if (!messagingCapabilities.audioMessagesEnabled) {
+        setError(getMessagingUnavailableMessage(messagingCapabilities, copy));
+      }
+
+      return;
+    }
+
+    if (audioDraft.duration > audioMaxDurationSeconds) {
+      setError(copy.audioMaxDuration(String(audioMaxDurationSeconds)));
       return;
     }
 
@@ -681,6 +819,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
       if (nextChatId) {
         setChatId(nextChatId);
+      }
+      if (response.messagingCapabilities) {
+        setMessagingCapabilities(response.messagingCapabilities);
       }
 
       const resolvedVisitorMessage = response.requestText
@@ -751,6 +892,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         });
       }
     } catch (sendError) {
+      if (
+        sendError instanceof ProfileApiError &&
+        sendError.messagingCapabilities
+      ) {
+        setMessagingCapabilities(sendError.messagingCapabilities);
+      }
       setError(
         sendError instanceof Error ? sendError.message : copy.sendFailed,
       );
@@ -1162,7 +1309,8 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                   <div className="profile-voice-recorder" aria-live="polite">
                     <span className="profile-recording-dot" />
                     <span className="profile-recording-time">
-                      {formatRecordingDuration(recordingSeconds)}
+                      {formatRecordingDuration(recordingSeconds)} /{" "}
+                      {formatRecordingDuration(audioMaxDurationSeconds)}
                     </span>
                     <VoiceWaveform isRecording />
                   </div>
@@ -1199,8 +1347,17 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                 ) : (
                   <input
                     aria-label="Mensaje"
-                    disabled={isSending}
-                    placeholder={copy.messagePlaceholder}
+                    disabled={
+                      isSending || !messagingCapabilities.textMessagesEnabled
+                    }
+                    placeholder={
+                      messagingCapabilities.textMessagesEnabled
+                        ? copy.messagePlaceholder
+                        : getMessagingUnavailableMessage(
+                            messagingCapabilities,
+                            copy,
+                          )
+                    }
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                   />
@@ -1266,8 +1423,18 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                     <button
                       aria-label={copy.sendAudio}
                       className="profile-icon-button"
-                      disabled={isSending}
-                      title={copy.sendAudio}
+                      disabled={
+                        isSending ||
+                        !messagingCapabilities.audioMessagesEnabled
+                      }
+                      title={
+                        messagingCapabilities.audioMessagesEnabled
+                          ? copy.sendAudio
+                          : getMessagingUnavailableMessage(
+                              messagingCapabilities,
+                              copy,
+                            )
+                      }
                       type="button"
                       onClick={sendAudioDraft}
                     >
@@ -1279,8 +1446,18 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                     <button
                       aria-label={copy.startRecording}
                       className="profile-icon-button"
-                      disabled={isSending}
-                      title={copy.startRecording}
+                      disabled={
+                        isSending ||
+                        !messagingCapabilities.audioMessagesEnabled
+                      }
+                      title={
+                        messagingCapabilities.audioMessagesEnabled
+                          ? `${copy.startRecording}. ${copy.audioMaxDuration(String(audioMaxDurationSeconds))}`
+                          : getMessagingUnavailableMessage(
+                              messagingCapabilities,
+                              copy,
+                            )
+                      }
                       type="button"
                       onClick={startAudioRecording}
                     >
@@ -1289,7 +1466,11 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                     <button
                       aria-label={copy.sendMessage}
                       className="profile-icon-button"
-                      disabled={isSending || !draft.trim()}
+                      disabled={
+                        isSending ||
+                        !draft.trim() ||
+                        !messagingCapabilities.textMessagesEnabled
+                      }
                       title={copy.sendMessage}
                       type="submit"
                     >

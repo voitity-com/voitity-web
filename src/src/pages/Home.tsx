@@ -5,6 +5,10 @@ import bigmeloLogo from '../assets/bigmelo-logo.png';
 import valeriaAvatar from '../assets/valeria-rios-avatar.png';
 import { getAdminBaseUrl, getAdminSignInUrl } from '../lib/admin-url';
 import { submitContactSubmission } from '../lib/contact-api';
+import {
+  fetchPublicSubscriptionPlans,
+  type PublicSubscriptionPlan,
+} from '../lib/plans-api';
 
 type Locale = 'es' | 'en';
 
@@ -116,7 +120,7 @@ const content: Record<
           cycle: 'month',
           name: 'Starter',
           planId: 'starter',
-          price: '$9.99',
+          price: '$12.99',
           period: 'USD /mes',
           label: 'Mensual',
           description: 'Para crear y validar una presencia digital conversacional.',
@@ -124,18 +128,22 @@ const content: Record<
             '1 presencia digital publicada',
             'Avatar inicial con imagen y video breve',
             '1 voz autorizada generada con IA',
-            '500 créditos para chat, hasta 1.000 mensajes',
-            '500 créditos para respuestas en audio, hasta 10.000 caracteres',
+            'Hasta 1.000 mensajes de visitantes por texto o audio al mes',
+            'Hasta 500 audios entrantes al mes, máximo 30 segundos cada uno',
+            'Hasta 20.000 caracteres en respuestas de audio al mes',
+            'Hasta 15 productos por perfil',
+            'Instagram, TikTok y OnlyFans, con hasta 10 contenidos seleccionados por red',
+            'Enlaces públicos a redes sociales',
             '1.000 créditos mensuales incluidos',
           ],
           cta: 'Elegir Starter mensual',
-          trial: 'Prueba gratis por 7 días y luego $9.99 USD/mes.',
+          trial: 'Prueba gratis por 7 días y luego $12.99 USD/mes.',
         },
         {
           cycle: 'year',
           name: 'Starter',
-          planId: 'starter',
-          price: '$99',
+          planId: 'starter_annual',
+          price: '$129',
           period: 'USD /año',
           label: 'Anual',
           description: 'Para mantener tu presencia digital activa todo el año con mejor precio.',
@@ -143,13 +151,17 @@ const content: Record<
             '1 presencia digital publicada',
             'Avatar inicial con imagen y video breve',
             '1 voz autorizada generada con IA',
-            '500 créditos mensuales para chat, hasta 1.000 mensajes',
-            '500 créditos mensuales para audio, hasta 10.000 caracteres',
+            'Hasta 1.000 mensajes de visitantes por texto o audio al mes',
+            'Hasta 500 audios entrantes al mes, máximo 30 segundos cada uno',
+            'Hasta 20.000 caracteres en respuestas de audio al mes',
+            'Hasta 15 productos por perfil',
+            'Instagram, TikTok y OnlyFans, con hasta 10 contenidos seleccionados por red',
+            'Enlaces públicos a redes sociales',
             '1.000 créditos mensuales incluidos',
-            'Ahorro de $20.88 frente al pago mensual',
+            'Ahorro de $26.88 frente al pago mensual',
           ],
           cta: 'Elegir Starter anual',
-          trial: 'Prueba gratis por 7 días y luego $99 USD/año.',
+          trial: 'Prueba gratis por 7 días y luego $129 USD/año.',
           highlighted: true,
         },
       ],
@@ -215,7 +227,7 @@ const content: Record<
           cycle: 'month',
           name: 'Starter',
           planId: 'starter',
-          price: '$9.99',
+          price: '$12.99',
           period: 'USD /month',
           label: 'Monthly',
           description: 'For creating and validating one conversational digital presence.',
@@ -223,18 +235,22 @@ const content: Record<
             '1 published digital presence',
             'Initial avatar with image and short video',
             '1 authorized AI-generated voice',
-            '500 credits for chat, up to 1,000 messages',
-            '500 credits for audio replies, up to 10,000 characters',
+            'Up to 1,000 visitor text or audio messages per month',
+            'Up to 500 incoming audios per month, maximum 30 seconds each',
+            'Up to 20,000 characters in audio replies per month',
+            'Up to 15 products per profile',
+            'Instagram, TikTok, and OnlyFans with up to 10 selected media items per network',
+            'Public social network links',
             '1,000 monthly credits included',
           ],
           cta: 'Choose Starter monthly',
-          trial: 'Try it free for 7 days, then $9.99 USD/month.',
+          trial: 'Try it free for 7 days, then $12.99 USD/month.',
         },
         {
           cycle: 'year',
           name: 'Starter',
-          planId: 'starter',
-          price: '$99',
+          planId: 'starter_annual',
+          price: '$129',
           period: 'USD /year',
           label: 'Annual',
           description: 'For keeping your digital presence active all year at a better price.',
@@ -242,13 +258,17 @@ const content: Record<
             '1 published digital presence',
             'Initial avatar with image and short video',
             '1 authorized AI-generated voice',
-            '500 monthly credits for chat, up to 1,000 messages',
-            '500 monthly credits for audio, up to 10,000 characters',
+            'Up to 1,000 visitor text or audio messages per month',
+            'Up to 500 incoming audios per month, maximum 30 seconds each',
+            'Up to 20,000 characters in audio replies per month',
+            'Up to 15 products per profile',
+            'Instagram, TikTok, and OnlyFans with up to 10 selected media items per network',
+            'Public social network links',
             '1,000 monthly credits included',
-            'Save $20.88 compared with monthly billing',
+            'Save $26.88 compared with monthly billing',
           ],
           cta: 'Choose Starter annual',
-          trial: 'Try it free for 7 days, then $99 USD/year.',
+          trial: 'Try it free for 7 days, then $129 USD/year.',
           highlighted: true,
         },
       ],
@@ -408,6 +428,97 @@ function getPlanCheckoutUrl(plan: Plan, locale: Locale): string {
   return url.toString();
 }
 
+function applyPublicPlanData(
+  plan: Plan,
+  locale: Locale,
+  publicPlans: PublicSubscriptionPlan[],
+): Plan {
+  const planId = plan.cycle === 'year' ? 'starter_annual' : 'starter';
+  const publicPlan = publicPlans.find((candidate) => candidate.id === planId);
+
+  if (! publicPlan) {
+    return plan;
+  }
+
+  const price = formatUsd(publicPlan.priceUsd);
+
+  return {
+    ...plan,
+    planId,
+    price,
+    trial:
+      locale === 'es'
+        ? `Prueba gratis por 7 días y luego ${price} USD/${plan.cycle === 'year' ? 'año' : 'mes'}.`
+        : `Try it free for 7 days, then ${price} USD/${plan.cycle === 'year' ? 'year' : 'month'}.`,
+    features: buildPlanFeatures(publicPlan, publicPlans, locale),
+  };
+}
+
+function buildPlanFeatures(
+  plan: PublicSubscriptionPlan,
+  publicPlans: PublicSubscriptionPlan[],
+  locale: Locale,
+): string[] {
+  const number = (value: number) =>
+    new Intl.NumberFormat(locale === 'es' ? 'es-CO' : 'en-US').format(value);
+  const profiles = plan.limits.profiles ?? 1;
+  const chatMessages = plan.limits.chat_messages ?? 1000;
+  const incomingAudio = plan.limits.incoming_audio_messages ?? 500;
+  const incomingAudioSeconds = plan.limits.incoming_audio_seconds ?? 15000;
+  const audioMaxSeconds = incomingAudio > 0
+    ? Math.floor(incomingAudioSeconds / incomingAudio)
+    : 30;
+  const ttsCharacters = plan.limits.tts_characters ?? 20000;
+  const products = plan.capabilities.productsPerProfile ?? 15;
+  const selectedMedia = Object.values(plan.capabilities.integrations)[0]?.selectedMedia ?? 10;
+  const monthly = publicPlans.find((candidate) => candidate.id === 'starter');
+  const savings =
+    plan.id === 'starter_annual' && monthly
+      ? Math.max(0, monthly.priceUsd * 12 - plan.priceUsd)
+      : 0;
+
+  if (locale === 'en') {
+    return [
+      `${number(profiles)} published digital presence`,
+      'Initial avatar with image and short video',
+      '1 authorized AI-generated voice',
+      `Up to ${number(chatMessages)} visitor text or audio messages per month`,
+      `Up to ${number(incomingAudio)} incoming audios per month, maximum ${number(audioMaxSeconds)} seconds each`,
+      `Up to ${number(ttsCharacters)} characters in audio replies per month`,
+      `Up to ${number(products)} products per profile`,
+      `Instagram, TikTok, and OnlyFans with up to ${number(selectedMedia)} selected media items per network`,
+      'Public social network links',
+      `${number(plan.credits)} monthly credits included`,
+      ...(savings > 0
+        ? [`Save ${formatUsd(savings)} compared with monthly billing`]
+        : []),
+    ];
+  }
+
+  return [
+    `${number(profiles)} presencia digital publicada`,
+    'Avatar inicial con imagen y video breve',
+    '1 voz autorizada generada con IA',
+    `Hasta ${number(chatMessages)} mensajes de visitantes por texto o audio al mes`,
+    `Hasta ${number(incomingAudio)} audios entrantes al mes, máximo ${number(audioMaxSeconds)} segundos cada uno`,
+    `Hasta ${number(ttsCharacters)} caracteres en respuestas de audio al mes`,
+    `Hasta ${number(products)} productos por perfil`,
+    `Instagram, TikTok y OnlyFans, con hasta ${number(selectedMedia)} contenidos seleccionados por red`,
+    'Enlaces públicos a redes sociales',
+    `${number(plan.credits)} créditos mensuales incluidos`,
+    ...(savings > 0
+      ? [`Ahorro de ${formatUsd(savings)} frente al pago mensual`]
+      : []),
+  ];
+}
+
+function formatUsd(value: number): string {
+  return `$${new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+  }).format(value)}`;
+}
+
 export function Home() {
   const [locale, setLocale] = useState<Locale>(getInitialLocale);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -415,9 +526,14 @@ export function Home() {
   const [captchaToken, setCaptchaToken] = useState('');
   const [captchaError, setCaptchaError] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [publicPlans, setPublicPlans] = useState<PublicSubscriptionPlan[]>([]);
   const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const t = content[locale];
+  const planItems = useMemo(
+    () => t.plans.items.map((plan) => applyPublicPlanData(plan, locale, publicPlans)),
+    [locale, publicPlans, t.plans.items],
+  );
   const adminSignInUrl = getAdminSignInUrl(locale);
   const countryDialCodes = useMemo(() => getCountryDialCodeOptions(locale), [locale]);
   const isCaptchaEnabled = TURNSTILE_SITE_KEY !== '';
@@ -448,6 +564,24 @@ export function Home() {
       // Ignore blocked storage; language still works for the current session.
     }
   }, [locale]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchPublicSubscriptionPlans()
+      .then((plans) => {
+        if (! cancelled) {
+          setPublicPlans(plans);
+        }
+      })
+      .catch(() => {
+        // The localized catalog above remains available while the API is offline.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (! isCaptchaEnabled) {
@@ -701,7 +835,7 @@ export function Home() {
         </div>
 
         <div className="plans-grid">
-          {t.plans.items.map((plan) => (
+          {planItems.map((plan) => (
             <article className={plan.highlighted ? 'plan-card highlighted' : 'plan-card'} key={`${plan.name}-${plan.period}`}>
               <div>
                 <span className="plan-label">{plan.label}</span>

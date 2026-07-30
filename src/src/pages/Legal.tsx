@@ -1045,6 +1045,18 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
             not refundable.
           </p>
           <p>
+            Unless an offer expressly states otherwise, usage limits reset each
+            month and unused capacity does not roll over, including when billing
+            is annual. The current Starter offer includes up to 1,000 visitor
+            messages by text or audio, up to 500 incoming audio messages of no
+            more than 30 seconds each, and up to 20,000 characters converted to
+            response audio per monthly usage period. When the visitor message
+            limit is reached, the profile stops accepting new messages; when only
+            the incoming audio limit is reached, the microphone is disabled but
+            text remains available; and when the audio-response character limit
+            is reached, responses continue as text without generated audio.
+          </p>
+          <p>
             Payments may be processed by Wompi or another payment provider. By
             starting a trial, subscription, recurring payment, plan purchase, or
             credit purchase, you authorize the applicable charges and agree that
@@ -1312,6 +1324,19 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
           en el sitio o en la oferta aplicable. Salvo que la ley exija lo
           contrario, pagos, créditos consumidos, créditos vencidos y servicios
           ya prestados no son reembolsables.
+        </p>
+        <p>
+          Salvo que una oferta indique expresamente algo distinto, los límites de
+          uso se reinician cada mes y la capacidad no utilizada no se acumula,
+          incluso cuando el cobro sea anual. La oferta Starter vigente incluye
+          hasta 1.000 mensajes de visitantes por texto o audio, hasta 500 audios
+          entrantes de máximo 30 segundos cada uno y hasta 20.000 caracteres
+          convertidos a audio de respuesta por período mensual de uso. Al agotarse
+          el límite de mensajes de visitantes, el perfil deja de aceptar nuevos
+          mensajes; si solo se agota el límite de audio entrante, se deshabilita el
+          micrófono pero continúa disponible el texto; y si se agota el límite de
+          caracteres para respuestas de audio, las respuestas continúan en texto
+          sin audio generado.
         </p>
         <p>
           Los pagos pueden ser procesados por Wompi u otro proveedor de pagos.

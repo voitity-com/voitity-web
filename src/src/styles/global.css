@@ -3064,10 +3064,17 @@ h1 {
 }
 
 .profile-message-form .profile-icon-button:disabled {
-  color: #ffffff;
-  background: #111827;
+  color: #667085;
+  background: #d8dde6;
   cursor: not-allowed;
-  opacity: 1;
+  box-shadow: none;
+  opacity: 0.72;
+}
+
+.profile-message-form input:disabled {
+  color: #667085;
+  background: #eef1f5;
+  cursor: not-allowed;
 }
 
 .profile-message-form .profile-icon-button.recording-stop {
