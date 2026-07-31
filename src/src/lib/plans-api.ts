@@ -10,7 +10,6 @@ export type PublicSubscriptionPlan = {
     productsPerProfile: number;
     socialLinks: boolean;
   };
-  credits: number;
   id: string;
   interval: string;
   limits: Record<string, number>;
@@ -46,7 +45,6 @@ export async function fetchPublicSubscriptionPlans(): Promise<
     }
 
     const limitsSource = isRecord(value.limits) ? value.limits : {};
-    const creditsSource = isRecord(value.credits) ? value.credits : {};
     const capabilitiesSource = isRecord(value.capabilities)
       ? value.capabilities
       : {};
@@ -74,7 +72,6 @@ export async function fetchPublicSubscriptionPlans(): Promise<
             numberValue(capabilitiesSource.products_per_profile) ?? 15,
           socialLinks: capabilitiesSource.social_links !== false,
         },
-        credits: numberValue(creditsSource.total) ?? 1000,
         id,
         interval: stringValue(value.interval) ?? "",
         limits: Object.fromEntries(

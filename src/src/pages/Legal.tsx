@@ -59,6 +59,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         kind="privacy"
         locale="en"
         title="Bigmelo Privacy Policy"
+        updated="Last updated: July 29, 2026"
       >
         <p>
           This policy explains how Bigmelo collects, uses, shares, and protects
@@ -103,7 +104,8 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
             </li>
             <li>
               Payment, billing, subscription, payment method reference, Wompi
-              transaction, or credit usage data when you purchase a plan or
+              transaction, purchased-credit balance, reservation, consumption,
+              reversal, tariff, or ledger data when you purchase a plan or
               credits. Bigmelo does not need to store full card numbers.
             </li>
             <li>
@@ -157,8 +159,9 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
               impersonation, or illegal uses.
             </li>
             <li>
-              Measure credit usage and administer plans, payments, limits, and
-              service availability.
+              Measure plan and purchased-credit usage, preserve an auditable
+              credit ledger, and administer balances, reservations, payments,
+              limits, disputes, and service availability.
             </li>
             <li>
               Authenticate users, keep sessions active, personalize language,
@@ -241,7 +244,8 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
             Some deletions may take time to appear in backups, technical logs,
             browser storage, analytics systems, payment records, or provider
             systems. We may also retain limited information when necessary by
-            law or to investigate abuse, fraud, or impersonation.
+            law or to investigate abuse, fraud, impersonation, chargebacks, or
+            balance disputes.
           </p>
         </section>
 
@@ -313,6 +317,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
       kind="privacy"
       locale="es"
       title="Política de privacidad de Bigmelo"
+      updated="Última actualización: 29 de julio de 2026"
     >
       <p>
         Esta política explica cómo Bigmelo recopila, usa, comparte y protege
@@ -356,9 +361,10 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           </li>
           <li>
             Datos de pago, facturación, suscripción, referencia de medio de
-            pago, transacciones de Wompi o consumo de créditos cuando contrates
-            un plan o compres créditos. Bigmelo no necesita almacenar números
-            completos de tarjeta.
+            pago, transacciones de Wompi, saldo, reservas, consumo, reversos,
+            tarifas o movimientos de créditos comprados cuando contrates un plan
+            o compres créditos. Bigmelo no necesita almacenar números completos
+            de tarjeta.
           </li>
           <li>
             Datos de integraciones conectadas, como identificadores de cuentas
@@ -411,8 +417,9 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
             suplantación o usos ilegales.
           </li>
           <li>
-            Medir consumo de créditos, administrar planes, pagos, límites y
-            disponibilidad del servicio.
+            Medir el uso del plan y de créditos comprados, conservar un registro
+            auditable de movimientos y administrar saldos, reservas, pagos,
+            límites, disputas y disponibilidad del servicio.
           </li>
           <li>
             Autenticar usuarios, mantener sesiones activas, personalizar idioma,
@@ -498,7 +505,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           registros técnicos, almacenamiento del navegador, analítica, registros
           de pago o sistemas de proveedores. También podemos conservar
           información limitada cuando sea necesario por ley o para investigar
-          abuso, fraude o suplantación.
+          abuso, fraude, suplantación, contracargos o disputas de saldo.
         </p>
       </section>
 
@@ -703,6 +710,13 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
             timelines. We may also retain aggregated or anonymized information
             that no longer identifies you.
           </p>
+          <p>
+            Deleting the Bigmelo account closes its purchased-credit wallet and
+            permanently forfeits any unused balance, subject to mandatory
+            consumer law. We may retain limited payment and credit-ledger records
+            when required to document transactions, reversals, taxes, fraud, or
+            disputes.
+          </p>
         </section>
 
         <section>
@@ -859,6 +873,14 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
           tiempos distintos. También podemos conservar información agregada o
           anonimizada que ya no te identifique.
         </p>
+        <p>
+          Eliminar la cuenta de Bigmelo cierra su billetera de créditos comprados
+          y elimina definitivamente cualquier saldo no utilizado, salvo que una
+          norma obligatoria de protección al consumidor disponga otra cosa.
+          Podemos conservar registros limitados de pagos y movimientos de
+          créditos cuando sean necesarios para documentar transacciones,
+          reversos, impuestos, fraude o disputas.
+        </p>
       </section>
 
       <section>
@@ -881,6 +903,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
         kind="terms"
         locale="en"
         title="Bigmelo Terms and Conditions"
+        updated="Last updated: July 29, 2026"
       >
         <p>
           These terms govern access to and use of Bigmelo, a platform for
@@ -1041,8 +1064,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
             Some features consume credits or require a plan. Prices, limits,
             expirations, renewals, and included features will be shown on the
             site or in the applicable offer. Unless required by law, payments,
-            consumed credits, expired credits, and services already provided are
-            not refundable.
+            consumed credits, and services already provided are not refundable.
           </p>
           <p>
             Unless an offer expressly states otherwise, usage limits reset each
@@ -1050,11 +1072,44 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
             is annual. The current Starter offer includes up to 1,000 visitor
             messages by text or audio, up to 500 incoming audio messages of no
             more than 30 seconds each, and up to 20,000 characters converted to
-            response audio per monthly usage period. When the visitor message
-            limit is reached, the profile stops accepting new messages; when only
-            the incoming audio limit is reached, the microphone is disabled but
-            text remains available; and when the audio-response character limit
-            is reached, responses continue as text without generated audio.
+            response audio per monthly usage period.
+          </p>
+          <p>
+            Purchased credits are separate from monthly plan capacity. For each
+            eligible feature, Bigmelo always consumes the available plan capacity
+            first and only then consumes purchased credits. An account&apos;s
+            unused purchased-credit balance carries forward across monthly plan
+            resets and subscription renewals. It does not expire while the
+            account remains open, has no cash value, cannot be transferred, and
+            can only be used while the account has an active paid subscription.
+            A trial does not include or enable purchased-credit consumption.
+          </p>
+          <p>
+            Purchased credits can extend visitor messages, incoming-audio
+            transcription, response-audio generation, voice re-cloning, and new
+            avatar image or video generation at the rates shown before purchase.
+            The number of active profiles remains limited by the plan and cannot
+            be increased with credits. If neither plan capacity nor enough
+            purchased credits are available, the affected operation is blocked:
+            the microphone is disabled for incoming audio, audio responses fall
+            back to text, and other paid generation operations are not started.
+          </p>
+          <p>
+            Credit packages are one-time purchases. We display the package price
+            in USD and Wompi processes the charge in COP using the exchange rate
+            shown for that purchase. Applicable credit rates are disclosed in
+            the account before purchase. Bigmelo may change rates for future
+            usage and purchases, but will not retroactively change credits
+            already consumed.
+          </p>
+          <p>
+            If a credit payment is refunded, disputed, charged back, or reversed,
+            unused credits from that purchase may be removed. If those credits
+            were already consumed or reserved, the account may show a
+            reversed-payment balance; purchased credits cannot be used again
+            until that balance is offset by a valid purchase or released
+            reservation. Closing the account permanently forfeits any unused
+            purchased credits, subject to mandatory consumer law.
           </p>
           <p>
             Payments may be processed by Wompi or another payment provider. By
@@ -1160,6 +1215,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
       kind="terms"
       locale="es"
       title="Términos y condiciones de Bigmelo"
+      updated="Última actualización: 29 de julio de 2026"
     >
       <p>
         Estos términos regulan el acceso y uso de Bigmelo, una plataforma para
@@ -1322,8 +1378,8 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
           Algunas funciones consumen créditos o requieren un plan. Los precios,
           límites, vencimientos, renovaciones y funciones incluidas se mostrarán
           en el sitio o en la oferta aplicable. Salvo que la ley exija lo
-          contrario, pagos, créditos consumidos, créditos vencidos y servicios
-          ya prestados no son reembolsables.
+          contrario, pagos, créditos consumidos y servicios ya prestados no son
+          reembolsables.
         </p>
         <p>
           Salvo que una oferta indique expresamente algo distinto, los límites de
@@ -1331,12 +1387,45 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
           incluso cuando el cobro sea anual. La oferta Starter vigente incluye
           hasta 1.000 mensajes de visitantes por texto o audio, hasta 500 audios
           entrantes de máximo 30 segundos cada uno y hasta 20.000 caracteres
-          convertidos a audio de respuesta por período mensual de uso. Al agotarse
-          el límite de mensajes de visitantes, el perfil deja de aceptar nuevos
-          mensajes; si solo se agota el límite de audio entrante, se deshabilita el
-          micrófono pero continúa disponible el texto; y si se agota el límite de
-          caracteres para respuestas de audio, las respuestas continúan en texto
-          sin audio generado.
+          convertidos a audio de respuesta por período mensual de uso.
+        </p>
+        <p>
+          Los créditos comprados son independientes de la capacidad mensual del
+          plan. Para cada funcionalidad elegible, Bigmelo consume primero la
+          capacidad disponible del plan y solo después utiliza los créditos
+          comprados. El saldo no utilizado se conserva entre reinicios mensuales
+          y renovaciones de la suscripción. No vence mientras la cuenta permanezca
+          abierta, no tiene valor en efectivo, no puede transferirse y solo puede
+          utilizarse mientras exista una suscripción paga activa. Una prueba no
+          incluye ni habilita el consumo de créditos comprados.
+        </p>
+        <p>
+          Los créditos comprados pueden ampliar mensajes de visitantes,
+          transcripción de audios entrantes, generación de audio de respuestas,
+          nueva clonación de voz y generación de nuevas imágenes o videos de
+          avatar, según las tarifas informadas antes de la compra. La cantidad de
+          perfiles activos sigue limitada por el plan y no puede aumentarse con
+          créditos. Si no existe capacidad del plan ni créditos suficientes, se
+          bloquea la operación afectada: se deshabilita el micrófono para audio
+          entrante, las respuestas de audio continúan como texto y las demás
+          generaciones pagas no se inician.
+        </p>
+        <p>
+          Los paquetes de créditos son compras únicas. Mostramos su precio en USD
+          y Wompi procesa el cobro en COP con la tasa de cambio informada para esa
+          compra. Las tarifas aplicables se muestran en la cuenta antes de
+          comprar. Bigmelo puede cambiar las tarifas para usos y compras futuras,
+          pero no modificará retroactivamente los créditos ya consumidos.
+        </p>
+        <p>
+          Si un pago de créditos es reembolsado, disputado, desconocido o
+          reversado, podremos retirar los créditos no utilizados de esa compra.
+          Si ya fueron consumidos o reservados, la cuenta podrá mostrar un saldo
+          por pago reversado y no podrá volver a utilizar créditos comprados hasta
+          compensarlo con una compra válida o la liberación de una reserva. El
+          cierre de la cuenta elimina definitivamente los créditos comprados no
+          utilizados, salvo que una norma obligatoria de protección al consumidor
+          disponga otra cosa.
         </p>
         <p>
           Los pagos pueden ser procesados por Wompi u otro proveedor de pagos.
