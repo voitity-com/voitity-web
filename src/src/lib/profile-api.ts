@@ -1,7 +1,6 @@
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
 ).replace(/\/+$/, "");
-const API_TOKEN = import.meta.env.VITE_API_TOKEN;
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -107,6 +106,7 @@ export type ChatMessageProduct = {
 
 export type MessageResponse = {
   chatId?: string;
+  chatToken?: string;
   text: string;
   audioUrl?: string;
   media?: ChatMessageMedia[];
@@ -115,11 +115,6 @@ export type MessageResponse = {
   requestMessageId?: string;
   requestText?: string;
   messagingCapabilities?: ProfileMessagingCapabilities;
-};
-
-export type AudioResponse = {
-  audioUrl?: string;
-  blob?: Blob;
 };
 
 export type AvatarMedia = {
@@ -137,27 +132,22 @@ export function apiUrl(path: string) {
   return `${API_BASE_URL}${path}`;
 }
 
-export function authHeaders(extra?: HeadersInit): HeadersInit {
-  const headers: HeadersInit = {
+export function publicHeaders(
+  extra?: HeadersInit,
+  chatToken?: string | null,
+): HeadersInit {
+  return {
     Accept: "application/json",
     ...extra,
+    ...(chatToken ? { "X-Bigmelo-Chat-Token": chatToken } : {}),
   };
-
-  if (API_TOKEN) {
-    return {
-      ...headers,
-      Authorization: `Bearer ${API_TOKEN}`,
-    };
-  }
-
-  return headers;
 }
 
 export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {
   const profileResponsePromise = fetch(
-    apiUrl(`/api/profile/alias/${encodeURIComponent(alias)}`),
+    apiUrl(`/api/public/profiles/${encodeURIComponent(alias)}`),
     {
-      headers: authHeaders(),
+      headers: publicHeaders(),
     },
   );
   const socialNetworksPromise = fetchSocialNetworkDefinitions().catch(() => []);
@@ -181,9 +171,9 @@ export async function fetchAvatarMedia(
   profileId: string,
 ): Promise<AvatarMedia> {
   const response = await fetch(
-    apiUrl(`/api/avatar/${encodeURIComponent(profileId)}`),
+    apiUrl(`/api/public/profiles/${encodeURIComponent(profileId)}/avatar`),
     {
-      headers: authHeaders(),
+      headers: publicHeaders(),
     },
   );
 
@@ -224,38 +214,11 @@ export async function fetchAvatarMedia(
   };
 }
 
-export async function requestVoiceTest(
-  profileId: string,
-  text: string,
-): Promise<AudioResponse> {
-  const response = await fetch(apiUrl("/api/voice/test"), {
-    body: JSON.stringify({ profile_id: normalizeProfileId(profileId), text }),
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    method: "POST",
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      await getResponseErrorMessage(
-        response,
-        "No fue posible generar el audio de prueba.",
-      ),
-    );
-  }
-
-  const audioResponse = await parseAudioResponse(response);
-
-  if (!audioResponse.audioUrl && !audioResponse.blob) {
-    throw new Error("El API no devolvió audio para el saludo.");
-  }
-
-  return audioResponse;
-}
-
 export async function sendProfileMessage(
   profileId: string,
   message: string,
   chatId?: string | null,
+  chatToken?: string | null,
 ): Promise<MessageResponse> {
   const body: Record<string, string | number> = { message };
 
@@ -264,10 +227,10 @@ export async function sendProfileMessage(
   }
 
   const response = await fetch(
-    apiUrl(`/api/profile/${encodeURIComponent(profileId)}/messages`),
+    apiUrl(`/api/public/profiles/${encodeURIComponent(profileId)}/messages`),
     {
       body: JSON.stringify(body),
-      headers: authHeaders({ "Content-Type": "application/json" }),
+      headers: publicHeaders({ "Content-Type": "application/json" }, chatToken),
       method: "POST",
     },
   );
@@ -296,6 +259,7 @@ export async function sendProfileAudioMessage(
   profileId: string,
   audio: Blob,
   chatId?: string | null,
+  chatToken?: string | null,
 ): Promise<MessageResponse> {
   const formData = new FormData();
   const extension = getAudioExtension(audio.type);
@@ -306,10 +270,12 @@ export async function sendProfileAudioMessage(
   }
 
   const response = await fetch(
-    apiUrl(`/api/profile/${encodeURIComponent(profileId)}/messages/audio`),
+    apiUrl(
+      `/api/public/profiles/${encodeURIComponent(profileId)}/messages/audio`,
+    ),
     {
       body: formData,
-      headers: authHeaders(),
+      headers: publicHeaders(undefined, chatToken),
       method: "POST",
     },
   );
@@ -339,10 +305,10 @@ export async function fetchProfileMessagingCapabilities(
 ): Promise<ProfileMessagingCapabilities> {
   const response = await fetch(
     apiUrl(
-      `/api/profile/${encodeURIComponent(profileId)}/messaging-capabilities`,
+      `/api/public/profiles/${encodeURIComponent(profileId)}/messaging-capabilities`,
     ),
     {
-      headers: authHeaders(),
+      headers: publicHeaders(),
     },
   );
 
@@ -358,70 +324,11 @@ export async function fetchProfileMessagingCapabilities(
   );
 }
 
-export async function fetchProfileChatMessages(
-  profileId: string,
-  chatId: string,
-): Promise<ChatMessage[]> {
-  const firstPage = await fetchProfileChatMessagesPage(profileId, chatId, 1);
-  const pagination = isRecord(firstPage.pagination) ? firstPage.pagination : {};
-  const lastPageValue = pagination.last_page ?? pagination.lastPage;
-  const lastPage =
-    typeof lastPageValue === "number"
-      ? lastPageValue
-      : Number(lastPageValue || 1);
-  const source =
-    lastPage > 1
-      ? await fetchProfileChatMessagesPage(profileId, chatId, lastPage)
-      : firstPage;
-  const messages = Array.isArray(source.messages) ? source.messages : [];
-
-  return messages.flatMap((message) => normalizeChatMessage(message));
-}
-
-async function parseAudioResponse(response: Response): Promise<AudioResponse> {
-  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
-
-  if (contentType.includes("application/json")) {
-    const payload = (await response.json()) as UnknownRecord;
-    const source = unwrapPayload(payload);
-    const audioUrl = normalizeOptionalAssetUrl(
-      pickString(source, [
-        "audio_url",
-        "audioUrl",
-        "url",
-        "voice_url",
-        "voiceUrl",
-      ]),
-    );
-    const audioBase64 = pickString(source, [
-      "audio",
-      "audio_content",
-      "audioContent",
-      "audio_base64",
-      "audioBase64",
-    ]);
-    const audioFormat =
-      pickString(source, ["audio_format", "audioFormat", "format"]) ?? "mp3";
-
-    if (audioUrl) {
-      return { audioUrl };
-    }
-
-    if (audioBase64) {
-      return { blob: base64ToBlob(audioBase64, audioFormat) };
-    }
-
-    return {};
-  }
-
-  return { blob: await response.blob() };
-}
-
 async function fetchSocialNetworkDefinitions(): Promise<
   SocialNetworkDefinition[]
 > {
-  const response = await fetch(apiUrl("/api/profile/social-networks"), {
-    headers: authHeaders(),
+  const response = await fetch(apiUrl("/api/public/social-networks"), {
+    headers: publicHeaders(),
   });
 
   if (!response.ok) {
@@ -565,6 +472,7 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
   return {
     audioUrl,
     chatId: pickString(source, ["chat_id", "chatId"]),
+    chatToken: pickString(source, ["chat_token", "chatToken"]),
     requestAudioUrl: normalizeOptionalAssetUrl(
       pickString(source, ["request_audio_url", "requestAudioUrl"]),
     ),
@@ -765,67 +673,6 @@ function getMessageResponseError(
     topLevelMessage ??
     "El API no devolvió una respuesta para mostrar."
   );
-}
-
-async function fetchProfileChatMessagesPage(
-  profileId: string,
-  chatId: string,
-  page: number,
-): Promise<UnknownRecord> {
-  const searchParams = new URLSearchParams({
-    chat_id: String(normalizeProfileId(chatId)),
-    page: String(page),
-    profile_id: String(normalizeProfileId(profileId)),
-  });
-  const response = await fetch(
-    apiUrl(`/api/profile/chats/messages?${searchParams.toString()}`),
-    {
-      headers: authHeaders(),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      await getResponseErrorMessage(
-        response,
-        "No fue posible cargar los mensajes del chat.",
-      ),
-    );
-  }
-
-  return unwrapPayload((await response.json()) as UnknownRecord);
-}
-
-function normalizeChatMessage(value: unknown): ChatMessage[] {
-  if (!isRecord(value)) {
-    return [];
-  }
-
-  const data = isRecord(value.data) ? value.data : {};
-  const media = normalizeMessageMedia(value.media ?? data.media);
-  const products = normalizeMessageProducts(value.products ?? data.products);
-  const text = pickString(value, ["text", "message", "content"]);
-  const id = pickString(value, ["id", "message_id", "messageId"]);
-  const source = pickString(value, ["source"]);
-  const type = pickString(value, ["type"]);
-
-  if (!id || !text) {
-    return [];
-  }
-
-  return [
-    {
-      audioUrl: normalizeOptionalAssetUrl(
-        pickString(value, ["audio", "audio_url", "audioUrl"]),
-      ),
-      createdAt: pickString(value, ["created_at", "createdAt"]),
-      id,
-      ...(media.length ? { media } : {}),
-      ...(products.length ? { products } : {}),
-      role: source === "api" || type === "question" ? "visitor" : "profile",
-      text,
-    },
-  ];
 }
 
 function unwrapPayload(payload: unknown): UnknownRecord {
@@ -1048,20 +895,6 @@ function isVideoFile(value: string) {
   return /\.(mp4|mov|webm|m4v)$/i.test(value);
 }
 
-function base64ToBlob(value: string, audioFormat = "mp3") {
-  const [metadata, data] = value.includes(",") ? value.split(",") : ["", value];
-  const mimeType =
-    metadata.match(/data:(.*);base64/)?.[1] ?? getAudioMimeType(audioFormat);
-  const binary = window.atob(data.replace(/\s/g, ""));
-  const bytes = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return new Blob([bytes], { type: mimeType });
-}
-
 function normalizeProfileId(profileId: string) {
   return /^\d+$/.test(profileId) ? Number(profileId) : profileId;
 }
@@ -1137,28 +970,6 @@ function normalizeLocalAssetUrl(value: string) {
   }
 
   return value;
-}
-
-function getAudioMimeType(audioFormat: string) {
-  const normalizedFormat = audioFormat.toLowerCase().replace(/^\./, "");
-
-  if (normalizedFormat === "wav") {
-    return "audio/wav";
-  }
-
-  if (normalizedFormat === "ogg" || normalizedFormat === "oga") {
-    return "audio/ogg";
-  }
-
-  if (normalizedFormat === "webm") {
-    return "audio/webm";
-  }
-
-  if (normalizedFormat === "m4a" || normalizedFormat === "mp4") {
-    return "audio/mp4";
-  }
-
-  return "audio/mpeg";
 }
 
 function getAudioExtension(mimeType: string) {

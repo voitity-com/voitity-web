@@ -6,7 +6,6 @@ import {
   ChatMessageMedia,
   ChatMessageProduct,
   fetchAvatarMedia,
-  fetchProfileChatMessages,
   fetchProfileByAlias,
   fetchProfileMessagingCapabilities,
   ProfileApiError,
@@ -35,6 +34,7 @@ type AudioDraft = {
 
 type ProfileSession = {
   chatId: string | null;
+  chatToken: string | null;
   messages: ChatMessage[];
 };
 
@@ -192,6 +192,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const shouldScrollToBottomRef = useRef(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
+  const [chatToken, setChatToken] = useState<string | null>(null);
   const [avatarKind, setAvatarKind] = useState<"image" | "video">("image");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -238,6 +239,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setIsLoading(true);
         setError(null);
         setChatId(null);
+        setChatToken(null);
         setPulseMedia(null);
         setGreetingAudioState("idle");
         setGreetingAudioError(null);
@@ -269,7 +271,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           },
         ] satisfies ChatMessage[];
 
-        setChatId(storedSession?.chatId ?? null);
+        const hasStoredChatSession = Boolean(
+          storedSession?.chatId && storedSession.chatToken,
+        );
+        setChatId(hasStoredChatSession ? storedSession?.chatId ?? null : null);
+        setChatToken(
+          hasStoredChatSession ? storedSession?.chatToken ?? null : null,
+        );
         shouldScrollToBottomRef.current = true;
         setMessages(
           hasStoredMessages
@@ -413,9 +421,10 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
 
     writeProfileSession(profileAlias, {
       chatId,
+      chatToken,
       messages,
     });
-  }, [chatId, messages, profile, profileAlias]);
+  }, [chatId, chatToken, messages, profile, profileAlias]);
 
   useEffect(() => {
     if (!shouldScrollToBottomRef.current) {
@@ -495,10 +504,14 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         profile.id,
         visitorMessage.text,
         chatId,
+        chatToken,
       );
 
       if (response.chatId) {
         setChatId(response.chatId);
+      }
+      if (response.chatToken) {
+        setChatToken(response.chatToken);
       }
       if (response.messagingCapabilities) {
         setMessagingCapabilities(response.messagingCapabilities);
@@ -542,6 +555,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         });
       }
     } catch (sendError) {
+      if (
+        sendError instanceof ProfileApiError &&
+        sendError.code === "CHAT_SESSION_INVALID"
+      ) {
+        setChatId(null);
+        setChatToken(null);
+      }
       if (
         sendError instanceof ProfileApiError &&
         sendError.messagingCapabilities
@@ -814,11 +834,15 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         profile.id,
         localAudioBlob,
         chatId,
+        chatToken,
       );
       const nextChatId = response.chatId ?? chatId;
 
       if (nextChatId) {
         setChatId(nextChatId);
+      }
+      if (response.chatToken) {
+        setChatToken(response.chatToken);
       }
       if (response.messagingCapabilities) {
         setMessagingCapabilities(response.messagingCapabilities);
@@ -832,9 +856,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             text: response.requestText,
           }
         : nextChatId
-          ? await resolveSentAudioMessage(
-              profile.id,
-              nextChatId,
+          ? resolveSentAudioMessage(
               pendingMessageId,
               localAudioUrl,
               localDuration,
@@ -894,6 +916,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     } catch (sendError) {
       if (
         sendError instanceof ProfileApiError &&
+        sendError.code === "CHAT_SESSION_INVALID"
+      ) {
+        setChatId(null);
+        setChatToken(null);
+      }
+      if (
+        sendError instanceof ProfileApiError &&
         sendError.messagingCapabilities
       ) {
         setMessagingCapabilities(sendError.messagingCapabilities);
@@ -913,32 +942,11 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     }
   }
 
-  async function resolveSentAudioMessage(
-    profileId: string,
-    nextChatId: string,
+  function resolveSentAudioMessage(
     pendingMessageId: string,
     localAudioUrl: string,
     localDuration: number,
-  ): Promise<ChatMessage> {
-    try {
-      const chatMessages = await fetchProfileChatMessages(
-        profileId,
-        nextChatId,
-      );
-      const latestAudioVisitorMessage = [...chatMessages]
-        .reverse()
-        .find((message) => message.role === "visitor" && message.audioUrl);
-
-      if (latestAudioVisitorMessage) {
-        return {
-          ...latestAudioVisitorMessage,
-          id: pendingMessageId,
-        };
-      }
-    } catch {
-      // The answer was already created; keep the local audio bubble if history lookup fails.
-    }
-
+  ): ChatMessage {
     return {
       audioUrl: localAudioUrl,
       createdAt: new Date().toISOString(),
@@ -2137,6 +2145,10 @@ function readProfileSession(profileAlias: string): ProfileSession | null {
         typeof parsedValue.chatId === "string" && parsedValue.chatId
           ? parsedValue.chatId
           : null,
+      chatToken:
+        typeof parsedValue.chatToken === "string" && parsedValue.chatToken
+          ? parsedValue.chatToken
+          : null,
       messages,
     };
   } catch {
@@ -2154,6 +2166,7 @@ function writeProfileSession(profileAlias: string, session: ProfileSession) {
       getProfileSessionKey(profileAlias),
       JSON.stringify({
         chatId: session.chatId,
+        chatToken: session.chatToken,
         messages: session.messages,
       }),
     );
