@@ -93,7 +93,7 @@ const content: Record<
     },
     hero: {
       eyebrow: 'Presencia digital con inteligencia artificial',
-      title: 'Crea tu presencia digital con inteligencia artificial.',
+      title: 'Crea tu presencia digital inteligente e interactiva',
       lead:
         'Crea una página pública donde una versión interactiva de ti responde preguntas, comparte tu historia y conversa por texto y audio con información verificada.',
       primaryCta: 'Crear mi presencia digital',
@@ -114,7 +114,7 @@ const content: Record<
       eyebrow: 'Planes',
       title: 'Todo lo necesario para lanzar tu primera presencia digital con IA.',
       lead:
-        'Incluye presencia pública, avatar con imagen autorizada, voz generada con IA, chat y respuestas en audio dentro de tus créditos mensuales.',
+        'Incluye presencia pública, avatar con imagen autorizada, voz generada con IA y límites mensuales para chat y audio. Puedes comprar créditos adicionales cuando agotes un límite ampliable.',
       items: [
         {
           cycle: 'month',
@@ -132,9 +132,9 @@ const content: Record<
             'Hasta 500 audios entrantes al mes, máximo 30 segundos cada uno',
             'Hasta 20.000 caracteres en respuestas de audio al mes',
             'Hasta 15 productos por perfil',
-            'Instagram, TikTok y OnlyFans, con hasta 10 contenidos seleccionados por red',
+            'Instagram, TikTok con hasta 10 contenidos seleccionados por red',
             'Enlaces públicos a redes sociales',
-            '1.000 créditos mensuales incluidos',
+            'Créditos adicionales disponibles para límites ampliables',
           ],
           cta: 'Elegir Starter mensual',
           trial: 'Prueba gratis por 7 días y luego $12.99 USD/mes.',
@@ -155,9 +155,9 @@ const content: Record<
             'Hasta 500 audios entrantes al mes, máximo 30 segundos cada uno',
             'Hasta 20.000 caracteres en respuestas de audio al mes',
             'Hasta 15 productos por perfil',
-            'Instagram, TikTok y OnlyFans, con hasta 10 contenidos seleccionados por red',
+            'Instagram, TikTok con hasta 10 contenidos seleccionados por red',
             'Enlaces públicos a redes sociales',
-            '1.000 créditos mensuales incluidos',
+            'Créditos adicionales disponibles para límites ampliables',
             'Ahorro de $26.88 frente al pago mensual',
           ],
           cta: 'Elegir Starter anual',
@@ -200,7 +200,7 @@ const content: Record<
     },
     hero: {
       eyebrow: 'AI-powered digital presence',
-      title: 'Create your digital presence with AI.',
+      title: 'Create your intelligent and interactive digital presence',
       lead:
         'Build a public page where an interactive version of you answers questions, shares your story, and replies with text and audio using verified information.',
       primaryCta: 'Create my digital presence',
@@ -221,7 +221,7 @@ const content: Record<
       eyebrow: 'Plans',
       title: 'Everything you need to launch your first AI-powered presence.',
       lead:
-        'Includes a public presence, authorized image avatar, AI-generated voice, chat, and audio replies within your monthly credits.',
+        'Includes a public presence, authorized image avatar, AI-generated voice, and monthly chat and audio limits. You can purchase additional credits after an extendable limit is exhausted.',
       items: [
         {
           cycle: 'month',
@@ -239,9 +239,9 @@ const content: Record<
             'Up to 500 incoming audios per month, maximum 30 seconds each',
             'Up to 20,000 characters in audio replies per month',
             'Up to 15 products per profile',
-            'Instagram, TikTok, and OnlyFans with up to 10 selected media items per network',
+            'Instagram and TikTok with up to 10 selected media items per network',
             'Public social network links',
-            '1,000 monthly credits included',
+            'Additional credits available for extendable limits',
           ],
           cta: 'Choose Starter monthly',
           trial: 'Try it free for 7 days, then $12.99 USD/month.',
@@ -262,9 +262,9 @@ const content: Record<
             'Up to 500 incoming audios per month, maximum 30 seconds each',
             'Up to 20,000 characters in audio replies per month',
             'Up to 15 products per profile',
-            'Instagram, TikTok, and OnlyFans with up to 10 selected media items per network',
+            'Instagram and TikTok with up to 10 selected media items per network',
             'Public social network links',
-            '1,000 monthly credits included',
+            'Additional credits available for extendable limits',
             'Save $26.88 compared with monthly billing',
           ],
           cta: 'Choose Starter annual',
@@ -486,9 +486,9 @@ function buildPlanFeatures(
       `Up to ${number(incomingAudio)} incoming audios per month, maximum ${number(audioMaxSeconds)} seconds each`,
       `Up to ${number(ttsCharacters)} characters in audio replies per month`,
       `Up to ${number(products)} products per profile`,
-      `Instagram, TikTok, and OnlyFans with up to ${number(selectedMedia)} selected media items per network`,
+      `Instagram and TikTok with up to ${number(selectedMedia)} selected media items per network`,
       'Public social network links',
-      `${number(plan.credits)} monthly credits included`,
+      'Additional credits available for extendable limits',
       ...(savings > 0
         ? [`Save ${formatUsd(savings)} compared with monthly billing`]
         : []),
@@ -503,9 +503,9 @@ function buildPlanFeatures(
     `Hasta ${number(incomingAudio)} audios entrantes al mes, máximo ${number(audioMaxSeconds)} segundos cada uno`,
     `Hasta ${number(ttsCharacters)} caracteres en respuestas de audio al mes`,
     `Hasta ${number(products)} productos por perfil`,
-    `Instagram, TikTok y OnlyFans, con hasta ${number(selectedMedia)} contenidos seleccionados por red`,
+    `Instagram, TikTok con hasta ${number(selectedMedia)} contenidos seleccionados por red`,
     'Enlaces públicos a redes sociales',
-    `${number(plan.credits)} créditos mensuales incluidos`,
+    'Créditos adicionales disponibles para límites ampliables',
     ...(savings > 0
       ? [`Ahorro de ${formatUsd(savings)} frente al pago mensual`]
       : []),
