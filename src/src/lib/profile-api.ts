@@ -1,6 +1,7 @@
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
 ).replace(/\/+$/, "");
+const VISITOR_ID_STORAGE_KEY = "bigmelo:anonymous-visitor:v1";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -117,6 +118,27 @@ export type MessageResponse = {
   messagingCapabilities?: ProfileMessagingCapabilities;
 };
 
+export type ProfileInteraction = {
+  eventType:
+    | "media_external_clicked"
+    | "media_opened"
+    | "product_clicked"
+    | "profile_viewed"
+    | "social_link_clicked";
+  chatId?: string | null;
+  mediaType?: "image" | "video";
+  metadata?: { destination_type?: "external_url" | "telegram" | "whatsapp" };
+  provider?: string;
+  subjectId?: string;
+  surface:
+    | "chat_media_card"
+    | "chat_media_modal"
+    | "product_button"
+    | "product_image"
+    | "profile_page"
+    | "profile_social_nav";
+};
+
 export type AvatarMedia = {
   kind: "image" | "video";
   url: string;
@@ -138,9 +160,61 @@ export function publicHeaders(
 ): HeadersInit {
   return {
     Accept: "application/json",
+    "X-Bigmelo-Visitor-Id": getAnonymousVisitorId(),
     ...extra,
     ...(chatToken ? { "X-Bigmelo-Chat-Token": chatToken } : {}),
   };
+}
+
+export async function recordProfileInteraction(
+  profileId: string,
+  interaction: ProfileInteraction,
+): Promise<void> {
+  const response = await fetch(
+    apiUrl(`/api/public/profiles/${encodeURIComponent(profileId)}/interactions`),
+    {
+      body: JSON.stringify({
+        event_id: crypto.randomUUID(),
+        visitor_id: getAnonymousVisitorId(),
+        event_type: interaction.eventType,
+        chat_id: interaction.chatId
+          ? normalizeProfileId(interaction.chatId)
+          : undefined,
+        subject_id: interaction.subjectId,
+        provider: interaction.provider,
+        surface: interaction.surface,
+        media_type: interaction.mediaType,
+        metadata: interaction.metadata,
+      }),
+      headers: publicHeaders({ "Content-Type": "application/json" }),
+      keepalive: true,
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    throw await createProfileApiError(
+      response,
+      "No fue posible registrar la interacción.",
+    );
+  }
+}
+
+function getAnonymousVisitorId(): string {
+  try {
+    const stored = window.localStorage.getItem(VISITOR_ID_STORAGE_KEY);
+
+    if (stored) {
+      return stored;
+    }
+
+    const created = crypto.randomUUID();
+    window.localStorage.setItem(VISITOR_ID_STORAGE_KEY, created);
+
+    return created;
+  } catch {
+    return crypto.randomUUID();
+  }
 }
 
 export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {

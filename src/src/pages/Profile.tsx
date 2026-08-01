@@ -12,6 +12,7 @@ import {
   ProfileData,
   ProfileFeatureSetting,
   ProfileMessagingCapabilities,
+  recordProfileInteraction,
   sendProfileAudioMessage,
   sendProfileMessage,
 } from "../lib/profile-api";
@@ -156,6 +157,15 @@ function getProfileCopy(locale: ProfileLocale) {
   return profileCopy[locale] as typeof profileCopy.es;
 }
 
+function trackProfileInteraction(
+  profileId: string,
+  interaction: Parameters<typeof recordProfileInteraction>[1],
+): void {
+  recordProfileInteraction(profileId, interaction).catch(() => {
+    // Analytics must never block the visitor's navigation or chat interaction.
+  });
+}
+
 function getMessagingUnavailableMessage(
   capabilities: ProfileMessagingCapabilities,
   copy: ReturnType<typeof getProfileCopy>,
@@ -253,6 +263,10 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         }
 
         setProfile(nextProfile);
+        trackProfileInteraction(nextProfile.id, {
+          eventType: "profile_viewed",
+          surface: "profile_page",
+        });
         setMessagingCapabilities(nextProfile.messagingCapabilities);
         const storedSession = readProfileSession(profileAlias);
         const initialMessage = nextProfile.conversationMessages.initial;
@@ -1103,6 +1117,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                       rel="noopener noreferrer"
                       target="_blank"
                       title={network.name}
+                      onClick={() => {
+                        trackProfileInteraction(profile.id, {
+                          eventType: "social_link_clicked",
+                          provider: network.key,
+                          surface: "profile_social_nav",
+                        });
+                      }}
                     >
                       {network.iconUrl ? (
                         <img
@@ -1163,11 +1184,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                           </div>
                           {message.media?.length ? (
                             <ProfileMessageMedia
+                              chatId={chatId}
                               copy={copy}
                               hasConfirmedAdultContent={
                                 hasConfirmedAdultContent
                               }
                               media={message.media}
+                              profileId={profile.id}
                               onConfirmAdultContent={() => {
                                 writeAdultContentConfirmation(profileAlias);
                                 setHasConfirmedAdultContent(true);
@@ -1188,7 +1211,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                           ) : null}
                           {message.products?.length ? (
                             <ProfileMessageProducts
+                              chatId={chatId}
                               copy={copy}
+                              profileId={profile.id}
                               products={message.products}
                             />
                           ) : null}
@@ -1616,16 +1641,20 @@ function ProfileAvatarVideo({
 }
 
 function ProfileMessageMedia({
+  chatId,
   copy,
   hasConfirmedAdultContent,
   media,
+  profileId,
   onConfirmAdultContent,
   onPulseComplete,
   pulseMediaKey,
 }: {
+  chatId: string | null;
   copy: ReturnType<typeof getProfileCopy>;
   hasConfirmedAdultContent: boolean;
   media: ChatMessageMedia[];
+  profileId: string;
   onConfirmAdultContent: () => void;
   onPulseComplete?: () => void;
   pulseMediaKey?: string | null;
@@ -1664,7 +1693,24 @@ function ProfileMessageMedia({
     setModalPhase("opening");
   }
 
+  function trackMediaOpened(item: ChatMessageMedia) {
+    if (item.id) {
+      trackProfileInteraction(profileId, {
+        chatId,
+        eventType: "media_opened",
+        mediaType: isVideoMedia(item) ? "video" : "image",
+        provider: getMediaProviderKey(item),
+        subjectId: item.id,
+        surface: "chat_media_card",
+      });
+    }
+  }
+
   function openMedia(item: ChatMessageMedia) {
+    if (!item.ageRestricted || hasConfirmedAdultContent) {
+      trackMediaOpened(item);
+    }
+
     clearCloseTimer();
     selectedMediaRef.current = item;
     modalPhaseRef.current = "opening";
@@ -1824,7 +1870,13 @@ function ProfileMessageMedia({
                   <button type="button" onClick={closeMedia}>
                     {copy.adultContentCancel}
                   </button>
-                  <button type="button" onClick={onConfirmAdultContent}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackMediaOpened(selectedMedia);
+                      onConfirmAdultContent();
+                    }}
+                  >
                     {copy.adultContentConfirm}
                   </button>
                 </div>
@@ -1863,6 +1915,18 @@ function ProfileMessageMedia({
                 href={selectedMedia.permalink}
                 rel="noopener noreferrer"
                 target="_blank"
+                onClick={() => {
+                  if (selectedMedia.id) {
+                    trackProfileInteraction(profileId, {
+                      chatId,
+                      eventType: "media_external_clicked",
+                      mediaType: selectedMediaIsVideo ? "video" : "image",
+                      provider: getMediaProviderKey(selectedMedia),
+                      subjectId: selectedMedia.id,
+                      surface: "chat_media_modal",
+                    });
+                  }
+                }}
               >
                 {copy.viewOnProvider(getMediaProviderLabel(selectedMedia))}
               </a>
@@ -1934,6 +1998,18 @@ function ProfileMessageMedia({
                   href={item.permalink}
                   rel="noopener noreferrer"
                   target="_blank"
+                  onClick={() => {
+                    if (item.id) {
+                      trackProfileInteraction(profileId, {
+                        chatId,
+                        eventType: "media_external_clicked",
+                        mediaType: isVideo ? "video" : "image",
+                        provider: getMediaProviderKey(item),
+                        subjectId: item.id,
+                        surface: "chat_media_card",
+                      });
+                    }
+                  }}
                 >
                   {copy.viewOnProvider(provider)}
                 </a>
@@ -1952,10 +2028,14 @@ function getMediaProviderLabel(item: ChatMessageMedia): string {
 }
 
 function ProfileMessageProducts({
+  chatId,
   copy,
+  profileId,
   products,
 }: {
+  chatId: string | null;
   copy: ReturnType<typeof getProfileCopy>;
+  profileId: string;
   products: ChatMessageProduct[];
 }) {
   return (
@@ -1968,6 +2048,15 @@ function ProfileMessageProducts({
             href={product.actionUrl}
             rel="noopener noreferrer"
             target="_blank"
+            onClick={() => {
+              trackProfileInteraction(profileId, {
+                chatId,
+                eventType: "product_clicked",
+                metadata: { destination_type: product.destinationType },
+                subjectId: product.id,
+                surface: "product_image",
+              });
+            }}
           >
             <img alt={product.name} src={product.imageUrl} />
           </a>
@@ -1978,6 +2067,15 @@ function ProfileMessageProducts({
               href={product.actionUrl}
               rel="noopener noreferrer"
               target="_blank"
+              onClick={() => {
+                trackProfileInteraction(profileId, {
+                  chatId,
+                  eventType: "product_clicked",
+                  metadata: { destination_type: product.destinationType },
+                  subjectId: product.id,
+                  surface: "product_button",
+                });
+              }}
             >
               {getProductActionLabel(product, copy)}
             </a>
@@ -2035,7 +2133,13 @@ function isVideoMedia(item: ChatMessageMedia): boolean {
 
 function getVideoEmbedUrl(item: ChatMessageMedia): string | null {
   if (getMediaProviderKey(item).includes("tiktok")) {
-    for (const value of [item.mediaUrl, item.permalink]) {
+    const candidates = item.mediaUrl
+      ? [item.mediaUrl]
+      : item.permalink
+        ? [item.permalink]
+        : [];
+
+    for (const value of candidates) {
       if (!value) {
         continue;
       }
@@ -2052,6 +2156,8 @@ function getVideoEmbedUrl(item: ChatMessageMedia): string | null {
       }
     }
 
+    // A direct provider media URL is rendered by the native video player;
+    // the permalink remains available as the separately tracked external exit.
     return null;
   }
 
