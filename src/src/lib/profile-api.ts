@@ -82,6 +82,7 @@ export type ChatMessage = {
 export type ChatMessageMedia = {
   ageRestricted?: boolean;
   caption?: string;
+  channelUrl?: string;
   id?: string;
   imageUrl?: string;
   mediaUrl?: string;
@@ -126,6 +127,7 @@ export type ProfileInteraction = {
     | "profile_viewed"
     | "social_link_clicked";
   chatId?: string | null;
+  destinationType?: "provider_channel" | "provider_video";
   mediaType?: "image" | "video";
   metadata?: { destination_type?: "external_url" | "telegram" | "whatsapp" };
   provider?: string;
@@ -180,6 +182,7 @@ export async function recordProfileInteraction(
         chat_id: interaction.chatId
           ? normalizeProfileId(interaction.chatId)
           : undefined,
+        destination_type: interaction.destinationType,
         subject_id: interaction.subjectId,
         provider: interaction.provider,
         surface: interaction.surface,
@@ -618,6 +621,7 @@ function normalizeMessageMedia(value: unknown): ChatMessageMedia[] {
       "instagram_url",
       "instagramUrl",
     ]);
+    const channelUrl = pickString(item, ["channel_url", "channelUrl"]);
 
     if (!imageUrl && !mediaUrl && !permalink) {
       return [];
@@ -636,6 +640,7 @@ function normalizeMessageMedia(value: unknown): ChatMessageMedia[] {
         ...(pickString(item, ["caption"])
           ? { caption: pickString(item, ["caption"]) }
           : {}),
+        ...(channelUrl ? { channelUrl } : {}),
         ...(pickString(item, ["id", "media_id", "mediaId"])
           ? { id: pickString(item, ["id", "media_id", "mediaId"]) }
           : {}),

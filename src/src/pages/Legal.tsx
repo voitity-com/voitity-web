@@ -22,7 +22,7 @@ const legalCopy = {
     privacy: "Privacidad",
     signIn: "Ingresar",
     terms: "Términos",
-    updated: "Última actualización: 29 de julio de 2026",
+    updated: "Última actualización: 3 de agosto de 2026",
     footer: "© 2026 Bigmelo. Todos los derechos reservados.",
   },
   en: {
@@ -31,7 +31,7 @@ const legalCopy = {
     privacy: "Privacy",
     signIn: "Sign in",
     terms: "Terms",
-    updated: "Last updated: July 29, 2026",
+    updated: "Last updated: August 3, 2026",
     footer: "© 2026 Bigmelo. All rights reserved.",
   },
 } satisfies Record<LegalLocale, Record<string, string>>;
@@ -59,7 +59,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         kind="privacy"
         locale="en"
         title="Bigmelo Privacy Policy"
-        updated="Last updated: July 29, 2026"
+        updated="Last updated: August 3, 2026"
       >
         <p>
           This policy explains how Bigmelo collects, uses, shares, and protects
@@ -110,9 +110,9 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
             </li>
             <li>
               Connected integration data, such as Instagram, Meta, TikTok,
-              OnlyFans, or other platform account identifiers, access tokens,
-              selected media, captions, profile links, import status, and sync
-              history when you connect those services.
+              OnlyFans, YouTube channel and video identifiers, titles,
+              thumbnails, selected media, captions, profile links, import
+              status, and sync history when you connect those services.
             </li>
           </ul>
         </section>
@@ -191,11 +191,21 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
             advertising.
           </p>
           <p>
-            If you connect Instagram, Meta, TikTok, OnlyFans, or similar
+            If you connect Instagram, Meta, TikTok, OnlyFans, YouTube, or similar
             services, we use the connected data only for the features you
             authorize, such as verification, importing selected media or
             captions, showing social links, preparing profile context, and
             keeping integrations synchronized.
+          </p>
+          <p>
+            The YouTube integration uses an application API key to read public
+            channel and video metadata; it does not request your YouTube login
+            credentials or permission to modify a channel. We store only the
+            channel and video references, titles, unmodified thumbnails,
+            availability, and the description you provide. YouTube API metadata
+            is refreshed or removed within 30 days. Use of this integration is
+            also subject to the YouTube API Services Terms of Service and the
+            Google Privacy Policy.
           </p>
           <p>
             Payment providers such as Wompi may process payment method tokens,
@@ -206,9 +216,12 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           </p>
           <p>
             We may use cookies, local storage, session storage, Cloudflare
-            Turnstile verification, Google Tag Manager, analytics, and similar
-            browser technologies to remember language, maintain sessions,
-            measure usage, protect forms, and prevent abuse.
+            Turnstile verification, Google Analytics 4, and similar browser
+            technologies to remember language, maintain sessions, measure
+            aggregate usage, protect forms, and prevent abuse. Optional
+            analytics is disabled until you accept it. We do not send profile
+            names, contact information, payment data, or chat content to Google
+            Analytics.
           </p>
         </section>
 
@@ -236,6 +249,11 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
             voice model, avatar, or commercial relationship is active, and for
             additional time as needed for security, support, legal compliance,
             abuse prevention, dispute resolution, or backups.
+          </p>
+          <p>
+            Public metadata obtained from YouTube API Services is refreshed or
+            deleted within 30 calendar days and is removed when you disconnect
+            the channel or delete the related video from Bigmelo.
           </p>
           <p>
             You may request deletion of profiles, images, audio files, voice
@@ -317,7 +335,7 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
       kind="privacy"
       locale="es"
       title="Política de privacidad de Bigmelo"
-      updated="Última actualización: 29 de julio de 2026"
+      updated="Última actualización: 3 de agosto de 2026"
     >
       <p>
         Esta política explica cómo Bigmelo recopila, usa, comparte y protege
@@ -368,7 +386,8 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           </li>
           <li>
             Datos de integraciones conectadas, como identificadores de cuentas
-            de Instagram, Meta, TikTok, OnlyFans u otras plataformas, tokens de
+              de Instagram, Meta, TikTok, OnlyFans, identificadores de canales y
+              videos de YouTube u otras plataformas, tokens de
             acceso, media seleccionada, captions, enlaces de perfil, estado de
             importación e historial de sincronización cuando conectas esos
             servicios.
@@ -449,11 +468,21 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           publicidad.
         </p>
         <p>
-          Si conectas Instagram, Meta, TikTok, OnlyFans o servicios similares,
+          Si conectas Instagram, Meta, TikTok, OnlyFans, YouTube o servicios similares,
           usamos los datos conectados solo para las funciones que autorizas,
           como verificación, importación de media o captions seleccionados,
           mostrar enlaces sociales, preparar contexto del perfil y mantener
           integraciones sincronizadas.
+        </p>
+        <p>
+          La integración de YouTube usa una clave de API de la aplicación para
+          consultar metadatos públicos de canales y videos; no solicita tus
+          credenciales de YouTube ni permisos para modificar un canal. Guardamos
+          únicamente referencias del canal y los videos, títulos, miniaturas sin
+          modificar, disponibilidad y la descripción que ingreses. Los
+          metadatos de la API de YouTube se actualizan o eliminan antes de 30
+          días. El uso de esta integración también está sujeto a los Términos de
+          Servicio de las APIs de YouTube y a la Política de Privacidad de Google.
         </p>
         <p>
           Proveedores de pago como Wompi pueden procesar tokens de medios de
@@ -464,9 +493,12 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         </p>
         <p>
           Podemos usar cookies, almacenamiento local, almacenamiento de sesión,
-          verificación de Cloudflare Turnstile, Google Tag Manager, analítica y
-          tecnologías similares del navegador para recordar idioma, mantener
-          sesiones, medir uso, proteger formularios y prevenir abuso.
+          verificación de Cloudflare Turnstile, Google Analytics 4 y tecnologías
+          similares del navegador para recordar idioma, mantener sesiones,
+          medir uso agregado, proteger formularios y prevenir abuso. La
+          analítica opcional permanece desactivada hasta que la aceptes. No
+          enviamos nombres de perfiles, información de contacto, datos de pago
+          ni contenido del chat a Google Analytics.
         </p>
       </section>
 
@@ -506,6 +538,12 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           de pago o sistemas de proveedores. También podemos conservar
           información limitada cuando sea necesario por ley o para investigar
           abuso, fraude, suplantación, contracargos o disputas de saldo.
+        </p>
+        <p>
+          Los metadatos públicos obtenidos de los Servicios de las APIs de
+          YouTube se actualizan o eliminan dentro de 30 días calendario y se
+          eliminan cuando desconectas el canal o borras el video relacionado de
+          Bigmelo.
         </p>
       </section>
 
@@ -579,7 +617,7 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
         kind="dataDeletion"
         locale="en"
         title="Bigmelo User Data Deletion Instructions"
-        updated="Last updated: July 29, 2026"
+        updated="Last updated: August 3, 2026"
       >
         <p>
           This page explains how to request deletion of personal data processed
@@ -611,7 +649,7 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
               files, and generated audio files.
             </li>
             <li>
-              Connected integration data, such as Instagram, Meta, or TikTok
+              Connected integration data, such as Instagram, Meta, TikTok, or YouTube
               account identifiers, OnlyFans or similar platform identifiers,
               access tokens, synced media, captions, selected media notes, and
               sync history.
@@ -651,8 +689,8 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
               published profile.
             </li>
             <li>
-              The connected provider, such as Instagram, Facebook, Meta, or
-              TikTok, Google, OnlyFans, Wompi, or another provider, if your
+              The connected provider, such as Instagram, Facebook, Meta,
+              TikTok, YouTube, Google, OnlyFans, Wompi, or another provider, if your
               request relates to an integration or payment.
             </li>
             <li>
@@ -673,7 +711,7 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
           <h2>3. Removing connected provider access</h2>
           <p>
             If you connected a Google, Meta, Facebook, Instagram, Threads,
-            TikTok, OnlyFans, or similar account to Bigmelo, you can remove
+            TikTok, YouTube, OnlyFans, or similar account to Bigmelo, you can remove
             Bigmelo's access from the provider account settings or connected app
             settings. Removing access stops future access by Bigmelo, but you
             should also send us a deletion request if you want previously synced
@@ -737,7 +775,7 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
       kind="dataDeletion"
       locale="es"
       title="Instrucciones para eliminación de datos de usuario en Bigmelo"
-      updated="Última actualización: 29 de julio de 2026"
+      updated="Última actualización: 3 de agosto de 2026"
     >
       <p>
         Esta página explica cómo solicitar la eliminación de datos personales
@@ -770,7 +808,7 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
           </li>
           <li>
             Datos de integraciones conectadas, como identificadores de
-            Instagram, Meta o TikTok, identificadores de OnlyFans o plataformas
+            Instagram, Meta, TikTok o YouTube, identificadores de OnlyFans o plataformas
             similares, tokens de acceso, media sincronizada, captions,
             observaciones de contenido seleccionado e historial de
             sincronización.
@@ -811,8 +849,8 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
             perfil publicado.
           </li>
           <li>
-            El proveedor conectado, como Instagram, Facebook, Meta o TikTok, si
-            la solicitud se relaciona con una integración, o Google, OnlyFans,
+            El proveedor conectado, como Instagram, Facebook, Meta, TikTok o
+            YouTube, si la solicitud se relaciona con una integración, o Google, OnlyFans,
             Wompi u otro proveedor si la solicitud se relaciona con ingreso,
             integración o pago.
           </li>
@@ -834,7 +872,7 @@ export function DataDeletionInstructions({ locale }: { locale: LegalLocale }) {
         <h2>3. Retirar acceso de proveedores conectados</h2>
         <p>
           Si conectaste una cuenta de Google, Meta, Facebook, Instagram, Threads,
-          TikTok, OnlyFans o similar a Bigmelo, puedes retirar el acceso de
+          TikTok, YouTube, OnlyFans o similar a Bigmelo, puedes retirar el acceso de
           Bigmelo desde la configuración de tu cuenta del proveedor o desde apps
           conectadas. Retirar el acceso detiene accesos futuros de Bigmelo, pero
           también debes enviarnos una solicitud de eliminación si quieres borrar
@@ -903,7 +941,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
         kind="terms"
         locale="en"
         title="Bigmelo Terms and Conditions"
-        updated="Last updated: July 29, 2026"
+        updated="Last updated: August 3, 2026"
       >
         <p>
           These terms govern access to and use of Bigmelo, a platform for
@@ -984,7 +1022,8 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
             Runway for avatars and visual assets, ElevenLabs for voice and
             audio, OpenAI for message understanding and response generation,
             Google for authentication or platform services, Meta and Instagram,
-            TikTok, OnlyFans or similar services for connected account features,
+            TikTok, OnlyFans, YouTube or similar services for connected account
+            features,
             Wompi for payments, Cloudflare Turnstile for anti-abuse checks, and
             infrastructure, storage, email, notification, analytics, and logging
             providers.
@@ -1215,7 +1254,7 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
       kind="terms"
       locale="es"
       title="Términos y condiciones de Bigmelo"
-      updated="Última actualización: 29 de julio de 2026"
+      updated="Última actualización: 3 de agosto de 2026"
     >
       <p>
         Estos términos regulan el acceso y uso de Bigmelo, una plataforma para
@@ -1297,8 +1336,9 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
           incluyendo Runway para avatar y recursos visuales, ElevenLabs para voz
           y audio, OpenAI para comprensión de mensajes y generación de
           respuestas, Google para autenticación o servicios de plataforma, Meta
-          e Instagram, TikTok, OnlyFans o servicios similares para funciones de
-          cuentas conectadas, Wompi para pagos, Cloudflare Turnstile para
+          e Instagram, TikTok, OnlyFans, YouTube o servicios similares para
+          funciones de cuentas conectadas, Wompi para pagos, Cloudflare
+          Turnstile para
           verificaciones contra abuso, y proveedores de infraestructura,
           almacenamiento, correo, notificaciones, analítica y registros.
         </p>
@@ -1561,11 +1601,27 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
             responses.
           </li>
           <li>
-            <a href="https://www.google.com/" rel="noreferrer" target="_blank">
+          <a href="https://policies.google.com/privacy" rel="noreferrer" target="_blank">
               Google
             </a>
             , for sign-in, account authentication, analytics, tag management, or
             related platform services when enabled.
+          </li>
+          <li>
+            <a href="https://www.youtube.com/" rel="noreferrer" target="_blank">
+              YouTube
+            </a>
+            , for validating public channels and videos, displaying unmodified
+            titles and thumbnails, and playing videos through YouTube's embedded
+            player under the{` `}
+            <a
+              href="https://developers.google.com/youtube/terms/api-services-terms-of-service"
+              rel="noreferrer"
+              target="_blank"
+            >
+              YouTube API Services Terms of Service
+            </a>
+            .
           </li>
           <li>
             <a href="https://www.meta.com/" rel="noreferrer" target="_blank">
@@ -1640,12 +1696,28 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
           , para comprender mensajes, organizar contexto y generar respuestas.
         </li>
         <li>
-          <a href="https://www.google.com/" rel="noreferrer" target="_blank">
+          <a href="https://policies.google.com/privacy" rel="noreferrer" target="_blank">
             Google
           </a>
           , para ingreso, autenticación de cuenta, analítica, administración de
           etiquetas o servicios relacionados de plataforma cuando estén
           habilitados.
+        </li>
+        <li>
+          <a href="https://www.youtube.com/" rel="noreferrer" target="_blank">
+            YouTube
+          </a>
+          , para validar canales y videos públicos, mostrar títulos y miniaturas
+          sin modificar, y reproducir videos mediante el reproductor embebido de
+          YouTube conforme a los{` `}
+          <a
+            href="https://developers.google.com/youtube/terms/api-services-terms-of-service"
+            rel="noreferrer"
+            target="_blank"
+          >
+            Términos de Servicio de las APIs de YouTube
+          </a>
+          .
         </li>
         <li>
           <a href="https://www.meta.com/" rel="noreferrer" target="_blank">

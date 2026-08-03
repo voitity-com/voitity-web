@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { trackAnalyticsEvent } from "../lib/google-analytics";
 import {
   ChatMessage,
   ChatMessageMedia,
@@ -78,6 +79,7 @@ const profileCopy = {
     discardAudio: "Discard audio",
     footerRights: "All rights Reserved.",
     goToBottom: "Go to the end of the conversation",
+    goToChannel: "Go to channel",
     loading: "Loading profile...",
     messagePlaceholder: "Write your message...",
     modalClose: "Close media",
@@ -99,6 +101,8 @@ const profileCopy = {
     stopRecording: "Stop recording",
     typing: "Writing response...",
     viewOnProvider: (provider: string) => `View on ${provider}`,
+    viewOnYouTube: "View on YouTube",
+    viewVideo: "View video",
     viewProduct: "View product",
     contactOnTelegram: "Contact on Telegram",
     contactOnWhatsapp: "Contact on WhatsApp",
@@ -123,6 +127,7 @@ const profileCopy = {
     discardAudio: "Descartar audio",
     footerRights: "Todos los derechos reservados.",
     goToBottom: "Ir al final de la conversación",
+    goToChannel: "Ir al canal",
     loading: "Cargando perfil...",
     messagePlaceholder: "Escribe tu mensaje...",
     modalClose: "Cerrar contenido",
@@ -144,6 +149,8 @@ const profileCopy = {
     stopRecording: "Detener grabación",
     typing: "Escribiendo respuesta...",
     viewOnProvider: (provider: string) => `Ver en ${provider}`,
+    viewOnYouTube: "Ver en YouTube",
+    viewVideo: "Ver video",
     viewProduct: "Ver producto",
     contactOnTelegram: "Contactar por Telegram",
     contactOnWhatsapp: "Contactar por WhatsApp",
@@ -200,6 +207,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const messageAudioBlobUrlsRef = useRef<Set<string>>(new Set());
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToBottomRef = useRef(false);
+  const hasTrackedChatStartRef = useRef(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
   const [chatToken, setChatToken] = useState<string | null>(null);
@@ -255,6 +263,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setGreetingAudioError(null);
         setIsAudioPlaying(false);
         setMessagingCapabilities(DEFAULT_MESSAGING_CAPABILITIES);
+        hasTrackedChatStartRef.current = false;
 
         const nextProfile = await fetchProfileByAlias(profileAlias);
 
@@ -267,6 +276,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           eventType: "profile_viewed",
           surface: "profile_page",
         });
+        trackAnalyticsEvent("profile_view");
         setMessagingCapabilities(nextProfile.messagingCapabilities);
         const storedSession = readProfileSession(profileAlias);
         const initialMessage = nextProfile.conversationMessages.initial;
@@ -520,6 +530,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         chatId,
         chatToken,
       );
+
+      trackAnalyticsEvent("chat_message_sent", { input_type: "text" });
+      trackAnalyticsEvent("chat_answer_received", { input_type: "text" });
+      if (!hasTrackedChatStartRef.current) {
+        hasTrackedChatStartRef.current = true;
+        trackAnalyticsEvent("chat_started", { input_type: "text" });
+      }
 
       if (response.chatId) {
         setChatId(response.chatId);
@@ -850,6 +867,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         chatId,
         chatToken,
       );
+      trackAnalyticsEvent("chat_message_sent", { input_type: "audio" });
+      trackAnalyticsEvent("chat_answer_received", { input_type: "audio" });
+      if (!hasTrackedChatStartRef.current) {
+        hasTrackedChatStartRef.current = true;
+        trackAnalyticsEvent("chat_started", { input_type: "audio" });
+      }
       const nextChatId = response.chatId ?? chatId;
 
       if (nextChatId) {
@@ -1694,6 +1717,12 @@ function ProfileMessageMedia({
   }
 
   function trackMediaOpened(item: ChatMessageMedia) {
+    trackAnalyticsEvent("media_opened", {
+      media_type: isVideoMedia(item) ? "video" : "image",
+      provider: getAnalyticsMediaProvider(item),
+      surface: "chat_media_card",
+    });
+
     if (item.id) {
       trackProfileInteraction(profileId, {
         chatId,
@@ -1702,6 +1731,31 @@ function ProfileMessageMedia({
         provider: getMediaProviderKey(item),
         subjectId: item.id,
         surface: "chat_media_card",
+      });
+    }
+  }
+
+  function trackMediaExternalClick(
+    item: ChatMessageMedia,
+    destinationType: "provider_channel" | "provider_video",
+    surface: "chat_media_card" | "chat_media_modal",
+  ) {
+    trackAnalyticsEvent("media_external_clicked", {
+      destination_type: destinationType,
+      media_type: isVideoMedia(item) ? "video" : "image",
+      provider: getAnalyticsMediaProvider(item),
+      surface,
+    });
+
+    if (item.id) {
+      trackProfileInteraction(profileId, {
+        chatId,
+        destinationType,
+        eventType: "media_external_clicked",
+        mediaType: isVideoMedia(item) ? "video" : "image",
+        provider: getMediaProviderKey(item),
+        subjectId: item.id,
+        surface,
       });
     }
   }
@@ -1833,6 +1887,9 @@ function ProfileMessageMedia({
   const selectedMediaIsLocked = Boolean(
     selectedMedia?.ageRestricted && !hasConfirmedAdultContent,
   );
+  const selectedMediaIsYouTube = Boolean(
+    selectedMedia && getMediaProviderKey(selectedMedia).includes("youtube"),
+  );
 
   const modal = selectedMedia
     ? createPortal(
@@ -1883,9 +1940,9 @@ function ProfileMessageMedia({
               </div>
             ) : selectedMediaIsVideo && selectedMediaEmbedUrl ? (
               <iframe
-                allow="autoplay; fullscreen"
+                allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
                 allowFullScreen
-                className="profile-media-modal-embed"
+                className={`profile-media-modal-embed${selectedMediaIsYouTube ? " is-youtube" : ""}`}
                 src={selectedMediaEmbedUrl}
                 title={`${copy.openVideo}: ${getMediaProviderLabel(selectedMedia)}`}
               />
@@ -1909,23 +1966,43 @@ function ProfileMessageMedia({
                 src={selectedMedia.imageUrl}
               />
             ) : null}
-            {!selectedMediaIsLocked && selectedMedia.permalink ? (
+            {!selectedMediaIsLocked && selectedMediaIsYouTube ? (
+              <div className="profile-media-modal-actions">
+                {selectedMedia.permalink ? (
+                  <a
+                    className="profile-media-modal-link"
+                    href={selectedMedia.permalink}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                    onClick={() => {
+                      trackMediaExternalClick(selectedMedia, "provider_video", "chat_media_modal");
+                    }}
+                  >
+                    {copy.viewOnYouTube}
+                  </a>
+                ) : null}
+                {selectedMedia.channelUrl ? (
+                  <a
+                    className="profile-media-modal-link is-secondary"
+                    href={selectedMedia.channelUrl}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                    onClick={() => {
+                      trackMediaExternalClick(selectedMedia, "provider_channel", "chat_media_modal");
+                    }}
+                  >
+                    {copy.goToChannel}
+                  </a>
+                ) : null}
+              </div>
+            ) : !selectedMediaIsLocked && selectedMedia.permalink ? (
               <a
                 className="profile-media-modal-link"
                 href={selectedMedia.permalink}
                 rel="noopener noreferrer"
                 target="_blank"
                 onClick={() => {
-                  if (selectedMedia.id) {
-                    trackProfileInteraction(profileId, {
-                      chatId,
-                      eventType: "media_external_clicked",
-                      mediaType: selectedMediaIsVideo ? "video" : "image",
-                      provider: getMediaProviderKey(selectedMedia),
-                      subjectId: selectedMedia.id,
-                      surface: "chat_media_modal",
-                    });
-                  }
+                  trackMediaExternalClick(selectedMedia, "provider_video", "chat_media_modal");
                 }}
               >
                 {copy.viewOnProvider(getMediaProviderLabel(selectedMedia))}
@@ -1944,6 +2021,7 @@ function ProfileMessageMedia({
           const mediaKey = getMediaItemKey(item, index);
           const provider = getMediaProviderLabel(item);
           const isVideo = isVideoMedia(item);
+          const isYouTube = getMediaProviderKey(item).includes("youtube");
           const isAgeRestricted = Boolean(
             item.ageRestricted && !hasConfirmedAdultContent,
           );
@@ -1952,8 +2030,8 @@ function ProfileMessageMedia({
             <article
               className={
                 pulsingMediaKey === mediaKey
-                  ? `profile-message-media-card is-pulsing${isAgeRestricted ? " is-age-restricted" : ""}`
-                  : `profile-message-media-card${isAgeRestricted ? " is-age-restricted" : ""}`
+                  ? `profile-message-media-card is-pulsing${isAgeRestricted ? " is-age-restricted" : ""}${isYouTube ? " is-youtube" : ""}`
+                  : `profile-message-media-card${isAgeRestricted ? " is-age-restricted" : ""}${isYouTube ? " is-youtube" : ""}`
               }
               key={mediaKey}
             >
@@ -1992,23 +2070,39 @@ function ProfileMessageMedia({
                   </span>
                 ) : null}
               </button>
-              {item.permalink && !isAgeRestricted ? (
+              {isYouTube && !isAgeRestricted ? (
+                <div className="profile-message-media-actions">
+                  <button
+                    className="profile-message-media-link"
+                    type="button"
+                    onClick={() => {
+                      openMedia(item);
+                    }}
+                  >
+                    {copy.viewVideo}
+                  </button>
+                  {item.channelUrl ? (
+                    <a
+                      className="profile-message-media-link is-secondary"
+                      href={item.channelUrl}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      onClick={() => {
+                        trackMediaExternalClick(item, "provider_channel", "chat_media_card");
+                      }}
+                    >
+                      {copy.goToChannel}
+                    </a>
+                  ) : null}
+                </div>
+              ) : item.permalink && !isAgeRestricted ? (
                 <a
                   className="profile-message-media-link"
                   href={item.permalink}
                   rel="noopener noreferrer"
                   target="_blank"
                   onClick={() => {
-                    if (item.id) {
-                      trackProfileInteraction(profileId, {
-                        chatId,
-                        eventType: "media_external_clicked",
-                        mediaType: isVideo ? "video" : "image",
-                        provider: getMediaProviderKey(item),
-                        subjectId: item.id,
-                        surface: "chat_media_card",
-                      });
-                    }
+                    trackMediaExternalClick(item, "provider_video", "chat_media_card");
                   }}
                 >
                   {copy.viewOnProvider(provider)}
@@ -2049,6 +2143,10 @@ function ProfileMessageProducts({
             rel="noopener noreferrer"
             target="_blank"
             onClick={() => {
+              trackAnalyticsEvent("product_clicked", {
+                destination_type: product.destinationType,
+                surface: "product_image",
+              });
               trackProfileInteraction(profileId, {
                 chatId,
                 eventType: "product_clicked",
@@ -2068,6 +2166,10 @@ function ProfileMessageProducts({
               rel="noopener noreferrer"
               target="_blank"
               onClick={() => {
+                trackAnalyticsEvent("product_clicked", {
+                  destination_type: product.destinationType,
+                  surface: "product_button",
+                });
                 trackProfileInteraction(profileId, {
                   chatId,
                   eventType: "product_clicked",
@@ -2107,6 +2209,18 @@ function getMediaProviderKey(item: ChatMessageMedia): string {
     .toLowerCase();
 }
 
+function getAnalyticsMediaProvider(item: ChatMessageMedia): string {
+  const providerKey = getMediaProviderKey(item);
+
+  for (const knownProvider of ["instagram", "onlyfans", "tiktok", "youtube"]) {
+    if (providerKey.includes(knownProvider)) {
+      return knownProvider;
+    }
+  }
+
+  return "other";
+}
+
 function isVideoMedia(item: ChatMessageMedia): boolean {
   const type = item.type?.trim().toUpperCase() ?? "";
 
@@ -2120,7 +2234,7 @@ function isVideoMedia(item: ChatMessageMedia): boolean {
 
   const providerKey = getMediaProviderKey(item);
 
-  if (providerKey.includes("tiktok")) {
+  if (providerKey.includes("tiktok") || providerKey.includes("youtube")) {
     return true;
   }
 
@@ -2132,6 +2246,33 @@ function isVideoMedia(item: ChatMessageMedia): boolean {
 }
 
 function getVideoEmbedUrl(item: ChatMessageMedia): string | null {
+  if (getMediaProviderKey(item).includes("youtube")) {
+    for (const value of [item.mediaUrl, item.permalink]) {
+      if (!value) {
+        continue;
+      }
+
+      try {
+        const url = new URL(value);
+        const pathParts = url.pathname.split("/").filter(Boolean);
+        const videoId = url.hostname.endsWith("youtu.be")
+          ? pathParts[0]
+          : url.searchParams.get("v") ||
+            (["embed", "live", "shorts"].includes(pathParts[0] ?? "")
+              ? pathParts[1]
+              : null);
+
+        if (videoId && /^[\w-]{11}$/.test(videoId)) {
+          return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0`;
+        }
+      } catch {
+        // Ignore malformed provider URLs and try the next candidate.
+      }
+    }
+
+    return null;
+  }
+
   if (getMediaProviderKey(item).includes("tiktok")) {
     const candidates = item.mediaUrl
       ? [item.mediaUrl]
