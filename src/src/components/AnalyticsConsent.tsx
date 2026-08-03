@@ -12,20 +12,20 @@ type Locale = "en" | "es";
 
 const copy = {
   en: {
-    accept: "Accept analytics",
+    accept: "Accept cookies",
     body: "We use optional Google Analytics cookies to understand aggregate usage. We do not send profile names, chat content, contact information, or payment data.",
     manage: "Cookie preferences",
     privacy: "Privacy policy",
-    reject: "Reject",
-    title: "Your privacy choices",
+    reject: "Reject Cookies",
+    title: "Accept Cookies",
   },
   es: {
-    accept: "Aceptar analítica",
+    accept: "Aceptar cookies",
     body: "Usamos cookies opcionales de Google Analytics para entender el uso agregado. No enviamos nombres de perfiles, contenido del chat, datos de contacto ni información de pago.",
     manage: "Preferencias de cookies",
     privacy: "Política de privacidad",
-    reject: "Rechazar",
-    title: "Tus opciones de privacidad",
+    reject: "Rechazar Cookies",
+    title: "Aceptar Cookies",
   },
 } satisfies Record<Locale, Record<string, string>>;
 

@@ -36,8 +36,9 @@ export function isGoogleAnalyticsEnabled(): boolean {
 
 function invokeGtag(...args: unknown[]): void {
   window.dataLayer ??= [];
-  window.gtag ??= (...gtagArguments: unknown[]) => {
-    window.dataLayer?.push(gtagArguments);
+  window.gtag ??= function gtag(): void {
+    // Google Tag requires the native Arguments object for queued commands.
+    window.dataLayer?.push(arguments);
   };
   window.gtag(...args);
 }
