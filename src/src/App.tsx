@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
+import { AnalyticsConsent } from './components/AnalyticsConsent';
+import {
+  initializeGoogleAnalytics,
+  subscribeToAnalyticsConsent,
+  trackPageView,
+} from './lib/google-analytics';
 import { Home } from './pages/Home';
 import { DataDeletionInstructions, PrivacyPolicy, TermsAndConditions } from './pages/Legal';
 import { Profile } from './pages/Profile';
@@ -9,6 +15,8 @@ export function App() {
   const profileAlias = pathname.split('/').filter(Boolean)[0];
 
   useEffect(() => {
+    initializeGoogleAnalytics();
+
     function handlePopState() {
       setPathname(window.location.pathname);
     }
@@ -20,38 +28,55 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const safeTitle = profileAlias
+      ? ['privacidad', 'privacy'].includes(profileAlias)
+        ? 'Privacy | Bigmelo'
+        : ['terminos', 'terms'].includes(profileAlias)
+          ? 'Terms | Bigmelo'
+          : ['eliminacion-datos', 'eliminacion-de-datos', 'data-deletion', 'user-data-deletion'].includes(profileAlias)
+            ? 'Data deletion | Bigmelo'
+            : 'Public profile | Bigmelo'
+      : 'Home | Bigmelo';
+
+    trackPageView(pathname, safeTitle);
+
+    return subscribeToAnalyticsConsent((consent) => {
+      if (consent === 'granted') {
+        trackPageView(pathname, safeTitle);
+      }
+    });
+  }, [pathname, profileAlias]);
+
+  let page: ReactNode;
+
   const handleProfileNotFound = useCallback(() => {
     window.history.replaceState(null, '', '/');
     setPathname('/');
   }, []);
 
   if (profileAlias === 'privacidad') {
-    return <PrivacyPolicy locale="es" />;
+    page = <PrivacyPolicy locale="es" />;
+  } else if (profileAlias === 'privacy') {
+    page = <PrivacyPolicy locale="en" />;
+  } else if (profileAlias === 'terminos') {
+    page = <TermsAndConditions locale="es" />;
+  } else if (profileAlias === 'terms') {
+    page = <TermsAndConditions locale="en" />;
+  } else if (profileAlias === 'eliminacion-datos' || profileAlias === 'eliminacion-de-datos') {
+    page = <DataDeletionInstructions locale="es" />;
+  } else if (profileAlias === 'data-deletion' || profileAlias === 'user-data-deletion') {
+    page = <DataDeletionInstructions locale="en" />;
+  } else if (profileAlias) {
+    page = <Profile onProfileNotFound={handleProfileNotFound} profileAlias={decodeURIComponent(profileAlias)} />;
+  } else {
+    page = <Home />;
   }
 
-  if (profileAlias === 'privacy') {
-    return <PrivacyPolicy locale="en" />;
-  }
-
-  if (profileAlias === 'terminos') {
-    return <TermsAndConditions locale="es" />;
-  }
-
-  if (profileAlias === 'terms') {
-    return <TermsAndConditions locale="en" />;
-  }
-
-  if (profileAlias === 'eliminacion-datos' || profileAlias === 'eliminacion-de-datos') {
-    return <DataDeletionInstructions locale="es" />;
-  }
-
-  if (profileAlias === 'data-deletion' || profileAlias === 'user-data-deletion') {
-    return <DataDeletionInstructions locale="en" />;
-  }
-
-  if (profileAlias) {
-    return <Profile onProfileNotFound={handleProfileNotFound} profileAlias={decodeURIComponent(profileAlias)} />;
-  }
-
-  return <Home />;
+  return (
+    <>
+      {page}
+      <AnalyticsConsent />
+    </>
+  );
 }

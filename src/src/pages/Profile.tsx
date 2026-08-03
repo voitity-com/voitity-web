@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { trackAnalyticsEvent } from "../lib/google-analytics";
 import {
   ChatMessage,
   ChatMessageMedia,
@@ -206,6 +207,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const messageAudioBlobUrlsRef = useRef<Set<string>>(new Set());
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToBottomRef = useRef(false);
+  const hasTrackedChatStartRef = useRef(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
   const [chatToken, setChatToken] = useState<string | null>(null);
@@ -261,6 +263,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setGreetingAudioError(null);
         setIsAudioPlaying(false);
         setMessagingCapabilities(DEFAULT_MESSAGING_CAPABILITIES);
+        hasTrackedChatStartRef.current = false;
 
         const nextProfile = await fetchProfileByAlias(profileAlias);
 
@@ -273,6 +276,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           eventType: "profile_viewed",
           surface: "profile_page",
         });
+        trackAnalyticsEvent("profile_view");
         setMessagingCapabilities(nextProfile.messagingCapabilities);
         const storedSession = readProfileSession(profileAlias);
         const initialMessage = nextProfile.conversationMessages.initial;
@@ -526,6 +530,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         chatId,
         chatToken,
       );
+
+      trackAnalyticsEvent("chat_message_sent", { input_type: "text" });
+      trackAnalyticsEvent("chat_answer_received", { input_type: "text" });
+      if (!hasTrackedChatStartRef.current) {
+        hasTrackedChatStartRef.current = true;
+        trackAnalyticsEvent("chat_started", { input_type: "text" });
+      }
 
       if (response.chatId) {
         setChatId(response.chatId);
@@ -856,6 +867,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         chatId,
         chatToken,
       );
+      trackAnalyticsEvent("chat_message_sent", { input_type: "audio" });
+      trackAnalyticsEvent("chat_answer_received", { input_type: "audio" });
+      if (!hasTrackedChatStartRef.current) {
+        hasTrackedChatStartRef.current = true;
+        trackAnalyticsEvent("chat_started", { input_type: "audio" });
+      }
       const nextChatId = response.chatId ?? chatId;
 
       if (nextChatId) {
@@ -1700,6 +1717,12 @@ function ProfileMessageMedia({
   }
 
   function trackMediaOpened(item: ChatMessageMedia) {
+    trackAnalyticsEvent("media_opened", {
+      media_type: isVideoMedia(item) ? "video" : "image",
+      provider: getAnalyticsMediaProvider(item),
+      surface: "chat_media_card",
+    });
+
     if (item.id) {
       trackProfileInteraction(profileId, {
         chatId,
@@ -1717,6 +1740,13 @@ function ProfileMessageMedia({
     destinationType: "provider_channel" | "provider_video",
     surface: "chat_media_card" | "chat_media_modal",
   ) {
+    trackAnalyticsEvent("media_external_clicked", {
+      destination_type: destinationType,
+      media_type: isVideoMedia(item) ? "video" : "image",
+      provider: getAnalyticsMediaProvider(item),
+      surface,
+    });
+
     if (item.id) {
       trackProfileInteraction(profileId, {
         chatId,
@@ -2113,6 +2143,10 @@ function ProfileMessageProducts({
             rel="noopener noreferrer"
             target="_blank"
             onClick={() => {
+              trackAnalyticsEvent("product_clicked", {
+                destination_type: product.destinationType,
+                surface: "product_image",
+              });
               trackProfileInteraction(profileId, {
                 chatId,
                 eventType: "product_clicked",
@@ -2132,6 +2166,10 @@ function ProfileMessageProducts({
               rel="noopener noreferrer"
               target="_blank"
               onClick={() => {
+                trackAnalyticsEvent("product_clicked", {
+                  destination_type: product.destinationType,
+                  surface: "product_button",
+                });
                 trackProfileInteraction(profileId, {
                   chatId,
                   eventType: "product_clicked",
@@ -2169,6 +2207,18 @@ function getMediaProviderKey(item: ChatMessageMedia): string {
   return (item.providerKey ?? item.provider ?? item.providerLabel ?? "")
     .trim()
     .toLowerCase();
+}
+
+function getAnalyticsMediaProvider(item: ChatMessageMedia): string {
+  const providerKey = getMediaProviderKey(item);
+
+  for (const knownProvider of ["instagram", "onlyfans", "tiktok", "youtube"]) {
+    if (providerKey.includes(knownProvider)) {
+      return knownProvider;
+    }
+  }
+
+  return "other";
 }
 
 function isVideoMedia(item: ChatMessageMedia): boolean {

@@ -216,9 +216,12 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           </p>
           <p>
             We may use cookies, local storage, session storage, Cloudflare
-            Turnstile verification, Google Tag Manager, analytics, and similar
-            browser technologies to remember language, maintain sessions,
-            measure usage, protect forms, and prevent abuse.
+            Turnstile verification, Google Analytics 4, and similar browser
+            technologies to remember language, maintain sessions, measure
+            aggregate usage, protect forms, and prevent abuse. Optional
+            analytics is disabled until you accept it. We do not send profile
+            names, contact information, payment data, or chat content to Google
+            Analytics.
           </p>
         </section>
 
@@ -490,9 +493,12 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         </p>
         <p>
           Podemos usar cookies, almacenamiento local, almacenamiento de sesión,
-          verificación de Cloudflare Turnstile, Google Tag Manager, analítica y
-          tecnologías similares del navegador para recordar idioma, mantener
-          sesiones, medir uso, proteger formularios y prevenir abuso.
+          verificación de Cloudflare Turnstile, Google Analytics 4 y tecnologías
+          similares del navegador para recordar idioma, mantener sesiones,
+          medir uso agregado, proteger formularios y prevenir abuso. La
+          analítica opcional permanece desactivada hasta que la aceptes. No
+          enviamos nombres de perfiles, información de contacto, datos de pago
+          ni contenido del chat a Google Analytics.
         </p>
       </section>
 

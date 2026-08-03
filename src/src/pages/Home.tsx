@@ -5,6 +5,7 @@ import bigmeloLogo from '../assets/bigmelo-logo.png';
 import valeriaAvatar from '../assets/valeria-rios-avatar.png';
 import { getAdminBaseUrl, getAdminSignInUrl } from '../lib/admin-url';
 import { submitContactSubmission } from '../lib/contact-api';
+import { trackAnalyticsEvent } from '../lib/google-analytics';
 import {
   fetchPublicSubscriptionPlans,
   type PublicSubscriptionPlan,
@@ -679,6 +680,7 @@ export function Home() {
 
       form.reset();
       setIsSubmitted(true);
+      trackAnalyticsEvent('generate_lead', { form_name: 'landing_contact' });
     } catch (error) {
       setSubmitError(error instanceof Error && error.message ? error.message : t.contact.error);
     } finally {
