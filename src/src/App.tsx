@@ -8,10 +8,12 @@ import {
 } from './lib/google-analytics';
 import { Home } from './pages/Home';
 import { DataDeletionInstructions, PrivacyPolicy, TermsAndConditions } from './pages/Legal';
+import { NotFound } from './pages/NotFound';
 import { Profile } from './pages/Profile';
 
 export function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
+  const [missingPathname, setMissingPathname] = useState<string | null>(null);
   const profileAlias = pathname.split('/').filter(Boolean)[0];
 
   useEffect(() => {
@@ -19,6 +21,7 @@ export function App() {
 
     function handlePopState() {
       setPathname(window.location.pathname);
+      setMissingPathname(null);
     }
 
     window.addEventListener('popstate', handlePopState);
@@ -51,8 +54,7 @@ export function App() {
   let page: ReactNode;
 
   const handleProfileNotFound = useCallback(() => {
-    window.history.replaceState(null, '', '/');
-    setPathname('/');
+    setMissingPathname(window.location.pathname);
   }, []);
 
   if (profileAlias === 'privacidad') {
@@ -67,6 +69,8 @@ export function App() {
     page = <DataDeletionInstructions locale="es" />;
   } else if (profileAlias === 'data-deletion' || profileAlias === 'user-data-deletion') {
     page = <DataDeletionInstructions locale="en" />;
+  } else if (profileAlias && missingPathname === pathname) {
+    page = <NotFound />;
   } else if (profileAlias) {
     page = <Profile onProfileNotFound={handleProfileNotFound} profileAlias={decodeURIComponent(profileAlias)} />;
   } else {

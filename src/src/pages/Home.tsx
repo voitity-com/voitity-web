@@ -6,6 +6,7 @@ import valeriaAvatar from '../assets/valeria-rios-avatar.png';
 import { getAdminBaseUrl, getAdminSignInUrl } from '../lib/admin-url';
 import { submitContactSubmission } from '../lib/contact-api';
 import { trackAnalyticsEvent } from '../lib/google-analytics';
+import { setPageMetadata } from '../lib/page-metadata';
 import {
   fetchPublicSubscriptionPlans,
   type PublicSubscriptionPlan,
@@ -553,11 +554,38 @@ export function Home() {
   ] as const;
 
   useEffect(() => {
-    document.documentElement.lang = locale;
-    document.title =
-      locale === 'es'
-        ? 'Bigmelo | Presencia digital con IA'
-        : 'Bigmelo | AI-powered digital presence';
+    const isSpanish = locale === 'es';
+    const title = isSpanish
+      ? 'Bigmelo: perfiles interactivos con IA, imagen y voz'
+      : 'Bigmelo: interactive AI profiles with image and voice';
+    const description = isSpanish
+      ? 'Crea una presencia digital interactiva con IA, imagen y voz para compartir tu experiencia, responder preguntas y conectar tus redes oficiales.'
+      : 'Create an interactive digital presence with AI, image and voice to share your experience, answer questions and connect your official social profiles.';
+    setPageMetadata({
+      canonicalPath: '/',
+      description,
+      locale,
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@graph': [
+          { '@type': 'WebSite', name: 'Bigmelo', url: 'https://bigmelo.com/' },
+          {
+            '@type': 'Organization',
+            logo: 'https://bigmelo.com/bigmelo-icon.png',
+            name: 'Bigmelo',
+            url: 'https://bigmelo.com/',
+          },
+          {
+            '@type': 'SoftwareApplication',
+            applicationCategory: 'BusinessApplication',
+            name: 'Bigmelo',
+            operatingSystem: 'Web',
+            url: 'https://bigmelo.com/',
+          },
+        ],
+      },
+      title,
+    });
 
     try {
       window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);

@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { trackAnalyticsEvent } from "../lib/google-analytics";
+import { profileDescription, setPageMetadata } from "../lib/page-metadata";
 import {
   ChatMessage,
   ChatMessageMedia,
@@ -313,7 +314,30 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         );
         setIsLoading(false);
 
-        document.title = `${nextProfile.name} | Bigmelo`;
+        const description = profileDescription(
+          nextProfile.name,
+          nextProfile.alias,
+          nextProfile.locale,
+        );
+        setPageMetadata({
+          canonicalPath: `/${nextProfile.alias}`,
+          description,
+          locale: nextProfile.locale,
+          structuredData: {
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            mainEntity: {
+              "@type": "Person",
+              alternateName: `@${nextProfile.alias}`,
+              name: nextProfile.name,
+              sameAs: nextProfile.networks.map((network) => network.url),
+              url: `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
+            },
+            url: `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
+          },
+          title: `${nextProfile.name} (@${nextProfile.alias}) | Bigmelo`,
+          type: "profile",
+        });
 
         fetchAvatarMedia(nextProfile.id)
           .then((media) => {
@@ -1126,6 +1150,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           <>
             <header className="profile-title">
               <h1>{profile.name}</h1>
+              <p className="profile-alias">@{profile.alias}</p>
               {profile.networks.length ? (
                 <nav
                   aria-label={copy.socialNav}

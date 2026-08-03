@@ -2,6 +2,7 @@ import { type ReactNode, useEffect } from "react";
 
 import bigmeloLogo from "../assets/bigmelo-logo.png";
 import { getAdminSignInUrl } from "../lib/admin-url";
+import { setPageMetadata } from "../lib/page-metadata";
 
 export type LegalLocale = "es" | "en";
 type LegalKind = "dataDeletion" | "privacy" | "terms";
@@ -1783,10 +1784,15 @@ function LegalLayout({
   const adminSignInUrl = getAdminSignInUrl(locale);
 
   useEffect(() => {
-    document.documentElement.lang = locale;
-    document.title = `${title} | Bigmelo`;
+    setPageMetadata({
+      canonicalPath: legalPaths[kind][locale],
+      description: locale === "es" ? `${title} de Bigmelo.` : `${title} for Bigmelo.`,
+      locale,
+      robots: "noindex,follow",
+      title: `${title} | Bigmelo`,
+    });
     window.scrollTo({ top: 0, behavior: "auto" });
-  }, [locale, title]);
+  }, [kind, locale, title]);
 
   return (
     <main className="legal-page">
