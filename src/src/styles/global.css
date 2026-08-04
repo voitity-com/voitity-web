@@ -3984,23 +3984,6 @@ h1 {
   white-space: nowrap;
 }
 
-.analytics-consent-manage {
-  position: fixed;
-  bottom: 12px;
-  left: 12px;
-  z-index: 9999;
-  padding: 7px 11px;
-  color: #344054;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(16, 24, 40, 0.14);
-  border-radius: 999px;
-  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
 @media (max-width: 760px) {
   .analytics-consent {
     align-items: stretch;

@@ -14,7 +14,6 @@ const copy = {
   en: {
     accept: "Accept cookies",
     body: "We use optional Google Analytics cookies to understand aggregate usage. We do not send profile names, chat content, contact information, or payment data.",
-    manage: "Cookie preferences",
     privacy: "Privacy policy",
     reject: "Reject Cookies",
     title: "Accept Cookies",
@@ -22,7 +21,6 @@ const copy = {
   es: {
     accept: "Aceptar cookies",
     body: "Usamos cookies opcionales de Google Analytics para entender el uso agregado. No enviamos nombres de perfiles, contenido del chat, datos de contacto ni información de pago.",
-    manage: "Preferencias de cookies",
     privacy: "Política de privacidad",
     reject: "Rechazar Cookies",
     title: "Aceptar Cookies",
@@ -35,7 +33,7 @@ function getDocumentLocale(): Locale {
 
 export function AnalyticsConsent() {
   const [consent, setConsent] = useState<AnalyticsConsentValue>(() => getAnalyticsConsent());
-  const [isOpen, setIsOpen] = useState(consent === "unset");
+  const [isOpen, setIsOpen] = useState(consent !== "granted");
   const [locale, setLocale] = useState<Locale>(() => getDocumentLocale());
   const t = copy[locale];
 
@@ -62,11 +60,7 @@ export function AnalyticsConsent() {
   }
 
   if (!isOpen && consent !== "unset") {
-    return (
-      <button className="analytics-consent-manage" type="button" onClick={() => setIsOpen(true)}>
-        {t.manage}
-      </button>
-    );
+    return null;
   }
 
   return (
