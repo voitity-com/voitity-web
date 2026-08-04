@@ -72,6 +72,8 @@ const profileCopy = {
       "This profile reached its monthly incoming audio limit. You can continue by text.",
     audioMaxDuration: (seconds: string) =>
       `Audio messages can be up to ${seconds} seconds long.`,
+    audioMuted: "Audio muted",
+    audioOn: "Audio on",
     cancelRecording: "Cancel recording",
     chatLimitReached:
       "This profile reached its monthly visitor message limit.",
@@ -101,6 +103,7 @@ const profileCopy = {
     startRecording: "Record message",
     stopRecording: "Stop recording",
     typing: "Writing response...",
+    voiceDisabled: "Profile voice is disabled",
     viewOnProvider: (provider: string) => `View on ${provider}`,
     viewOnYouTube: "View on YouTube",
     viewVideo: "View video",
@@ -120,6 +123,8 @@ const profileCopy = {
       "Este perfil alcanzó el límite mensual de audios entrantes. Puedes continuar por texto.",
     audioMaxDuration: (seconds: string) =>
       `Los mensajes de audio pueden durar máximo ${seconds} segundos.`,
+    audioMuted: "Audio silenciado",
+    audioOn: "Audio activado",
     cancelRecording: "Cancelar grabación",
     chatLimitReached:
       "Este perfil alcanzó el límite mensual de mensajes de visitantes.",
@@ -149,6 +154,7 @@ const profileCopy = {
     startRecording: "Grabar mensaje",
     stopRecording: "Detener grabación",
     typing: "Escribiendo respuesta...",
+    voiceDisabled: "La voz del perfil está deshabilitada",
     viewOnProvider: (provider: string) => `Ver en ${provider}`,
     viewOnYouTube: "Ver en YouTube",
     viewVideo: "Ver video",
@@ -219,6 +225,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [isVoiceMuted, setIsVoiceMuted] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [greetingAudioState, setGreetingAudioState] =
@@ -263,6 +270,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         setGreetingAudioState("idle");
         setGreetingAudioError(null);
         setIsAudioPlaying(false);
+        setIsVoiceMuted(false);
         setMessagingCapabilities(DEFAULT_MESSAGING_CAPABILITIES);
         hasTrackedChatStartRef.current = false;
 
@@ -273,6 +281,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         }
 
         setProfile(nextProfile);
+        setIsVoiceMuted(
+          !nextProfile.voiceEnabled || !nextProfile.voiceAutoplayEnabled,
+        );
         trackProfileInteraction(nextProfile.id, {
           eventType: "profile_viewed",
           surface: "profile_page",
@@ -360,7 +371,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           : initialMessage.audioUrl;
         const currentAudio = audioRef.current ?? audio;
 
-        if (greetingAudioUrl && currentAudio) {
+        if (
+          nextProfile.voiceEnabled &&
+          nextProfile.voiceAutoplayEnabled &&
+          greetingAudioUrl &&
+          currentAudio
+        ) {
           setAudioSource(currentAudio, greetingAudioUrl);
           setGreetingAudioState("ready");
           setGreetingAudioError(null);
@@ -463,6 +479,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   }, []);
 
   useEffect(() => {
+    if (profile?.voiceEnabled === false) {
+      setIsVoiceMuted(true);
+      audioRef.current?.pause();
+    }
+  }, [profile?.voiceEnabled]);
+
+  useEffect(() => {
     if (!profile) {
       return;
     }
@@ -548,11 +571,14 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     setMessages((current) => [...current, visitorMessage]);
 
     try {
+      const shouldRequestAudioResponse =
+        profile.voiceEnabled && !isVoiceMuted;
       const response = await sendProfileMessage(
         profile.id,
         visitorMessage.text,
         chatId,
         chatToken,
+        shouldRequestAudioResponse,
       );
 
       trackAnalyticsEvent("chat_message_sent", { input_type: "text" });
@@ -603,7 +629,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         });
       }
 
-      if (response.audioUrl && audioRef.current) {
+      if (shouldRequestAudioResponse && response.audioUrl && audioRef.current) {
         setAudioSource(audioRef.current, response.audioUrl);
         audioRef.current.play().catch(() => {
           setGreetingAudioState("blocked");
@@ -885,11 +911,14 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     setMessages((current) => [...current, pendingMessage]);
 
     try {
+      const shouldRequestAudioResponse =
+        profile.voiceEnabled && !isVoiceMuted;
       const response = await sendProfileAudioMessage(
         profile.id,
         localAudioBlob,
         chatId,
         chatToken,
+        shouldRequestAudioResponse,
       );
       trackAnalyticsEvent("chat_message_sent", { input_type: "audio" });
       trackAnalyticsEvent("chat_answer_received", { input_type: "audio" });
@@ -968,7 +997,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         });
       }
 
-      if (response.audioUrl && audioRef.current) {
+      if (shouldRequestAudioResponse && response.audioUrl && audioRef.current) {
         setAudioSource(audioRef.current, response.audioUrl);
         audioRef.current.play().catch(() => {
           setGreetingAudioState("blocked");
@@ -1018,7 +1047,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   }
 
   function playMessageAudio(message: ChatMessage) {
-    if (!message.audioUrl || !audioRef.current) {
+    if (
+      !profile?.voiceEnabled ||
+      isVoiceMuted ||
+      !message.audioUrl ||
+      !audioRef.current
+    ) {
       return;
     }
 
@@ -1026,6 +1060,20 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
     audioRef.current.play().catch(() => {
       setGreetingAudioState("blocked");
     });
+  }
+
+  function toggleVoiceMute() {
+    if (!profile?.voiceEnabled) {
+      return;
+    }
+
+    if (!isVoiceMuted) {
+      setIsVoiceMuted(true);
+      audioRef.current?.pause();
+      return;
+    }
+
+    setIsVoiceMuted(false);
   }
 
   function scrollToConversationBottom() {
@@ -1110,6 +1158,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
   const previewRemainingSeconds = audioDraft
     ? Math.max(0, Math.ceil(previewDuration - previewPlaybackSeconds))
     : 0;
+  const canUseVoicePlayback = Boolean(profile?.voiceEnabled && !isVoiceMuted);
+  const voiceToggleLabel = !profile?.voiceEnabled
+    ? copy.voiceDisabled
+    : isVoiceMuted
+      ? copy.audioMuted
+      : copy.audioOn;
 
   return (
     <main className="profile-page">
@@ -1208,16 +1262,17 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                           <span aria-hidden="true">
                             {profile.name.charAt(0).toUpperCase()}
                           </span>
-                          <button
-                            aria-label={copy.audioMessage}
-                            className="profile-mini-play-button"
-                            disabled={!message.audioUrl}
-                            title={copy.audioMessage}
-                            type="button"
-                            onClick={() => playMessageAudio(message)}
-                          >
-                            <PlayIcon />
-                          </button>
+                          {message.audioUrl && canUseVoicePlayback ? (
+                            <button
+                              aria-label={copy.audioMessage}
+                              className="profile-mini-play-button"
+                              title={copy.audioMessage}
+                              type="button"
+                              onClick={() => playMessageAudio(message)}
+                            >
+                              <PlayIcon />
+                            </button>
+                          ) : null}
                         </div>
                         <div
                           className={
@@ -1271,12 +1326,12 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                       <div className="profile-thread-message visitor">
                         <div
                           className={
-                            message.audioUrl
+                            message.audioUrl && canUseVoicePlayback
                               ? "profile-message-copy has-audio"
                               : "profile-message-copy"
                           }
                         >
-                          {message.audioUrl ? (
+                          {message.audioUrl && canUseVoicePlayback ? (
                             <button
                               aria-label={copy.audioMessage}
                               className="profile-message-play-button"
@@ -1327,7 +1382,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
               >
                 <div
                   className={
-                    isAudioPlaying
+                    isAudioPlaying && canUseVoicePlayback
                       ? "profile-avatar is-speaking"
                       : "profile-avatar"
                   }
@@ -1351,6 +1406,21 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                   <div className="avatar-fallback" aria-hidden="true">
                     {profile.name.charAt(0).toUpperCase()}
                   </div>
+                  <button
+                    aria-label={voiceToggleLabel}
+                    aria-pressed={profile.voiceEnabled ? !isVoiceMuted : false}
+                    className={
+                      profile.voiceEnabled && !isVoiceMuted
+                        ? "profile-audio-toggle"
+                        : "profile-audio-toggle is-muted"
+                    }
+                    disabled={!profile.voiceEnabled}
+                    title={voiceToggleLabel}
+                    type="button"
+                    onClick={toggleVoiceMute}
+                  >
+                    <SpeakerIcon muted={!profile.voiceEnabled || isVoiceMuted} />
+                  </button>
                 </div>
                 {greetingAudioState === "unavailable" ? (
                   <p className="profile-audio-note profile-audio-note-error">
@@ -2724,6 +2794,39 @@ function StopIcon() {
   return (
     <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
       <path d="M7 7h10v10H7V7Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function SpeakerIcon({ muted = false }: { muted?: boolean }) {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M4.5 14.5h3.1l4.9 4V5.5l-4.9 4H4.5v5Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+      <path
+        d="M16 9.2c.8.78 1.25 1.78 1.25 2.8S16.8 14.02 16 14.8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.9"
+      />
+      <path
+        d="M18.4 6.6A7.3 7.3 0 0 1 20.75 12a7.3 7.3 0 0 1-2.35 5.4"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.9"
+      />
+      {muted ? (
+        <path
+          d="m4.75 4.75 14.5 14.5"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeWidth="2.2"
+        />
+      ) : null}
     </svg>
   );
 }

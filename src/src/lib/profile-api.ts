@@ -36,6 +36,8 @@ export type ProfileData = {
   details: string[];
   messagingCapabilities: ProfileMessagingCapabilities;
   networks: ProfileSocialNetwork[];
+  voiceAutoplayEnabled: boolean;
+  voiceEnabled: boolean;
 };
 
 export type ProfileFeatureSetting = {
@@ -296,8 +298,12 @@ export async function sendProfileMessage(
   message: string,
   chatId?: string | null,
   chatToken?: string | null,
+  audioResponseEnabled = true,
 ): Promise<MessageResponse> {
-  const body: Record<string, string | number> = { message };
+  const body: Record<string, boolean | number | string> = {
+    audio_response_enabled: audioResponseEnabled,
+    message,
+  };
 
   if (chatId) {
     body.chat_id = normalizeProfileId(chatId);
@@ -337,10 +343,12 @@ export async function sendProfileAudioMessage(
   audio: Blob,
   chatId?: string | null,
   chatToken?: string | null,
+  audioResponseEnabled = true,
 ): Promise<MessageResponse> {
   const formData = new FormData();
   const extension = getAudioExtension(audio.type);
   formData.append("audio", audio, `recording.${extension}`);
+  formData.append("audio_response_enabled", audioResponseEnabled ? "1" : "0");
 
   if (chatId) {
     formData.append("chat_id", String(normalizeProfileId(chatId)));
@@ -467,6 +475,16 @@ function normalizeProfile(
   const locale = normalizeLocale(
     pickString(source, ["locale", "language", "language_code", "languageCode"]),
   );
+  const data = isRecord(source.data) ? source.data : {};
+  const voiceEnabled =
+    pickBoolean(source, ["voice_enabled", "voiceEnabled"]) ??
+    pickBoolean(data, ["voice_enabled", "voiceEnabled"]) ??
+    true;
+  const voiceAutoplayEnabled =
+    voiceEnabled &&
+    (pickBoolean(source, ["voice_autoplay_enabled", "voiceAutoplayEnabled"]) ??
+      pickBoolean(data, ["voice_autoplay_enabled", "voiceAutoplayEnabled"]) ??
+      true);
 
   return {
     alias:
@@ -486,6 +504,8 @@ function normalizeProfile(
     ),
     name,
     networks: buildProfileSocialNetworks(source, socialNetworkDefinitions),
+    voiceAutoplayEnabled,
+    voiceEnabled,
   };
 }
 
