@@ -18,6 +18,7 @@ env:
   WEB_ENV_SECRET_ID: bigmelo/prod/web/env
   WEB_BUCKET: bigmelo-prod-web-139194331469
   WEB_DISTRIBUTION_ID: E2WUNAZAZFZHYA
+  WEB_FUNCTION_NAME: bigmelo-web-uri-rewrite
 
 jobs:
   deploy:
@@ -79,6 +80,25 @@ jobs:
           aws s3 cp dist/sitemap.xml "s3://$WEB_BUCKET/sitemap.xml" \
             --cache-control "public,max-age=300" \
             --content-type "application/xml; charset=utf-8"
+
+      - name: Publish CloudFront route function
+        if: github.event_name != 'schedule'
+        run: |
+          FUNCTION_ETAG="$(aws cloudfront describe-function \
+            --name "$WEB_FUNCTION_NAME" \
+            --stage DEVELOPMENT \
+            --query ETag \
+            --output text)"
+          PUBLISH_ETAG="$(aws cloudfront update-function \
+            --name "$WEB_FUNCTION_NAME" \
+            --if-match "$FUNCTION_ETAG" \
+            --function-config 'Comment=Canonical host and static SEO route rewrites,Runtime=cloudfront-js-2.0' \
+            --function-code fileb://../infra/cloudfront/viewer-request.js \
+            --query ETag \
+            --output text)"
+          aws cloudfront publish-function \
+            --name "$WEB_FUNCTION_NAME" \
+            --if-match "$PUBLISH_ETAG"
 
       - name: Invalidate CloudFront
         run: |
