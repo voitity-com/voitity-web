@@ -2662,6 +2662,13 @@ h1 {
   gap: 8px;
 }
 
+.profile-message-social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .profile-message-media-link.is-secondary,
 .profile-media-modal-link.is-secondary {
   color: #111827;
