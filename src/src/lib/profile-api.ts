@@ -78,13 +78,18 @@ export type ChatMessage = {
   media?: ChatMessageMedia[];
   products?: ChatMessageProduct[];
   role: "visitor" | "profile";
+  socialLinks?: ChatMessageSocialLink[];
   text: string;
 };
 
 export type ChatMessageMedia = {
+  actionLabel?: string;
+  actionType?: string;
   ageRestricted?: boolean;
   caption?: string;
   channelUrl?: string;
+  destinationLabel?: string;
+  destinationType?: string;
   id?: string;
   imageUrl?: string;
   mediaUrl?: string;
@@ -108,6 +113,13 @@ export type ChatMessageProduct = {
   publicUrl: string;
 };
 
+export type ChatMessageSocialLink = {
+  actionLabel: string;
+  providerKey: string;
+  providerLabel: string;
+  url: string;
+};
+
 export type MessageResponse = {
   chatId?: string;
   chatToken?: string;
@@ -115,6 +127,7 @@ export type MessageResponse = {
   audioUrl?: string;
   media?: ChatMessageMedia[];
   products?: ChatMessageProduct[];
+  socialLinks?: ChatMessageSocialLink[];
   requestAudioUrl?: string;
   requestMessageId?: string;
   requestText?: string;
@@ -140,7 +153,8 @@ export type ProfileInteraction = {
     | "product_button"
     | "product_image"
     | "profile_page"
-    | "profile_social_nav";
+    | "profile_social_nav"
+    | "chat_social_link";
 };
 
 export type AvatarMedia = {
@@ -554,6 +568,9 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
   );
   const media = normalizeMessageMedia(source.media);
   const products = normalizeMessageProducts(source.products);
+  const socialLinks = normalizeMessageSocialLinks(
+    source.social_links ?? source.socialLinks,
+  );
   const text = pickString(source, [
     "response",
     "answer",
@@ -562,7 +579,13 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
     "content",
   ]);
 
-  if (!text && !audioUrl && media.length === 0 && products.length === 0) {
+  if (
+    !text &&
+    !audioUrl &&
+    media.length === 0 &&
+    products.length === 0 &&
+    socialLinks.length === 0
+  ) {
     throw new Error(getMessageResponseError(payload, source));
   }
 
@@ -583,6 +606,7 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
     ),
     ...(media.length ? { media } : {}),
     ...(products.length ? { products } : {}),
+    ...(socialLinks.length ? { socialLinks } : {}),
     text: text ?? "Respuesta de audio recibida.",
   };
 }
@@ -660,7 +684,29 @@ function normalizeMessageMedia(value: unknown): ChatMessageMedia[] {
         ...(pickString(item, ["caption"])
           ? { caption: pickString(item, ["caption"]) }
           : {}),
+        ...(pickString(item, ["action_label", "actionLabel"])
+          ? { actionLabel: pickString(item, ["action_label", "actionLabel"]) }
+          : {}),
+        ...(pickString(item, ["action_type", "actionType"])
+          ? { actionType: pickString(item, ["action_type", "actionType"]) }
+          : {}),
         ...(channelUrl ? { channelUrl } : {}),
+        ...(pickString(item, ["destination_label", "destinationLabel"])
+          ? {
+              destinationLabel: pickString(item, [
+                "destination_label",
+                "destinationLabel",
+              ]),
+            }
+          : {}),
+        ...(pickString(item, ["destination_type", "destinationType"])
+          ? {
+              destinationType: pickString(item, [
+                "destination_type",
+                "destinationType",
+              ]),
+            }
+          : {}),
         ...(pickString(item, ["id", "media_id", "mediaId"])
           ? { id: pickString(item, ["id", "media_id", "mediaId"]) }
           : {}),
@@ -741,6 +787,32 @@ function normalizeMessageProducts(value: unknown): ChatMessageProduct[] {
         publicUrl,
       },
     ];
+  });
+}
+
+function normalizeMessageSocialLinks(value: unknown): ChatMessageSocialLink[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!isRecord(item)) {
+      return [];
+    }
+
+    const actionLabel = pickString(item, ["action_label", "actionLabel"]);
+    const providerKey = pickString(item, ["provider_key", "providerKey"]);
+    const providerLabel = pickString(item, [
+      "provider_label",
+      "providerLabel",
+    ]);
+    const url = pickString(item, ["url"]);
+
+    if (!actionLabel || !providerKey || !providerLabel || !url) {
+      return [];
+    }
+
+    return [{ actionLabel, providerKey, providerLabel, url }];
   });
 }
 

@@ -7,6 +7,7 @@ import {
   ChatMessage,
   ChatMessageMedia,
   ChatMessageProduct,
+  ChatMessageSocialLink,
   fetchAvatarMedia,
   fetchProfileByAlias,
   fetchProfileMessagingCapabilities,
@@ -320,6 +321,8 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
             ? filterMessagesByProfileFeatures(
                 storedSession!.messages,
                 nextProfile.featureSettings,
+                nextProfile.networks,
+                nextProfile.locale,
               )
             : initialMessages,
         );
@@ -607,6 +610,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         response.products ?? [],
         profile.featureSettings,
       );
+      const responseSocialLinks = response.socialLinks ?? [];
 
       shouldScrollToBottomRef.current = true;
       setMessages((current) => [
@@ -617,6 +621,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           id: answerMessageId,
           ...(responseMedia.length ? { media: responseMedia } : {}),
           ...(responseProducts.length ? { products: responseProducts } : {}),
+          ...(responseSocialLinks.length
+            ? { socialLinks: responseSocialLinks }
+            : {}),
           role: "profile",
           text: response.text,
         },
@@ -973,6 +980,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         response.products ?? [],
         profile.featureSettings,
       );
+      const responseSocialLinks = response.socialLinks ?? [];
 
       shouldScrollToBottomRef.current = true;
       setMessages((current) => [
@@ -985,6 +993,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
           id: answerMessageId,
           ...(responseMedia.length ? { media: responseMedia } : {}),
           ...(responseProducts.length ? { products: responseProducts } : {}),
+          ...(responseSocialLinks.length
+            ? { socialLinks: responseSocialLinks }
+            : {}),
           role: "profile",
           text: response.text,
         },
@@ -1276,7 +1287,9 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                         </div>
                         <div
                           className={
-                            message.media?.length || message.products?.length
+                            message.media?.length ||
+                            message.products?.length ||
+                            message.socialLinks?.length
                               ? "profile-message-content has-assets"
                               : "profile-message-content"
                           }
@@ -1310,6 +1323,13 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
                                   ? pulseMedia.mediaKey
                                   : null
                               }
+                            />
+                          ) : null}
+                          {message.socialLinks?.length ? (
+                            <ProfileMessageSocialLinks
+                              chatId={chatId}
+                              profileId={profile.id}
+                              socialLinks={message.socialLinks}
                             />
                           ) : null}
                           {message.products?.length ? (
@@ -2100,7 +2120,7 @@ function ProfileMessageMedia({
                   trackMediaExternalClick(selectedMedia, "provider_video", "chat_media_modal");
                 }}
               >
-                {copy.viewOnProvider(getMediaProviderLabel(selectedMedia))}
+                {selectedMedia.actionLabel ?? copy.viewOnProvider(getMediaProviderLabel(selectedMedia))}
               </a>
             ) : null}
           </div>
@@ -2200,7 +2220,7 @@ function ProfileMessageMedia({
                     trackMediaExternalClick(item, "provider_video", "chat_media_card");
                   }}
                 >
-                  {copy.viewOnProvider(provider)}
+                  {item.actionLabel ?? copy.viewOnProvider(provider)}
                 </a>
               ) : null}
             </article>
@@ -2214,6 +2234,41 @@ function ProfileMessageMedia({
 
 function getMediaProviderLabel(item: ChatMessageMedia): string {
   return item.providerLabel ?? item.provider ?? "Instagram";
+}
+
+function ProfileMessageSocialLinks({
+  chatId,
+  profileId,
+  socialLinks,
+}: {
+  chatId: string | null;
+  profileId: string;
+  socialLinks: ChatMessageSocialLink[];
+}) {
+  return (
+    <div className="profile-message-social-links">
+      {socialLinks.map((link) => (
+        <a
+          aria-label={link.actionLabel}
+          className="profile-message-media-link"
+          href={link.url}
+          key={`${link.providerKey}:${link.url}`}
+          rel="noopener noreferrer"
+          target="_blank"
+          onClick={() => {
+            trackProfileInteraction(profileId, {
+              chatId,
+              eventType: "social_link_clicked",
+              provider: link.providerKey,
+              surface: "chat_social_link",
+            });
+          }}
+        >
+          {link.actionLabel}
+        </a>
+      ))}
+    </div>
+  );
 }
 
 function ProfileMessageProducts({
@@ -2550,21 +2605,145 @@ function writeAdultContentConfirmation(profileAlias: string) {
 function filterMessagesByProfileFeatures(
   messages: ChatMessage[],
   features: ProfileFeatureSetting[],
+  networks: ProfileData["networks"],
+  locale: ProfileLocale,
 ) {
-  return messages.map((message) => {
+  return messages.map((message, index) => {
     const media = message.media
       ? filterMediaByProfileFeatures(message.media, features)
       : [];
     const products = message.products
       ? filterProductsByProfileFeatures(message.products, features)
       : [];
+    const socialLinks = message.socialLinks?.length
+      ? message.socialLinks
+      : inferStoredSocialLinks(
+          message,
+          messages[index - 1]?.role === "visitor"
+            ? messages[index - 1].text
+            : "",
+          networks,
+          locale,
+          media,
+        );
 
     return {
       ...message,
       ...(media.length ? { media } : { media: undefined }),
       ...(products.length ? { products } : { products: undefined }),
+      ...(socialLinks.length
+        ? { socialLinks }
+        : { socialLinks: undefined }),
     };
   });
+}
+
+function inferStoredSocialLinks(
+  message: ChatMessage,
+  questionText: string,
+  networks: ProfileData["networks"],
+  locale: ProfileLocale,
+  media: ChatMessageMedia[],
+): ChatMessageSocialLink[] {
+  if (message.role !== "profile" || !networks.length) {
+    return [];
+  }
+
+  const normalizedAnswer = normalizeSocialMentionText(message.text);
+  const normalizedQuestion = normalizeSocialMentionText(questionText);
+  const isGenericSocialRequest = /\b(redes? sociales|tus redes|donde (?:puedo )?seguirte|social (?:media|networks?)|your socials|where can i follow)\b/.test(
+    normalizedQuestion,
+  );
+  const hasLinkIntent = /\b(aqui|here|enlace|link|ver|visitar|visit|see|find)\b/.test(
+    normalizedAnswer,
+  );
+  const mediaDestinations = new Set(
+    media
+      .filter((item) => item.permalink || item.channelUrl)
+      .flatMap((item) => [
+        normalizeFeatureProvider(item.providerKey),
+        normalizeFeatureProvider(item.destinationType),
+      ]),
+  );
+
+  return networks.flatMap((network) => {
+    const providerKey = normalizeFeatureProvider(network.key);
+
+    if (!providerKey || mediaDestinations.has(providerKey)) {
+      return [];
+    }
+
+    const providerMentionedInAnswer = textMentionsSocialNetwork(
+      normalizedAnswer,
+      network.key,
+      network.name,
+    );
+    const providerMentionedInQuestion = textMentionsSocialNetwork(
+      normalizedQuestion,
+      network.key,
+      network.name,
+    );
+
+    if (
+      !isGenericSocialRequest &&
+      !providerMentionedInAnswer &&
+      !(providerMentionedInQuestion && hasLinkIntent)
+    ) {
+      return [];
+    }
+
+    if (
+      !isGenericSocialRequest &&
+      providerMentionedInAnswer &&
+      !providerMentionedInQuestion &&
+      !hasLinkIntent
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        actionLabel:
+          locale === "en" ? `Go to ${network.name}` : `Ir a ${network.name}`,
+        providerKey: network.key,
+        providerLabel: network.name,
+        url: network.url,
+      },
+    ];
+  });
+}
+
+function textMentionsSocialNetwork(
+  normalizedText: string,
+  providerKey: string,
+  providerLabel: string,
+) {
+  const aliases = [
+    providerKey,
+    providerLabel,
+    ...(normalizeFeatureProvider(providerKey) === "x" ? ["twitter"] : []),
+  ];
+
+  return aliases.some((alias) => {
+    const normalizedAlias = normalizeSocialMentionText(alias);
+
+    return normalizedAlias
+      ? new RegExp(
+          `(^|[^a-z0-9])${escapeRegExp(normalizedAlias).replace(/\\ /g, "\\s+")}([^a-z0-9]|$)`,
+        ).test(normalizedText)
+      : false;
+  });
+}
+
+function normalizeSocialMentionText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function filterMediaByProfileFeatures(
@@ -2643,6 +2822,13 @@ function normalizeStoredMessages(value: unknown): ChatMessage[] {
         ...(message.products?.length
           ? { products: message.products.filter(isStoredMessageProduct) }
           : {}),
+        ...(message.socialLinks?.length
+          ? {
+              socialLinks: message.socialLinks.filter(
+                isStoredMessageSocialLink,
+              ),
+            }
+          : {}),
       },
     ];
   });
@@ -2694,6 +2880,23 @@ function isStoredMessageProduct(value: unknown): value is ChatMessageProduct {
     ["external_url", "telegram", "whatsapp"].includes(
       product.destinationType ?? "",
     )
+  );
+}
+
+function isStoredMessageSocialLink(
+  value: unknown,
+): value is ChatMessageSocialLink {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const link = value as Partial<ChatMessageSocialLink>;
+
+  return (
+    typeof link.actionLabel === "string" &&
+    typeof link.providerKey === "string" &&
+    typeof link.providerLabel === "string" &&
+    typeof link.url === "string"
   );
 }
 
