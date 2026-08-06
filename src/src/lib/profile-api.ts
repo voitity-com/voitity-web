@@ -82,9 +82,13 @@ export type ChatMessage = {
 };
 
 export type ChatMessageMedia = {
+  actionLabel?: string;
+  actionType?: string;
   ageRestricted?: boolean;
   caption?: string;
   channelUrl?: string;
+  destinationLabel?: string;
+  destinationType?: string;
   id?: string;
   imageUrl?: string;
   mediaUrl?: string;
@@ -660,7 +664,29 @@ function normalizeMessageMedia(value: unknown): ChatMessageMedia[] {
         ...(pickString(item, ["caption"])
           ? { caption: pickString(item, ["caption"]) }
           : {}),
+        ...(pickString(item, ["action_label", "actionLabel"])
+          ? { actionLabel: pickString(item, ["action_label", "actionLabel"]) }
+          : {}),
+        ...(pickString(item, ["action_type", "actionType"])
+          ? { actionType: pickString(item, ["action_type", "actionType"]) }
+          : {}),
         ...(channelUrl ? { channelUrl } : {}),
+        ...(pickString(item, ["destination_label", "destinationLabel"])
+          ? {
+              destinationLabel: pickString(item, [
+                "destination_label",
+                "destinationLabel",
+              ]),
+            }
+          : {}),
+        ...(pickString(item, ["destination_type", "destinationType"])
+          ? {
+              destinationType: pickString(item, [
+                "destination_type",
+                "destinationType",
+              ]),
+            }
+          : {}),
         ...(pickString(item, ["id", "media_id", "mediaId"])
           ? { id: pickString(item, ["id", "media_id", "mediaId"]) }
           : {}),

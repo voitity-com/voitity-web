@@ -2100,7 +2100,7 @@ function ProfileMessageMedia({
                   trackMediaExternalClick(selectedMedia, "provider_video", "chat_media_modal");
                 }}
               >
-                {copy.viewOnProvider(getMediaProviderLabel(selectedMedia))}
+                {selectedMedia.actionLabel ?? copy.viewOnProvider(getMediaProviderLabel(selectedMedia))}
               </a>
             ) : null}
           </div>
@@ -2200,7 +2200,7 @@ function ProfileMessageMedia({
                     trackMediaExternalClick(item, "provider_video", "chat_media_card");
                   }}
                 >
-                  {copy.viewOnProvider(provider)}
+                  {item.actionLabel ?? copy.viewOnProvider(provider)}
                 </a>
               ) : null}
             </article>
