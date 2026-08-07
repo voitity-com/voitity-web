@@ -148,8 +148,8 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
               references.
             </li>
             <li>
-              Clone, synthesize, and play an authorized voice in audio
-              responses.
+              Clone, synthesize, and play your own cloned voice, or another
+              voice you are expressly authorized to use, in audio responses.
             </li>
             <li>
               Understand visitor messages and generate responses consistent with
@@ -425,8 +425,8 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
             o referencias.
           </li>
           <li>
-            Clonar, sintetizar y reproducir una voz autorizada en respuestas de
-            audio.
+            Clonar, sintetizar y reproducir tu propia voz clonada, o una voz que
+            estés expresamente autorizado a utilizar, en respuestas de audio.
           </li>
           <li>
             Entender mensajes de visitantes y generar respuestas coherentes con
@@ -946,8 +946,9 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
       >
         <p>
           These terms govern access to and use of Bigmelo, a platform for
-          creating public profiles with animated avatars, authorized cloned
-          voices, contextual information, and AI-generated responses.
+          creating public profiles with animated avatars, clones of your own
+          voice or another expressly authorized voice, contextual information,
+          and AI-generated responses.
         </p>
 
         <section>
@@ -1259,9 +1260,9 @@ export function TermsAndConditions({ locale }: { locale: LegalLocale }) {
     >
       <p>
         Estos términos regulan el acceso y uso de Bigmelo, una plataforma para
-        crear perfiles públicos con avatares animados, voz clonada autorizada,
-        información contextual y respuestas generadas por inteligencia
-        artificial.
+        crear perfiles públicos con avatares animados, un clon de tu propia voz
+        o de otra voz expresamente autorizada, información contextual y
+        respuestas generadas por inteligencia artificial.
       </p>
 
       <section>
