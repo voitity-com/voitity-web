@@ -109,14 +109,14 @@ const content: Record<
       avatarMessage:
         'Soy Valeria Ríos. Acompaño proyectos, marcas personales y equipos que quieren comunicar mejor lo que hacen.',
       speaking: 'Respuesta con audio',
-      waveform: 'Voz autorizada',
+      waveform: 'Tu voz clonada',
       memory: 'Sí. Puedes escuchar mis respuestas en audio y abrir mis redes desde este perfil.',
     },
     plans: {
       eyebrow: 'Planes',
       title: 'Todo lo necesario para lanzar tu primera presencia digital con IA.',
       lead:
-        'Incluye presencia pública, avatar con imagen autorizada, voz generada con IA y límites mensuales para chat y audio. Puedes comprar créditos adicionales cuando agotes un límite ampliable.',
+        'Incluye presencia pública, avatar con imagen autorizada, un clon de tu propia voz y límites mensuales para chat y audio. Puedes comprar créditos adicionales cuando agotes un límite ampliable.',
       items: [
         {
           cycle: 'month',
@@ -129,7 +129,7 @@ const content: Record<
           features: [
             '1 presencia digital publicada',
             'Avatar inicial con imagen y video breve',
-            '1 voz autorizada generada con IA',
+            '1 clon de tu propia voz',
             'Hasta 1.000 mensajes de visitantes por texto o audio al mes',
             'Hasta 500 audios entrantes al mes, máximo 30 segundos cada uno',
             'Hasta 20.000 caracteres en respuestas de audio al mes',
@@ -152,7 +152,7 @@ const content: Record<
           features: [
             '1 presencia digital publicada',
             'Avatar inicial con imagen y video breve',
-            '1 voz autorizada generada con IA',
+            '1 clon de tu propia voz',
             'Hasta 1.000 mensajes de visitantes por texto o audio al mes',
             'Hasta 500 audios entrantes al mes, máximo 30 segundos cada uno',
             'Hasta 20.000 caracteres en respuestas de audio al mes',
@@ -187,7 +187,7 @@ const content: Record<
       captchaError: 'No fue posible completar la verificación. Recarga la página e intenta de nuevo.',
     },
     footer: {
-      tagline: 'Presencias digitales con inteligencia artificial, voz autorizada e información verificada.',
+      tagline: 'Presencias digitales con inteligencia artificial, tu propia voz clonada e información verificada.',
       dataDeletion: 'Eliminación de datos',
       privacy: 'Privacidad',
       terms: 'Términos',
@@ -216,14 +216,14 @@ const content: Record<
       avatarMessage:
         'I am Valeria Ríos. I support projects, personal brands, and teams that want to communicate their work more clearly.',
       speaking: 'Audio response',
-      waveform: 'Authorized voice',
+      waveform: 'Your cloned voice',
       memory: 'Yes. You can listen to my replies in audio and open my social links from this profile.',
     },
     plans: {
       eyebrow: 'Plans',
       title: 'Everything you need to launch your first AI-powered presence.',
       lead:
-        'Includes a public presence, authorized image avatar, AI-generated voice, and monthly chat and audio limits. You can purchase additional credits after an extendable limit is exhausted.',
+        'Includes a public presence, an avatar with an authorized image, a clone of your own voice, and monthly chat and audio limits. You can purchase additional credits after an extendable limit is exhausted.',
       items: [
         {
           cycle: 'month',
@@ -236,7 +236,7 @@ const content: Record<
           features: [
             '1 published digital presence',
             'Initial avatar with image and short video',
-            '1 authorized AI-generated voice',
+            '1 clone of your own voice',
             'Up to 1,000 visitor text or audio messages per month',
             'Up to 500 incoming audios per month, maximum 30 seconds each',
             'Up to 20,000 characters in audio replies per month',
@@ -259,7 +259,7 @@ const content: Record<
           features: [
             '1 published digital presence',
             'Initial avatar with image and short video',
-            '1 authorized AI-generated voice',
+            '1 clone of your own voice',
             'Up to 1,000 visitor text or audio messages per month',
             'Up to 500 incoming audios per month, maximum 30 seconds each',
             'Up to 20,000 characters in audio replies per month',
@@ -294,7 +294,7 @@ const content: Record<
       captchaError: 'We could not complete the verification. Reload the page and try again.',
     },
     footer: {
-      tagline: 'AI-powered digital presences with authorized voice and verified information.',
+      tagline: 'AI-powered digital presences with your own cloned voice and verified information.',
       dataDeletion: 'Data deletion',
       privacy: 'Privacy',
       terms: 'Terms',
@@ -483,7 +483,7 @@ function buildPlanFeatures(
     return [
       `${number(profiles)} published digital presence`,
       'Initial avatar with image and short video',
-      '1 authorized AI-generated voice',
+      '1 clone of your own voice',
       `Up to ${number(chatMessages)} visitor text or audio messages per month`,
       `Up to ${number(incomingAudio)} incoming audios per month, maximum ${number(audioMaxSeconds)} seconds each`,
       `Up to ${number(ttsCharacters)} characters in audio replies per month`,
@@ -500,7 +500,7 @@ function buildPlanFeatures(
   return [
     `${number(profiles)} presencia digital publicada`,
     'Avatar inicial con imagen y video breve',
-    '1 voz autorizada generada con IA',
+    '1 clon de tu propia voz',
     `Hasta ${number(chatMessages)} mensajes de visitantes por texto o audio al mes`,
     `Hasta ${number(incomingAudio)} audios entrantes al mes, máximo ${number(audioMaxSeconds)} segundos cada uno`,
     `Hasta ${number(ttsCharacters)} caracteres en respuestas de audio al mes`,
@@ -541,8 +541,8 @@ export function Home() {
   const isCaptchaEnabled = TURNSTILE_SITE_KEY !== '';
   const heroProof =
     locale === 'es'
-      ? ['Presencia con IA', 'Imagen autorizada', 'Voz autorizada', 'Disponible 24/7']
-      : ['AI presence', 'Authorized image', 'Authorized voice', 'Available 24/7'];
+      ? ['Presencia con IA', 'Imagen autorizada', 'Tu voz clonada', 'Disponible 24/7']
+      : ['AI presence', 'Authorized image', 'Your cloned voice', 'Available 24/7'];
   const contactHighlights =
     locale === 'es'
       ? ['Presencia pública lista para compartir', 'Mensajes por texto y audio', 'Respuestas basadas en información verificada']
