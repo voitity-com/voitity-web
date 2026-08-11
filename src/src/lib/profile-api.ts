@@ -153,6 +153,7 @@ export type ProfileInteraction = {
     | "product_button"
     | "product_image"
     | "profile_page"
+    | "widget_chat"
     | "profile_social_nav"
     | "chat_social_link";
 };
@@ -160,6 +161,20 @@ export type ProfileInteraction = {
 export type AvatarMedia = {
   kind: "image" | "video";
   url: string;
+};
+
+export type PublicWidgetConfiguration = {
+  launcher: {
+    avatarUrl: string | null;
+    label: string;
+  };
+  profile: {
+    alias: string;
+    id: string;
+    locale: "en" | "es";
+    name: string;
+  };
+  publicKey: string;
 };
 
 type SocialNetworkDefinition = {
@@ -258,6 +273,53 @@ export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {
     socialNetworksPromise,
   ]);
   return normalizeProfile(payload, alias, socialNetworkDefinitions);
+}
+
+export async function fetchPublicWidgetConfiguration(
+  publicKey: string,
+): Promise<PublicWidgetConfiguration> {
+  const response = await fetch(
+    apiUrl(`/api/public/widgets/${encodeURIComponent(publicKey)}`),
+    { headers: publicHeaders() },
+  );
+
+  if (!response.ok) {
+    throw await createProfileApiError(
+      response,
+      "El widget no está disponible.",
+    );
+  }
+
+  const source = unwrapPayload((await response.json()) as UnknownRecord);
+  const widget = isRecord(source.widget) ? source.widget : source;
+  const profile = isRecord(widget.profile) ? widget.profile : {};
+  const launcher = isRecord(widget.launcher) ? widget.launcher : {};
+  const alias = pickString(profile, ["alias"]);
+  const name = pickString(profile, ["name"]);
+  const resolvedPublicKey = pickString(widget, ["public_key", "publicKey"]);
+
+  if (!alias || !name || !resolvedPublicKey) {
+    throw new ProfileApiError("El widget no está disponible.", 502);
+  }
+
+  return {
+    launcher: {
+      avatarUrl: normalizeOptionalAssetUrl(
+        pickString(launcher, ["avatar_url", "avatarUrl"]),
+      ) ?? null,
+      label:
+        pickString(launcher, ["label"]) ??
+        (profile.locale === "en" ? "Talk to me" : "Habla conmigo"),
+    },
+    profile: {
+      alias,
+      id:
+        pickString(profile, ["id", "profile_id", "profileId"]) ?? alias,
+      locale: profile.locale === "en" ? "en" : "es",
+      name,
+    },
+    publicKey: resolvedPublicKey,
+  };
 }
 
 export async function fetchAvatarMedia(

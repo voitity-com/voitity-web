@@ -7,6 +7,7 @@ import {
   trackPageView,
 } from './lib/google-analytics';
 import { Home } from './pages/Home';
+import { EmbeddedProfile } from './pages/EmbeddedProfile';
 import { DataDeletionInstructions, PrivacyPolicy, TermsAndConditions } from './pages/Legal';
 import { NotFound } from './pages/NotFound';
 import { Profile } from './pages/Profile';
@@ -15,8 +16,14 @@ export function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
   const [missingPathname, setMissingPathname] = useState<string | null>(null);
   const profileAlias = pathname.split('/').filter(Boolean)[0];
+  const widgetKey = new URLSearchParams(window.location.search).get('widget')?.trim() ?? '';
+  const isWidgetMode = widgetKey !== '';
 
   useEffect(() => {
+    if (isWidgetMode) {
+      return;
+    }
+
     initializeGoogleAnalytics();
 
     function handlePopState() {
@@ -29,9 +36,13 @@ export function App() {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, []);
+  }, [isWidgetMode]);
 
   useEffect(() => {
+    if (isWidgetMode) {
+      return;
+    }
+
     const safeTitle = profileAlias
       ? ['privacidad', 'privacy'].includes(profileAlias)
         ? 'Privacy | Bigmelo'
@@ -49,7 +60,7 @@ export function App() {
         trackPageView(pathname, safeTitle);
       }
     });
-  }, [pathname, profileAlias]);
+  }, [isWidgetMode, pathname, profileAlias]);
 
   let page: ReactNode;
 
@@ -57,7 +68,9 @@ export function App() {
     setMissingPathname(window.location.pathname);
   }, []);
 
-  if (profileAlias === 'privacidad') {
+  if (isWidgetMode) {
+    page = <EmbeddedProfile publicKey={widgetKey} />;
+  } else if (profileAlias === 'privacidad') {
     page = <PrivacyPolicy locale="es" />;
   } else if (profileAlias === 'privacy') {
     page = <PrivacyPolicy locale="en" />;
@@ -80,7 +93,7 @@ export function App() {
   return (
     <>
       {page}
-      <AnalyticsConsent />
+      {isWidgetMode ? null : <AnalyticsConsent />}
     </>
   );
 }
