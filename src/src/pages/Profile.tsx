@@ -21,6 +21,7 @@ import {
 } from "../lib/profile-api";
 
 type ProfileProps = {
+  embedded?: boolean;
   onProfileNotFound: () => void;
   profileAlias: string;
 };
@@ -199,7 +200,7 @@ function getMessagingUnavailableMessage(
   return copy.subscriptionInactive;
 }
 
-export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
+export function Profile({ embedded = false, onProfileNotFound, profileAlias }: ProfileProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
@@ -287,7 +288,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         );
         trackProfileInteraction(nextProfile.id, {
           eventType: "profile_viewed",
-          surface: "profile_page",
+          surface: embedded ? "widget_chat" : "profile_page",
         });
         trackAnalyticsEvent("profile_view");
         setMessagingCapabilities(nextProfile.messagingCapabilities);
@@ -328,30 +329,32 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         );
         setIsLoading(false);
 
-        const description = profileDescription(
-          nextProfile.name,
-          nextProfile.alias,
-          nextProfile.locale,
-        );
-        setPageMetadata({
-          canonicalPath: `/${nextProfile.alias}`,
-          description,
-          locale: nextProfile.locale,
-          structuredData: {
-            "@context": "https://schema.org",
-            "@type": "ProfilePage",
-            mainEntity: {
-              "@type": "Person",
-              alternateName: `@${nextProfile.alias}`,
-              name: nextProfile.name,
-              sameAs: nextProfile.networks.map((network) => network.url),
+        if (!embedded) {
+          const description = profileDescription(
+            nextProfile.name,
+            nextProfile.alias,
+            nextProfile.locale,
+          );
+          setPageMetadata({
+            canonicalPath: `/${nextProfile.alias}`,
+            description,
+            locale: nextProfile.locale,
+            structuredData: {
+              "@context": "https://schema.org",
+              "@type": "ProfilePage",
+              mainEntity: {
+                "@type": "Person",
+                alternateName: `@${nextProfile.alias}`,
+                name: nextProfile.name,
+                sameAs: nextProfile.networks.map((network) => network.url),
+                url: `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
+              },
               url: `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
             },
-            url: `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
-          },
-          title: `${nextProfile.name} (@${nextProfile.alias}) | Bigmelo`,
-          type: "profile",
-        });
+            title: `${nextProfile.name} (@${nextProfile.alias}) | Bigmelo`,
+            type: "profile",
+          });
+        }
 
         fetchAvatarMedia(nextProfile.id)
           .then((media) => {
@@ -418,7 +421,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
         URL.revokeObjectURL(nextAvatarUrl);
       }
     };
-  }, [onProfileNotFound, profileAlias]);
+  }, [embedded, onProfileNotFound, profileAlias]);
 
   useEffect(() => {
     if (!profile) {
@@ -1177,7 +1180,7 @@ export function Profile({ onProfileNotFound, profileAlias }: ProfileProps) {
       : copy.audioOn;
 
   return (
-    <main className="profile-page">
+    <main className={`profile-page${embedded ? " is-embedded" : ""}`}>
       <audio
         ref={audioRef}
         onEnded={() => setIsAudioPlaying(false)}

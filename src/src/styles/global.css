@@ -45,6 +45,26 @@ a {
   min-height: 100vh;
 }
 
+.embedded-profile-state {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #425147;
+  background: #ffffff;
+  font-weight: 750;
+  text-align: center;
+}
+
+.embedded-profile-state.is-error {
+  color: #8a2b1f;
+}
+
+.profile-page.is-embedded,
+.profile-page.is-embedded .profile-shell {
+  min-height: 100dvh;
+}
+
 .seo-home-fallback,
 .seo-profile-fallback,
 .not-found-page {
