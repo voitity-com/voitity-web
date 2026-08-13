@@ -6,7 +6,6 @@ import { getAdminBaseUrl, getAdminSignInUrl } from '../lib/admin-url';
 import { submitContactSubmission } from '../lib/contact-api';
 import { trackAnalyticsEvent } from '../lib/google-analytics';
 import { setPageMetadata } from '../lib/page-metadata';
-import { apiUrl } from '../lib/profile-api';
 import {
   fetchPublicSubscriptionPlans,
   type PublicSubscriptionPlan,
@@ -341,8 +340,8 @@ const content: Record<
 
 const TURNSTILE_SITE_KEY = ((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ?? '').trim();
 const TURNSTILE_SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-const LANDING_DEMO_IMAGE_URL = apiUrl('/storage/images/28.png');
-const LANDING_DEMO_VIDEO_URL = apiUrl('/storage/videos/30.mp4');
+const LANDING_DEMO_IMAGE_URL = '/media/landing/valeria-rios-avatar-627aa159.png';
+const LANDING_DEMO_VIDEO_URL = '/media/landing/valeria-rios-avatar-22ca89b9.mp4';
 const LANDING_YOUTUBE_URL = 'https://www.youtube.com/watch?v=pBxiwqnSBqo';
 const LANDING_YOUTUBE_THUMBNAIL_URL = 'https://i.ytimg.com/vi/pBxiwqnSBqo/hqdefault.jpg';
 const LANDING_VIDEO_EMBED_URL = 'https://www.youtube-nocookie.com/embed/pBxiwqnSBqo?rel=0&playsinline=1';
