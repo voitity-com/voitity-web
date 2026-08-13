@@ -15,6 +15,9 @@ export default defineConfig({
     },
   },
   plugins: [react(), widgetDevelopmentEntry()],
+  server: {
+    allowedHosts: ['.localdev.me', '.nip.io'],
+  },
 });
 
 function widgetDevelopmentEntry(): Plugin {

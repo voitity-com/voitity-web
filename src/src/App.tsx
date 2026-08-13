@@ -16,6 +16,8 @@ export function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
   const [missingPathname, setMissingPathname] = useState<string | null>(null);
   const profileAlias = pathname.split('/').filter(Boolean)[0];
+  const hostname = window.location.hostname.toLowerCase().replace(/\.$/, '');
+  const isCustomDomain = !isBigmeloOrLocalHost(hostname);
   const widgetKey = new URLSearchParams(window.location.search).get('widget')?.trim() ?? '';
   const isWidgetMode = widgetKey !== '';
 
@@ -43,7 +45,9 @@ export function App() {
       return;
     }
 
-    const safeTitle = profileAlias
+    const safeTitle = isCustomDomain
+      ? 'Public profile | Bigmelo'
+      : profileAlias
       ? ['privacidad', 'privacy'].includes(profileAlias)
         ? 'Privacy | Bigmelo'
         : ['terminos', 'terms'].includes(profileAlias)
@@ -60,7 +64,7 @@ export function App() {
         trackPageView(pathname, safeTitle);
       }
     });
-  }, [isWidgetMode, pathname, profileAlias]);
+  }, [isCustomDomain, isWidgetMode, pathname, profileAlias]);
 
   let page: ReactNode;
 
@@ -70,6 +74,10 @@ export function App() {
 
   if (isWidgetMode) {
     page = <EmbeddedProfile publicKey={widgetKey} />;
+  } else if (isCustomDomain && missingPathname === pathname) {
+    page = <NotFound />;
+  } else if (isCustomDomain) {
+    page = <Profile onProfileNotFound={handleProfileNotFound} profileDomain={hostname} />;
   } else if (profileAlias === 'privacidad') {
     page = <PrivacyPolicy locale="es" />;
   } else if (profileAlias === 'privacy') {
@@ -95,5 +103,16 @@ export function App() {
       {page}
       {isWidgetMode ? null : <AnalyticsConsent />}
     </>
+  );
+}
+
+function isBigmeloOrLocalHost(hostname: string): boolean {
+  return (
+    hostname === 'bigmelo.com' ||
+    hostname.endsWith('.bigmelo.com') ||
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1'
   );
 }

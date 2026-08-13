@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Bigmelo CloudFront multi-tenant foundation for profile custom domains
+
+Parameters:
+  WebBucketRegionalDomainName:
+    Type: String
+    Description: Regional domain name of the existing private Bigmelo web S3 bucket
+  ViewerRequestFunctionArn:
+    Type: String
+    Description: ARN of the published Bigmelo viewer-request CloudFront Function
+  CachePolicyId:
+    Type: String
+    Description: CloudFront cache policy ID selected for the web assets
+  ResponseHeadersPolicyId:
+    Type: String
+    Description: CloudFront response headers policy ID selected for the web
+  WebAclArn:
+    Type: String
+    Default: ''
+    Description: Optional us-east-1 CloudFront scope AWS WAF web ACL ARN
+
+Conditions:
+  HasWebAcl: !Not [!Equals [!Ref WebAclArn, '']]
+
+Resources:
+  ProfileDomainOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: Bigmelo profile custom domains access to the private web origin
+        Name: !Sub '${AWS::StackName}-profile-domains-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  ProfileDomainDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: Bigmelo profile custom domain template distribution
+        ConnectionMode: tenant-only
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachePolicyId: !Ref CachePolicyId
+          Compress: true
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !Ref ViewerRequestFunctionArn
+          ResponseHeadersPolicyId: !Ref ResponseHeadersPolicyId
+          TargetOriginId: BigmeloWebOrigin
+          ViewerProtocolPolicy: redirect-to-https
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Origins:
+          - DomainName: !Ref WebBucketRegionalDomainName
+            Id: BigmeloWebOrigin
+            OriginAccessControlId: !GetAtt ProfileDomainOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        TenantConfig:
+          ParameterDefinitions:
+            - Name: profileId
+              Definition:
+                StringSchema:
+                  Comment: Bigmelo profile identifier used for audit metadata
+                  DefaultValue: unknown
+                  Required: false
+        WebACLId: !If [HasWebAcl, !Ref WebAclArn, !Ref AWS::NoValue]
+      Tags:
+        - Key: Application
+          Value: bigmelo
+        - Key: Component
+          Value: profile-custom-domains
+        - Key: ManagedBy
+          Value: cloudformation
+
+  ProfileDomainConnectionGroup:
+    Type: AWS::CloudFront::ConnectionGroup
+    Properties:
+      Enabled: true
+      Ipv6Enabled: true
+      Name: !Sub '${AWS::StackName}-profile-domains'
+      Tags:
+        - Key: Application
+          Value: bigmelo
+        - Key: Component
+          Value: profile-custom-domains
+        - Key: ManagedBy
+          Value: cloudformation
+
+Outputs:
+  DistributionId:
+    Description: Set as PROFILE_DOMAIN_CLOUDFRONT_DISTRIBUTION_ID in the API
+    Value: !GetAtt ProfileDomainDistribution.Id
+  DistributionArn:
+    Description: Add this ARN to the existing S3 bucket policy SourceArn allow list
+    Value: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${ProfileDomainDistribution.Id}'
+  ConnectionGroupId:
+    Description: Set as PROFILE_DOMAIN_CLOUDFRONT_CONNECTION_GROUP_ID in the API
+    Value: !GetAtt ProfileDomainConnectionGroup.Id
+  RoutingEndpoint:
+    Description: Optional cached value for PROFILE_DOMAIN_CLOUDFRONT_ROUTING_ENDPOINT
+    Value: !GetAtt ProfileDomainConnectionGroup.RoutingEndpoint
+  OriginAccessControlId:
+    Description: Origin access control used by the multi-tenant distribution
+    Value: !GetAtt ProfileDomainOriginAccessControl.Id
