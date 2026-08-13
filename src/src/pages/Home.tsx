@@ -2,11 +2,11 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { getCountries, getCountryCallingCode, type CountryCode } from 'libphonenumber-js';
 
 import bigmeloLogo from '../assets/bigmelo-logo.png';
-import valeriaAvatar from '../assets/valeria-rios-avatar.png';
 import { getAdminBaseUrl, getAdminSignInUrl } from '../lib/admin-url';
 import { submitContactSubmission } from '../lib/contact-api';
 import { trackAnalyticsEvent } from '../lib/google-analytics';
 import { setPageMetadata } from '../lib/page-metadata';
+import { apiUrl } from '../lib/profile-api';
 import {
   fetchPublicSubscriptionPlans,
   type PublicSubscriptionPlan,
@@ -48,18 +48,29 @@ const content: Record<
       demoAria: string;
       profileName: string;
       profileRole: string;
-      online: string;
-      userMessage: string;
-      avatarMessage: string;
-      speaking: string;
-      waveform: string;
-      memory: string;
+      demoAnswerOne: string;
+      demoAnswerTwo: string;
+      demoIntro: string;
+      demoPlanAction: string;
+      demoQuestionOne: string;
+      demoQuestionTwo: string;
+      demoTyping: string;
+      demoVideoAction: string;
+      demoVideoTitle: string;
     };
     plans: {
       eyebrow: string;
       title: string;
       lead: string;
       items: Plan[];
+    };
+    video: {
+      cta: string;
+      eyebrow: string;
+      lead: string;
+      note: string;
+      title: string;
+      videoTitle: string;
     };
     contact: {
       eyebrow: string;
@@ -103,14 +114,19 @@ const content: Record<
       demoAria:
         'Vista previa de una presencia digital con avatar central, mensajes laterales, respuestas de audio y campo de conversación.',
       profileName: 'Valeria Ríos',
-      profileRole: 'Presencia digital profesional',
-      online: 'Activo ahora',
-      userMessage: '¿Qué puedes contarme sobre tu trabajo?',
-      avatarMessage:
+      profileRole: '@valeria-rios',
+      demoIntro:
         'Soy Valeria Ríos. Acompaño proyectos, marcas personales y equipos que quieren comunicar mejor lo que hacen.',
-      speaking: 'Respuesta con audio',
-      waveform: 'Tu voz clonada',
-      memory: 'Sí. Puedes escuchar mis respuestas en audio y abrir mis redes desde este perfil.',
+      demoQuestionOne: '¿Cómo puedo tener mi perfil?',
+      demoAnswerOne:
+        'En Bigmelo puedes crear tu perfil paso a paso: agrega tu información, elige tu avatar, clona tu voz y publícalo. Mira este video para conocer el proceso.',
+      demoQuestionTwo: '¿Y cómo lo adquiero?',
+      demoAnswerTwo:
+        'Puedes empezar con el plan Starter y usar Bigmelo gratis durante 7 días. Luego decides si quieres mantener tu perfil activo.',
+      demoTyping: 'Valeria está escribiendo',
+      demoVideoTitle: 'Conoce cómo crear tu perfil en Bigmelo',
+      demoVideoAction: 'Ver video en YouTube',
+      demoPlanAction: 'Probar Starter gratis',
     },
     plans: {
       eyebrow: 'Planes',
@@ -168,6 +184,14 @@ const content: Record<
         },
       ],
     },
+    video: {
+      cta: 'Prueba 7 días gratis',
+      eyebrow: 'Bigmelo en acción',
+      lead: 'Convierte tu experiencia, voz y contenido en un perfil inteligente que conversa y conecta por ti.',
+      note: 'Sin compromiso. Cancela cuando quieras.',
+      title: 'Potencia tu marca personal.',
+      videoTitle: 'Bigmelo | La herramienta inteligente para potenciar tu marca personal',
+    },
     contact: {
       eyebrow: 'Contacto',
       title: 'Cuéntanos qué presencia digital quieres crear.',
@@ -210,14 +234,19 @@ const content: Record<
       demoAria:
         'Preview of an AI-powered digital presence with a centered avatar, side messages, audio replies, and conversation input.',
       profileName: 'Valeria Ríos',
-      profileRole: 'Professional digital presence',
-      online: 'Active now',
-      userMessage: 'What can you tell me about your work?',
-      avatarMessage:
+      profileRole: '@valeria-rios',
+      demoIntro:
         'I am Valeria Ríos. I support projects, personal brands, and teams that want to communicate their work more clearly.',
-      speaking: 'Audio response',
-      waveform: 'Your cloned voice',
-      memory: 'Yes. You can listen to my replies in audio and open my social links from this profile.',
+      demoQuestionOne: 'How can I create my profile?',
+      demoAnswerOne:
+        'With Bigmelo, you can create your profile step by step: add your information, choose your avatar, clone your voice, and publish it. Watch this video to see the process.',
+      demoQuestionTwo: 'How do I get it?',
+      demoAnswerTwo:
+        'You can start with the Starter plan and use Bigmelo free for 7 days. Then you decide whether to keep your profile active.',
+      demoTyping: 'Valeria is typing',
+      demoVideoTitle: 'See how to create your Bigmelo profile',
+      demoVideoAction: 'Watch on YouTube',
+      demoPlanAction: 'Try Starter free',
     },
     plans: {
       eyebrow: 'Plans',
@@ -275,6 +304,14 @@ const content: Record<
         },
       ],
     },
+    video: {
+      cta: 'Start your 7-day free trial',
+      eyebrow: 'Bigmelo in action',
+      lead: 'Turn your experience, voice, and content into an intelligent profile that speaks and connects for you.',
+      note: 'No commitment. Cancel anytime.',
+      title: 'Grow your personal brand.',
+      videoTitle: 'Bigmelo | The intelligent tool to grow your personal brand',
+    },
     contact: {
       eyebrow: 'Contact us',
       title: 'Tell us what digital presence you want to create.',
@@ -304,6 +341,11 @@ const content: Record<
 
 const TURNSTILE_SITE_KEY = ((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ?? '').trim();
 const TURNSTILE_SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+const LANDING_DEMO_IMAGE_URL = apiUrl('/storage/images/28.png');
+const LANDING_DEMO_VIDEO_URL = apiUrl('/storage/videos/30.mp4');
+const LANDING_YOUTUBE_URL = 'https://www.youtube.com/watch?v=pBxiwqnSBqo';
+const LANDING_YOUTUBE_THUMBNAIL_URL = 'https://i.ytimg.com/vi/pBxiwqnSBqo/hqdefault.jpg';
+const LANDING_VIDEO_EMBED_URL = 'https://www.youtube-nocookie.com/embed/pBxiwqnSBqo?rel=0&playsinline=1';
 
 type TurnstileWidgetId = string;
 
@@ -529,6 +571,11 @@ export function Home() {
   const [captchaError, setCaptchaError] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [publicPlans, setPublicPlans] = useState<PublicSubscriptionPlan[]>([]);
+  const [demoPhase, setDemoPhase] = useState(0);
+  const [demoTypedText, setDemoTypedText] = useState('');
+  const [isDemoVisible, setIsDemoVisible] = useState(false);
+  const demoContainerRef = useRef<HTMLDivElement | null>(null);
+  const demoConversationRef = useRef<HTMLDivElement | null>(null);
   const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const t = content[locale];
@@ -536,6 +583,7 @@ export function Home() {
     () => t.plans.items.map((plan) => applyPublicPlanData(plan, locale, publicPlans)),
     [locale, publicPlans, t.plans.items],
   );
+  const starterPlan = planItems.find((plan) => plan.cycle === 'month') ?? t.plans.items[0];
   const adminSignInUrl = getAdminSignInUrl(locale);
   const countryDialCodes = useMemo(() => getCountryDialCodeOptions(locale), [locale]);
   const isCaptchaEnabled = TURNSTILE_SITE_KEY !== '';
@@ -611,6 +659,100 @@ export function Home() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const demoContainer = demoContainerRef.current;
+
+    if (! demoContainer || typeof IntersectionObserver === 'undefined') {
+      setIsDemoVisible(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsDemoVisible(entry.isIntersecting);
+      },
+      { threshold: 0.2 },
+    );
+
+    observer.observe(demoContainer);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setDemoPhase(0);
+    setDemoTypedText('');
+  }, [locale]);
+
+  useEffect(() => {
+    if (! isDemoVisible) {
+      return undefined;
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDemoPhase(6);
+      setDemoTypedText('');
+      return undefined;
+    }
+
+    let intervalId: number | undefined;
+    let timeoutId: number | undefined;
+    const typingText = demoPhase === 1
+      ? t.hero.demoQuestionOne
+      : demoPhase === 4
+        ? t.hero.demoQuestionTwo
+        : '';
+
+    if (typingText) {
+      let characterIndex = 0;
+      setDemoTypedText('');
+      intervalId = window.setInterval(() => {
+        characterIndex += 1;
+        setDemoTypedText(typingText.slice(0, characterIndex));
+
+        if (characterIndex >= typingText.length) {
+          window.clearInterval(intervalId);
+          timeoutId = window.setTimeout(() => {
+            setDemoPhase((currentPhase) => currentPhase + 1);
+          }, 450);
+        }
+      }, 52);
+    } else {
+      setDemoTypedText('');
+      const phaseDuration = [2200, 0, 1100, 5200, 0, 1100, 6000][demoPhase] ?? 2200;
+      timeoutId = window.setTimeout(() => {
+        setDemoPhase((currentPhase) => currentPhase >= 6 ? 0 : currentPhase + 1);
+      }, phaseDuration);
+    }
+
+    return () => {
+      if (intervalId !== undefined) {
+        window.clearInterval(intervalId);
+      }
+
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [demoPhase, isDemoVisible, t.hero.demoQuestionOne, t.hero.demoQuestionTwo]);
+
+  useEffect(() => {
+    const conversation = demoConversationRef.current;
+
+    if (! conversation || ! isDemoVisible) {
+      return undefined;
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      conversation.scrollTo({
+        behavior: demoPhase === 0 ? 'auto' : 'smooth',
+        top: demoPhase === 0 ? 0 : conversation.scrollHeight,
+      });
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [demoPhase, isDemoVisible]);
 
   useEffect(() => {
     if (! isCaptchaEnabled) {
@@ -768,7 +910,7 @@ export function Home() {
 
           <div className="hero-actions">
             <a className="button button-primary hero-avatar-button" href="#contact">
-              <img alt="" src={valeriaAvatar} />
+              <img alt="" src={LANDING_DEMO_IMAGE_URL} />
               <span>{t.hero.primaryCta}</span>
             </a>
             <a className="button button-secondary button-arrow" href="#plans">
@@ -784,8 +926,15 @@ export function Home() {
           </div>
         </div>
 
-        <div className="hero-product-demo" role="img" aria-label={t.hero.demoAria}>
+        <div
+          aria-label={t.hero.demoAria}
+          className="hero-product-demo"
+          id="profile-demo"
+          ref={demoContainerRef}
+          role="region"
+        >
           <div className="demo-profile-name">{t.hero.profileName}</div>
+          <div className="demo-profile-alias">{t.hero.profileRole}</div>
           <div className="demo-social-links" aria-label={locale === 'es' ? 'Redes de ejemplo' : 'Example social links'}>
             {demoSocials.map((network) => (
               <a
@@ -803,55 +952,191 @@ export function Home() {
           </div>
 
           <div className="demo-chat-surface">
-            <div className="demo-thread demo-thread-left">
-              <article className="demo-bubble with-avatar">
-                <img alt="" className="demo-mini-avatar" src={valeriaAvatar} />
-                <span className="demo-play" />
-                <p>{t.hero.avatarMessage}</p>
-                <time>10:30 AM</time>
-              </article>
-
-              <article className="demo-bubble with-avatar">
-                <img alt="" className="demo-mini-avatar" src={valeriaAvatar} />
-                <span className="demo-play" />
-                <p>{t.hero.memory}</p>
-                <time>10:31 AM</time>
-              </article>
-            </div>
-
             <div className="demo-avatar-stage">
               <span className="demo-ring demo-ring-one" />
               <span className="demo-ring demo-ring-two" />
               <span className="demo-ring demo-ring-three" />
               <div className="landing-avatar">
-                <img alt="" className="landing-avatar-image" src={valeriaAvatar} />
+                <video
+                  autoPlay
+                  className="landing-avatar-image"
+                  loop
+                  muted
+                  playsInline
+                  poster={LANDING_DEMO_IMAGE_URL}
+                  preload="metadata"
+                >
+                  <source src={LANDING_DEMO_VIDEO_URL} type="video/mp4" />
+                </video>
+              </div>
+              <div className="demo-avatar-audio" aria-hidden="true">
+                <SpeakerIcon />
               </div>
             </div>
 
-            <div className="demo-thread demo-thread-right">
-              <article className="demo-bubble visitor">
-                <p>{t.hero.userMessage}</p>
-                <time>10:30 AM</time>
-              </article>
+            <div
+              aria-live="off"
+              className="demo-conversation-viewport"
+              ref={demoConversationRef}
+            >
+              <div className="demo-conversation-list">
+                <div className="demo-message-row assistant">
+                  <article className="demo-message assistant is-entering">
+                    <span className="demo-message-avatar-wrap">
+                      <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                      <i className="demo-message-play" aria-hidden="true" />
+                    </span>
+                    <div className="demo-message-content">
+                      <p>{t.hero.demoIntro}</p>
+                      <time>10:30 AM</time>
+                    </div>
+                  </article>
+                </div>
 
-              <article className="demo-bubble visitor">
-                <p>
-                  {locale === 'es'
-                    ? '¿También puedes responder con audio y mostrar tus redes?'
-                    : 'Can you also reply with audio and show your social links?'}
-                </p>
-                <time>10:31 AM</time>
-              </article>
-            </div>
-          </div>
+                {demoPhase >= 2 ? (
+                  <div className="demo-message-row visitor">
+                    <article className="demo-message visitor is-entering">
+                      <div className="demo-message-content">
+                        <p>{t.hero.demoQuestionOne}</p>
+                        <time>10:31 AM</time>
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
 
-          <div className="demo-composer">
-            <div className="demo-input">{locale === 'es' ? 'Escribe tu mensaje...' : 'Write your message...'}</div>
-            <div className="demo-action" aria-hidden="true">
-              <MicrophoneIcon />
+                {demoPhase === 2 ? (
+                  <div className="demo-message-row assistant">
+                    <article className="demo-message assistant is-entering">
+                      <span className="demo-message-avatar-wrap">
+                        <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                      </span>
+                      <div className="demo-message-content demo-typing-message" aria-label={t.hero.demoTyping}>
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
+
+                {demoPhase >= 3 ? (
+                  <div className="demo-message-row assistant">
+                    <article className="demo-message assistant is-entering">
+                      <span className="demo-message-avatar-wrap">
+                        <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                        <i className="demo-message-play" aria-hidden="true" />
+                      </span>
+                      <div className="demo-message-stack">
+                        <div className="demo-message-content">
+                          <p>{t.hero.demoAnswerOne}</p>
+                          <time>10:31 AM</time>
+                        </div>
+                        <a
+                          className="demo-youtube-card"
+                          href={LANDING_YOUTUBE_URL}
+                          rel="noopener noreferrer"
+                          target="_blank"
+                          onClick={() => {
+                            trackAnalyticsEvent('select_content', {
+                              content_type: 'landing_chat_video',
+                              item_id: 'profile_creation_video',
+                            });
+                          }}
+                        >
+                          <span className="demo-youtube-thumbnail">
+                            <img alt="" src={LANDING_YOUTUBE_THUMBNAIL_URL} />
+                            <i aria-hidden="true" />
+                          </span>
+                          <span className="demo-youtube-copy">
+                            <strong>{t.hero.demoVideoTitle}</strong>
+                            <small>{t.hero.demoVideoAction}</small>
+                          </span>
+                        </a>
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
+
+                {demoPhase >= 5 ? (
+                  <div className="demo-message-row visitor">
+                    <article className="demo-message visitor is-entering">
+                      <div className="demo-message-content">
+                        <p>{t.hero.demoQuestionTwo}</p>
+                        <time>10:32 AM</time>
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
+
+                {demoPhase === 5 ? (
+                  <div className="demo-message-row assistant">
+                    <article className="demo-message assistant is-entering">
+                      <span className="demo-message-avatar-wrap">
+                        <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                      </span>
+                      <div className="demo-message-content demo-typing-message" aria-label={t.hero.demoTyping}>
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
+
+                {demoPhase >= 6 ? (
+                  <div className="demo-message-row assistant">
+                    <article className="demo-message assistant is-entering">
+                      <span className="demo-message-avatar-wrap">
+                        <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                        <i className="demo-message-play" aria-hidden="true" />
+                      </span>
+                      <div className="demo-message-stack">
+                        <div className="demo-message-content">
+                          <p>{t.hero.demoAnswerTwo}</p>
+                          <time>10:32 AM</time>
+                        </div>
+                        <article className="demo-starter-card">
+                          <div className="demo-starter-image">
+                            <img alt="Bigmelo" src={bigmeloLogo} />
+                          </div>
+                          <div className="demo-starter-copy">
+                            <span>{starterPlan.label}</span>
+                            <strong>{starterPlan.name}</strong>
+                            <p>{starterPlan.price} {starterPlan.period}</p>
+                            <a
+                              href={getPlanCheckoutUrl(starterPlan, locale)}
+                              onClick={() => {
+                                trackAnalyticsEvent('select_content', {
+                                  content_type: 'landing_chat_plan',
+                                  item_id: 'starter_monthly',
+                                });
+                              }}
+                            >
+                              {t.hero.demoPlanAction}
+                            </a>
+                          </div>
+                        </article>
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
+              </div>
             </div>
-            <div className="demo-action" aria-hidden="true">
-              <SendIcon />
+
+            <div className="demo-composer">
+              <div className={demoTypedText ? 'demo-input is-typing' : 'demo-input'}>
+                <span>{demoTypedText || (locale === 'es' ? 'Escribe tu mensaje...' : 'Write your message...')}</span>
+                {demoTypedText ? <i aria-hidden="true" /> : null}
+              </div>
+              <div className="demo-action" aria-hidden="true">
+                <MicrophoneIcon />
+              </div>
+              <div
+                aria-hidden="true"
+                className={demoTypedText ? 'demo-action demo-send-action is-active' : 'demo-action demo-send-action'}
+              >
+                <SendIcon />
+              </div>
             </div>
           </div>
         </div>
@@ -891,6 +1176,46 @@ export function Home() {
               </a>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="brand-video-section section-shell" aria-labelledby="brand-video-title">
+        <div className="brand-video-card">
+          <div className="brand-video-copy">
+            <p className="eyebrow">{t.video.eyebrow}</p>
+            <h2 id="brand-video-title">{t.video.title}</h2>
+            <p>{t.video.lead}</p>
+
+            <div className="brand-video-actions">
+              <a
+                className="button button-primary brand-video-button"
+                href={getPlanCheckoutUrl(starterPlan, locale)}
+                onClick={() => {
+                  trackAnalyticsEvent('select_content', {
+                    content_type: 'landing_video_cta',
+                    item_id: 'starter_monthly',
+                  });
+                }}
+              >
+                {t.video.cta}
+              </a>
+              <p className="brand-video-trial">{t.video.note}</p>
+            </div>
+          </div>
+
+          <div className="brand-video-media">
+            <div className="brand-video-frame">
+              <iframe
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                src={LANDING_VIDEO_EMBED_URL}
+                title={t.video.videoTitle}
+              />
+            </div>
+            <p>{t.video.videoTitle}</p>
+          </div>
         </div>
       </section>
 
@@ -1016,6 +1341,25 @@ function SendIcon() {
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+    </svg>
+  );
+}
+
+function SpeakerIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="M4.5 14.5h3.1l4.9 4V5.5l-4.9 4H4.5v5Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+      <path
+        d="M16 9.2c.8.78 1.25 1.78 1.25 2.8S16.8 14.02 16 14.8M18.4 6.6A7.3 7.3 0 0 1 20.75 12a7.3 7.3 0 0 1-2.35 5.4"
+        stroke="currentColor"
+        strokeLinecap="round"
         strokeWidth="1.9"
       />
     </svg>
