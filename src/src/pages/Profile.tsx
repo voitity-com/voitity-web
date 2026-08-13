@@ -173,6 +173,53 @@ function getProfileCopy(locale: ProfileLocale) {
   return profileCopy[locale] as typeof profileCopy.es;
 }
 
+function ProfileSkeleton({ loadingLabel }: { loadingLabel: string }) {
+  return (
+    <div aria-busy="true" className="profile-skeleton" role="status">
+      <span className="profile-skeleton-status">{loadingLabel}</span>
+
+      <div aria-hidden="true" className="profile-skeleton-visual">
+        <header className="profile-skeleton-header">
+          <span className="profile-skeleton-shape profile-skeleton-name" />
+          <span className="profile-skeleton-shape profile-skeleton-alias" />
+          <div className="profile-skeleton-socials">
+            <span className="profile-skeleton-shape" />
+            <span className="profile-skeleton-shape" />
+            <span className="profile-skeleton-shape" />
+          </div>
+        </header>
+
+        <div className="profile-skeleton-body">
+          <div className="profile-skeleton-message is-profile">
+            <span className="profile-skeleton-shape profile-skeleton-mini-avatar" />
+            <span className="profile-skeleton-bubble">
+              <span className="profile-skeleton-shape is-long" />
+              <span className="profile-skeleton-shape is-medium" />
+              <span className="profile-skeleton-shape is-short" />
+            </span>
+          </div>
+
+          <span className="profile-skeleton-shape profile-skeleton-avatar" />
+
+          <div className="profile-skeleton-message is-visitor">
+            <span className="profile-skeleton-bubble">
+              <span className="profile-skeleton-shape is-medium" />
+              <span className="profile-skeleton-shape is-short" />
+            </span>
+          </div>
+        </div>
+
+        <div className="profile-skeleton-composer">
+          <span className="profile-skeleton-shape profile-skeleton-input" />
+          <span className="profile-skeleton-shape profile-skeleton-button" />
+          <span className="profile-skeleton-shape profile-skeleton-button" />
+          <span className="profile-skeleton-shape profile-skeleton-footer" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function trackProfileInteraction(
   profileId: string,
   interaction: Parameters<typeof recordProfileInteraction>[1],
@@ -1207,7 +1254,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
 
       <section className="profile-shell" aria-live="polite">
         {isLoading && !profile ? (
-          <div className="profile-state">{copy.loading}</div>
+          <ProfileSkeleton loadingLabel={copy.loading} />
         ) : null}
 
         {!isLoading && error && !profile ? (
@@ -1655,7 +1702,27 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
               </form>
 
               <footer className="profile-footer-note">
-                © 2026 <a href="/">bigmelo.com</a> {copy.footerRights}
+                <span className="profile-footer-full">
+                  © 2026{" "}
+                  <a
+                    href="https://bigmelo.com/"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    bigmelo.com
+                  </a>{" "}
+                  {copy.footerRights}
+                </span>
+                <span className="profile-footer-powered">
+                  Powered by{" "}
+                  <a
+                    href="https://bigmelo.com/"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    bigmelo.com
+                  </a>
+                </span>
               </footer>
             </section>
 

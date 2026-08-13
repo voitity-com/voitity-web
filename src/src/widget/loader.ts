@@ -410,11 +410,15 @@ type UnknownRecord = Record<string, unknown>;
       }
 
       .bigmelo-panel {
-        inset: 0;
-        width: 100dvw;
-        height: 100dvh;
-        border: 0;
-        border-radius: 0;
+        top: max(10px, env(safe-area-inset-top));
+        right: max(10px, env(safe-area-inset-right));
+        bottom: max(10px, env(safe-area-inset-bottom));
+        left: max(10px, env(safe-area-inset-left));
+        width: auto;
+        height: auto;
+        border: 1px solid rgba(16, 22, 36, 0.16);
+        border-radius: 18px;
+        box-shadow: 0 22px 64px rgba(16, 22, 36, 0.3);
       }
     }
 
