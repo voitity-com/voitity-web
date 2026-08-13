@@ -1655,7 +1655,27 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
               </form>
 
               <footer className="profile-footer-note">
-                © 2026 <a href="/">bigmelo.com</a> {copy.footerRights}
+                <span className="profile-footer-full">
+                  © 2026{" "}
+                  <a
+                    href="https://bigmelo.com/"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    bigmelo.com
+                  </a>{" "}
+                  {copy.footerRights}
+                </span>
+                <span className="profile-footer-powered">
+                  Powered by{" "}
+                  <a
+                    href="https://bigmelo.com/"
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    bigmelo.com
+                  </a>
+                </span>
               </footer>
             </section>
 

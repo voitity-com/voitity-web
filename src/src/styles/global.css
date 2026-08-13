@@ -2445,6 +2445,23 @@ h1 {
   text-decoration: underline;
 }
 
+.profile-footer-powered {
+  display: none;
+}
+
+.profile-page.is-embedded .profile-footer-note {
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.profile-page.is-embedded .profile-footer-full {
+  display: none;
+}
+
+.profile-page.is-embedded .profile-footer-powered {
+  display: inline;
+}
+
 .profile-message-column {
   min-width: 0;
   display: grid;
@@ -3858,7 +3875,17 @@ h1 {
   }
 
   .profile-footer-note {
+    display: block;
+    font-size: 0.72rem;
+    line-height: 1.2;
+  }
+
+  .profile-footer-full {
     display: none;
+  }
+
+  .profile-footer-powered {
+    display: inline;
   }
 
   .profile-scroll-bottom-button {
