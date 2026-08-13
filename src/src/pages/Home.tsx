@@ -61,6 +61,14 @@ const content: Record<
       lead: string;
       items: Plan[];
     };
+    video: {
+      cta: string;
+      eyebrow: string;
+      lead: string;
+      note: string;
+      title: string;
+      videoTitle: string;
+    };
     contact: {
       eyebrow: string;
       title: string;
@@ -167,6 +175,14 @@ const content: Record<
           highlighted: true,
         },
       ],
+    },
+    video: {
+      cta: 'Prueba 7 días gratis',
+      eyebrow: 'Bigmelo en acción',
+      lead: 'Convierte tu experiencia, voz y contenido en un perfil inteligente que conversa y conecta por ti.',
+      note: 'Sin compromiso. Cancela cuando quieras.',
+      title: 'Potencia tu marca personal.',
+      videoTitle: 'Bigmelo | La herramienta inteligente para potenciar tu marca personal',
     },
     contact: {
       eyebrow: 'Contacto',
@@ -275,6 +291,14 @@ const content: Record<
         },
       ],
     },
+    video: {
+      cta: 'Start your 7-day free trial',
+      eyebrow: 'Bigmelo in action',
+      lead: 'Turn your experience, voice, and content into an intelligent profile that speaks and connects for you.',
+      note: 'No commitment. Cancel anytime.',
+      title: 'Grow your personal brand.',
+      videoTitle: 'Bigmelo | The intelligent tool to grow your personal brand',
+    },
     contact: {
       eyebrow: 'Contact us',
       title: 'Tell us what digital presence you want to create.',
@@ -304,6 +328,7 @@ const content: Record<
 
 const TURNSTILE_SITE_KEY = ((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ?? '').trim();
 const TURNSTILE_SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+const LANDING_VIDEO_EMBED_URL = 'https://www.youtube-nocookie.com/embed/pBxiwqnSBqo?rel=0&playsinline=1';
 
 type TurnstileWidgetId = string;
 
@@ -536,6 +561,7 @@ export function Home() {
     () => t.plans.items.map((plan) => applyPublicPlanData(plan, locale, publicPlans)),
     [locale, publicPlans, t.plans.items],
   );
+  const starterPlan = planItems.find((plan) => plan.cycle === 'month') ?? t.plans.items[0];
   const adminSignInUrl = getAdminSignInUrl(locale);
   const countryDialCodes = useMemo(() => getCountryDialCodeOptions(locale), [locale]);
   const isCaptchaEnabled = TURNSTILE_SITE_KEY !== '';
@@ -891,6 +917,46 @@ export function Home() {
               </a>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="brand-video-section section-shell" aria-labelledby="brand-video-title">
+        <div className="brand-video-card">
+          <div className="brand-video-copy">
+            <p className="eyebrow">{t.video.eyebrow}</p>
+            <h2 id="brand-video-title">{t.video.title}</h2>
+            <p>{t.video.lead}</p>
+
+            <div className="brand-video-actions">
+              <a
+                className="button button-primary brand-video-button"
+                href={getPlanCheckoutUrl(starterPlan, locale)}
+                onClick={() => {
+                  trackAnalyticsEvent('select_content', {
+                    content_type: 'landing_video_cta',
+                    item_id: 'starter_monthly',
+                  });
+                }}
+              >
+                {t.video.cta}
+              </a>
+              <p className="brand-video-trial">{t.video.note}</p>
+            </div>
+          </div>
+
+          <div className="brand-video-media">
+            <div className="brand-video-frame">
+              <iframe
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                src={LANDING_VIDEO_EMBED_URL}
+                title={t.video.videoTitle}
+              />
+            </div>
+            <p>{t.video.videoTitle}</p>
+          </div>
         </div>
       </section>
 

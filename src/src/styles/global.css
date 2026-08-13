@@ -1073,6 +1073,139 @@ h1 {
   background: #ffffff;
 }
 
+.brand-video-section {
+  padding-top: clamp(24px, 4vw, 56px);
+}
+
+.brand-video-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(520px, 1.2fr);
+  align-items: center;
+  gap: clamp(24px, 3vw, 40px);
+  padding: clamp(48px, 5vw, 72px);
+  overflow: hidden;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 7% 92%, rgba(18, 183, 106, 0.3), transparent 34%),
+    radial-gradient(circle at 92% 8%, rgba(71, 84, 103, 0.42), transparent 42%),
+    linear-gradient(135deg, #050607 0%, #101624 58%, #0b241c 100%);
+  border: 1px solid rgba(16, 22, 36, 0.86);
+  border-radius: 8px;
+  box-shadow: 0 24px 64px rgba(16, 22, 36, 0.14);
+  isolation: isolate;
+}
+
+.brand-video-card::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.46;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(90deg, #000, rgba(0, 0, 0, 0.5) 58%, transparent 92%);
+}
+
+.brand-video-copy,
+.brand-video-media {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.brand-video-copy {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-video-copy .eyebrow {
+  color: #a6f4c5;
+}
+
+.brand-video-copy h2 {
+  max-width: 560px;
+  margin-bottom: 16px;
+  font-size: clamp(2.2rem, 3.6vw, 3.4rem);
+  font-weight: 350;
+  letter-spacing: 0;
+}
+
+.brand-video-copy > p:not(.eyebrow) {
+  max-width: 540px;
+  margin-bottom: 22px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: clamp(1rem, 1.1vw, 1.08rem);
+}
+
+.brand-video-actions {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: clamp(12px, 1.5vw, 22px);
+}
+
+.brand-video-button {
+  color: #101624;
+  background: #ffffff;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.28);
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.brand-video-button:hover {
+  background: #f2f4f7;
+  transform: translateY(-2px);
+}
+
+.brand-video-button:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.34);
+  outline-offset: 4px;
+}
+
+.brand-video-trial {
+  max-width: 490px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 0.82rem;
+}
+
+.brand-video-media {
+  display: grid;
+  gap: 12px;
+  width: min(700px, 100%);
+  justify-self: end;
+}
+
+.brand-video-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #000000;
+  border: 6px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 0 48px rgba(18, 183, 106, 0.12);
+}
+
+.brand-video-frame iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+}
+
+.brand-video-media > p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
 .contact-section {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(360px, 0.85fr);
@@ -1484,6 +1617,23 @@ h1 {
   .contact-section {
     grid-template-columns: 1fr;
   }
+
+  .brand-video-card {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-video-copy {
+    max-width: 760px;
+    display: block;
+  }
+
+  .brand-video-actions {
+    margin-top: 0;
+  }
+
+  .brand-video-media {
+    width: min(820px, 100%);
+  }
 }
 
 @media (max-width: 760px) {
@@ -1760,6 +1910,39 @@ h1 {
 
   .plan-card {
     min-height: auto;
+  }
+
+  .brand-video-section {
+    padding-top: 20px;
+  }
+
+  .brand-video-card {
+    min-height: 0;
+    gap: 24px;
+    padding: 24px 18px 20px;
+    border-radius: 8px;
+  }
+
+  .brand-video-copy h2 {
+    margin-bottom: 14px;
+    font-size: clamp(2rem, 9vw, 2.7rem);
+  }
+
+  .brand-video-copy > p:not(.eyebrow) {
+    margin-bottom: 22px;
+  }
+
+  .brand-video-button {
+    width: 100%;
+  }
+
+  .brand-video-frame {
+    border-width: 5px;
+    border-radius: 7px;
+  }
+
+  .brand-video-media > p {
+    text-align: left;
   }
 
   .contact-section {
