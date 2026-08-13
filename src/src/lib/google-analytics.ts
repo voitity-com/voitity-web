@@ -31,7 +31,16 @@ function isBigmeloHost(hostname: string): boolean {
 }
 
 export function isGoogleAnalyticsEnabled(): boolean {
-  return import.meta.env.PROD && isBigmeloHost(window.location.hostname);
+  const hostname = window.location.hostname.toLowerCase();
+  const isLocalHost =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname.endsWith(".localhost") ||
+    hostname.endsWith(".localdev.me") ||
+    hostname.endsWith(".nip.io");
+
+  return import.meta.env.PROD && !isLocalHost;
 }
 
 function invokeGtag(...args: unknown[]): void {

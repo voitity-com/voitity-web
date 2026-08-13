@@ -15,6 +15,7 @@ env:
   WEB_ENV_SECRET_ID: bigmelo/prod/web/env
   WEB_BUCKET: bigmelo-prod-web-139194331469
   WEB_DISTRIBUTION_ID: E2WUNAZAZFZHYA
+  PROFILE_DOMAIN_DISTRIBUTION_ID: ${{ vars.PROFILE_DOMAIN_DISTRIBUTION_ID }}
   WEB_FUNCTION_NAME: bigmelo-web-uri-rewrite
 
 jobs:
@@ -99,3 +100,8 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id "$WEB_DISTRIBUTION_ID" \
             --paths "/*"
+          if [ -n "$PROFILE_DOMAIN_DISTRIBUTION_ID" ]; then
+            aws cloudfront create-invalidation \
+              --distribution-id "$PROFILE_DOMAIN_DISTRIBUTION_ID" \
+              --paths "/*"
+          fi

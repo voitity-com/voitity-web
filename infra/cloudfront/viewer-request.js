@@ -4,6 +4,7 @@ function handler(event) {
     request.headers.host && request.headers.host.value
       ? request.headers.host.value.toLowerCase()
       : "";
+  var isBigmeloHost = host === "bigmelo.com" || host.endsWith(".bigmelo.com");
 
   if (host === "www.bigmelo.com") {
     return {
@@ -56,7 +57,7 @@ function handler(event) {
 
   var finalSegment = request.uri.substring(request.uri.lastIndexOf("/") + 1);
   if (finalSegment.indexOf(".") === -1) {
-    request.uri += "/index.html";
+    request.uri = isBigmeloHost ? request.uri + "/index.html" : "/index.html";
   }
 
   return request;

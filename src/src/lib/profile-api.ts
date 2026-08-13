@@ -275,6 +275,32 @@ export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {
   return normalizeProfile(payload, alias, socialNetworkDefinitions);
 }
 
+export async function fetchProfileByDomain(hostname: string): Promise<ProfileData> {
+  const normalizedHostname = hostname.toLowerCase().replace(/\.$/, "");
+  const profileResponsePromise = fetch(
+    apiUrl(
+      `/api/public/profiles/by-domain/${encodeURIComponent(normalizedHostname)}`,
+    ),
+    { headers: publicHeaders() },
+  );
+  const socialNetworksPromise = fetchSocialNetworkDefinitions().catch(() => []);
+  const response = await profileResponsePromise;
+
+  if (!response.ok) {
+    throw await createProfileApiError(
+      response,
+      "No fue posible cargar el perfil.",
+    );
+  }
+
+  const [payload, socialNetworkDefinitions] = await Promise.all([
+    response.json(),
+    socialNetworksPromise,
+  ]);
+
+  return normalizeProfile(payload, normalizedHostname, socialNetworkDefinitions);
+}
+
 export async function fetchPublicWidgetConfiguration(
   publicKey: string,
 ): Promise<PublicWidgetConfiguration> {

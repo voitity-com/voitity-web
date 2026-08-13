@@ -10,6 +10,7 @@ import {
   ChatMessageSocialLink,
   fetchAvatarMedia,
   fetchProfileByAlias,
+  fetchProfileByDomain,
   fetchProfileMessagingCapabilities,
   ProfileApiError,
   ProfileData,
@@ -23,8 +24,10 @@ import {
 type ProfileProps = {
   embedded?: boolean;
   onProfileNotFound: () => void;
-  profileAlias: string;
-};
+} & (
+  | { profileAlias: string; profileDomain?: never }
+  | { profileAlias?: never; profileDomain: string }
+);
 
 type GreetingAudioState =
   "idle" | "loading" | "ready" | "blocked" | "unavailable";
@@ -247,7 +250,8 @@ function getMessagingUnavailableMessage(
   return copy.subscriptionInactive;
 }
 
-export function Profile({ embedded = false, onProfileNotFound, profileAlias }: ProfileProps) {
+export function Profile({ embedded = false, onProfileNotFound, profileAlias, profileDomain }: ProfileProps) {
+  const profileStorageKey = profileDomain ?? profileAlias;
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
@@ -297,12 +301,12 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
   );
   const [previewPlaybackSeconds, setPreviewPlaybackSeconds] = useState(0);
   const [hasConfirmedAdultContent, setHasConfirmedAdultContent] = useState(() =>
-    readAdultContentConfirmation(profileAlias),
+    readAdultContentConfirmation(profileStorageKey),
   );
 
   useEffect(() => {
-    setHasConfirmedAdultContent(readAdultContentConfirmation(profileAlias));
-  }, [profileAlias]);
+    setHasConfirmedAdultContent(readAdultContentConfirmation(profileStorageKey));
+  }, [profileStorageKey]);
 
   useEffect(() => {
     let isMounted = true;
@@ -323,7 +327,9 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
         setMessagingCapabilities(DEFAULT_MESSAGING_CAPABILITIES);
         hasTrackedChatStartRef.current = false;
 
-        const nextProfile = await fetchProfileByAlias(profileAlias);
+        const nextProfile = profileDomain
+          ? await fetchProfileByDomain(profileDomain)
+          : await fetchProfileByAlias(profileAlias ?? "");
 
         if (!isMounted) {
           return;
@@ -339,7 +345,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
         });
         trackAnalyticsEvent("profile_view");
         setMessagingCapabilities(nextProfile.messagingCapabilities);
-        const storedSession = readProfileSession(profileAlias);
+        const storedSession = readProfileSession(profileStorageKey);
         const initialMessage = nextProfile.conversationMessages.initial;
         const hasStoredMessages = Boolean(storedSession?.messages.length);
         const initialMessages = [
@@ -383,7 +389,8 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
             nextProfile.locale,
           );
           setPageMetadata({
-            canonicalPath: `/${nextProfile.alias}`,
+            canonicalOrigin: profileDomain ? window.location.origin : undefined,
+            canonicalPath: profileDomain ? "/" : `/${nextProfile.alias}`,
             description,
             locale: nextProfile.locale,
             structuredData: {
@@ -394,9 +401,13 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
                 alternateName: `@${nextProfile.alias}`,
                 name: nextProfile.name,
                 sameAs: nextProfile.networks.map((network) => network.url),
-                url: `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
+                url: profileDomain
+                  ? `https://${profileDomain}/`
+                  : `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
               },
-              url: `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
+              url: profileDomain
+                ? `https://${profileDomain}/`
+                : `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
             },
             title: `${nextProfile.name} (@${nextProfile.alias}) | Bigmelo`,
             type: "profile",
@@ -468,7 +479,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
         URL.revokeObjectURL(nextAvatarUrl);
       }
     };
-  }, [embedded, onProfileNotFound, profileAlias]);
+  }, [embedded, onProfileNotFound, profileAlias, profileDomain, profileStorageKey]);
 
   useEffect(() => {
     if (!profile) {
@@ -543,12 +554,12 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
       return;
     }
 
-    writeProfileSession(profileAlias, {
+    writeProfileSession(profileStorageKey, {
       chatId,
       chatToken,
       messages,
     });
-  }, [chatId, chatToken, messages, profile, profileAlias]);
+  }, [chatId, chatToken, messages, profile, profileStorageKey]);
 
   useEffect(() => {
     if (!shouldScrollToBottomRef.current) {
@@ -1358,7 +1369,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias }: P
                               media={message.media}
                               profileId={profile.id}
                               onConfirmAdultContent={() => {
-                                writeAdultContentConfirmation(profileAlias);
+                                writeAdultContentConfirmation(profileStorageKey);
                                 setHasConfirmedAdultContent(true);
                               }}
                               onPulseComplete={() => {

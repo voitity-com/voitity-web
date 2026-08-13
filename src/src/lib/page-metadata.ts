@@ -1,4 +1,5 @@
 type PageMetadata = {
+  canonicalOrigin?: string;
   canonicalPath: string;
   description: string;
   image?: string;
@@ -24,12 +25,13 @@ function upsertMeta(selector: string, attributes: Record<string, string>) {
   Object.entries(attributes).forEach(([key, value]) => element!.setAttribute(key, value));
 }
 
-function canonicalUrl(path: string): string {
+function canonicalUrl(path: string, origin = SITE_URL): string {
   const normalizedPath = path === "/" ? "/" : `/${path.replace(/^\/+|\/+$/g, "")}`;
-  return `${SITE_URL}${normalizedPath}`;
+  return `${origin.replace(/\/+$/, "")}${normalizedPath}`;
 }
 
 export function setPageMetadata({
+  canonicalOrigin = SITE_URL,
   canonicalPath,
   description,
   image = DEFAULT_IMAGE,
@@ -39,7 +41,7 @@ export function setPageMetadata({
   title,
   type = "website",
 }: PageMetadata): void {
-  const url = canonicalUrl(canonicalPath);
+  const url = canonicalUrl(canonicalPath, canonicalOrigin);
 
   document.documentElement.lang = locale;
   document.title = title;
