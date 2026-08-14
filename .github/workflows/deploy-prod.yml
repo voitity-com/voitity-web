@@ -56,6 +56,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check landing performance budgets
+        run: npm run check:performance
+
       - name: Sync to S3
         run: |
           aws s3 sync dist "s3://$WEB_BUCKET" \

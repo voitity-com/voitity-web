@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, type ReactNode, useCallback, useEffect, useState } from 'react';
 
 import { AnalyticsConsent } from './components/AnalyticsConsent';
 import {
@@ -7,10 +7,37 @@ import {
   trackPageView,
 } from './lib/google-analytics';
 import { Home } from './pages/Home';
-import { EmbeddedProfile } from './pages/EmbeddedProfile';
-import { DataDeletionInstructions, PrivacyPolicy, TermsAndConditions } from './pages/Legal';
-import { NotFound } from './pages/NotFound';
-import { Profile } from './pages/Profile';
+
+const EmbeddedProfile = lazy(async () => {
+  const module = await import('./pages/EmbeddedProfile');
+
+  return { default: module.EmbeddedProfile };
+});
+const DataDeletionInstructions = lazy(async () => {
+  const module = await import('./pages/Legal');
+
+  return { default: module.DataDeletionInstructions };
+});
+const PrivacyPolicy = lazy(async () => {
+  const module = await import('./pages/Legal');
+
+  return { default: module.PrivacyPolicy };
+});
+const TermsAndConditions = lazy(async () => {
+  const module = await import('./pages/Legal');
+
+  return { default: module.TermsAndConditions };
+});
+const NotFound = lazy(async () => {
+  const module = await import('./pages/NotFound');
+
+  return { default: module.NotFound };
+});
+const Profile = lazy(async () => {
+  const module = await import('./pages/Profile');
+
+  return { default: module.Profile };
+});
 
 export function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
@@ -100,9 +127,19 @@ export function App() {
 
   return (
     <>
-      {page}
+      <Suspense fallback={<RouteSkeleton />}>{page}</Suspense>
       {isWidgetMode ? null : <AnalyticsConsent />}
     </>
+  );
+}
+
+function RouteSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading" className="route-skeleton" role="status">
+      <span />
+      <span />
+      <span />
+    </div>
   );
 }
 

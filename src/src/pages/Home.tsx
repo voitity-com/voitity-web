@@ -1,7 +1,6 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { getCountries, getCountryCallingCode, type CountryCode } from 'libphonenumber-js';
+import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
-import bigmeloLogo from '../assets/bigmelo-logo.png';
+import bigmeloLogo from '../assets/bigmelo-logo.webp';
 import { getAdminBaseUrl, getAdminSignInUrl } from '../lib/admin-url';
 import { submitContactSubmission } from '../lib/contact-api';
 import { trackAnalyticsEvent } from '../lib/google-analytics';
@@ -340,11 +339,17 @@ const content: Record<
 
 const TURNSTILE_SITE_KEY = ((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ?? '').trim();
 const TURNSTILE_SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-const LANDING_DEMO_IMAGE_URL = '/media/landing/valeria-rios-avatar-627aa159.png';
-const LANDING_DEMO_VIDEO_URL = '/media/landing/valeria-rios-avatar-22ca89b9.mp4';
+const LANDING_DEMO_IMAGE_URL = '/media/landing/valeria-rios-avatar-512.webp';
+const LANDING_DEMO_THUMBNAIL_URL = '/media/landing/valeria-rios-avatar-96.webp';
+const LANDING_DEMO_VIDEO_URL = '/media/landing/valeria-rios-avatar-480.mp4';
 const LANDING_YOUTUBE_URL = 'https://www.youtube.com/watch?v=pBxiwqnSBqo';
-const LANDING_YOUTUBE_THUMBNAIL_URL = 'https://i.ytimg.com/vi/pBxiwqnSBqo/hqdefault.jpg';
-const LANDING_VIDEO_EMBED_URL = 'https://www.youtube-nocookie.com/embed/pBxiwqnSBqo?rel=0&playsinline=1';
+const LANDING_YOUTUBE_THUMBNAIL_URL = '/media/landing/bigmelo-overview-video-480.webp';
+const LANDING_VIDEO_EMBED_URL = 'https://www.youtube-nocookie.com/embed/pBxiwqnSBqo?rel=0&playsinline=1&autoplay=1';
+const ContactPhoneFields = lazy(async () => {
+  const module = await import('../components/ContactPhoneFields');
+
+  return { default: module.ContactPhoneFields };
+});
 
 type TurnstileWidgetId = string;
 
@@ -369,13 +374,6 @@ declare global {
 
 let turnstileScriptPromise: Promise<void> | null = null;
 
-type CountryDialCodeOption = {
-  callingCode: string;
-  country: CountryCode;
-  label: string;
-  name: string;
-};
-
 function getInitialLocale(): Locale {
   if (typeof window !== 'undefined') {
     try {
@@ -390,38 +388,6 @@ function getInitialLocale(): Locale {
   }
 
   return 'es';
-}
-
-function getCountryDialCodeOptions(locale: Locale): CountryDialCodeOption[] {
-  const displayNames = getRegionDisplayNames(locale);
-
-  return getCountries()
-    .map((country) => {
-      const callingCode = `+${getCountryCallingCode(country)}`;
-      const name = displayNames?.of(country) ?? country;
-
-      return {
-        callingCode,
-        country,
-        label: `${countryFlag(country)} ${name} (${callingCode})`,
-        name,
-      };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name, locale));
-}
-
-function getRegionDisplayNames(locale: Locale): Intl.DisplayNames | null {
-  if (typeof Intl === 'undefined' || typeof Intl.DisplayNames === 'undefined') {
-    return null;
-  }
-
-  return new Intl.DisplayNames([locale], { type: 'region' });
-}
-
-function countryFlag(country: CountryCode): string {
-  return country
-    .toUpperCase()
-    .replace(/[A-Z]/gu, (letter) => String.fromCodePoint(127397 + letter.charCodeAt(0)));
 }
 
 function loadTurnstileScript(): Promise<void> {
@@ -562,6 +528,29 @@ function formatUsd(value: number): string {
   }).format(value)}`;
 }
 
+function ContactPhoneFieldsFallback({
+  countryLabel,
+  phoneLabel,
+}: {
+  countryLabel: string;
+  phoneLabel: string;
+}) {
+  return (
+    <div aria-busy="true" className="contact-phone-row contact-phone-row-loading">
+      <label>
+        {countryLabel}
+        <select aria-label={countryLabel} defaultValue="+57" disabled>
+          <option value="+57">Colombia (+57)</option>
+        </select>
+      </label>
+      <label>
+        {phoneLabel}
+        <input aria-label={phoneLabel} disabled type="tel" />
+      </label>
+    </div>
+  );
+}
+
 export function Home() {
   const [locale, setLocale] = useState<Locale>(getInitialLocale);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -573,8 +562,15 @@ export function Home() {
   const [demoPhase, setDemoPhase] = useState(0);
   const [demoTypedText, setDemoTypedText] = useState('');
   const [isDemoVisible, setIsDemoVisible] = useState(false);
+  const [isBrandVideoLoaded, setIsBrandVideoLoaded] = useState(false);
+  const [isContactNearViewport, setIsContactNearViewport] = useState(false);
+  const [shouldLoadDemoVideo, setShouldLoadDemoVideo] = useState(false);
+  const [shouldLoadPlans, setShouldLoadPlans] = useState(false);
+  const contactSectionRef = useRef<HTMLElement | null>(null);
   const demoContainerRef = useRef<HTMLDivElement | null>(null);
   const demoConversationRef = useRef<HTMLDivElement | null>(null);
+  const demoVideoRef = useRef<HTMLVideoElement | null>(null);
+  const plansSectionRef = useRef<HTMLElement | null>(null);
   const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
   const turnstileWidgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const t = content[locale];
@@ -584,7 +580,6 @@ export function Home() {
   );
   const starterPlan = planItems.find((plan) => plan.cycle === 'month') ?? t.plans.items[0];
   const adminSignInUrl = getAdminSignInUrl(locale);
-  const countryDialCodes = useMemo(() => getCountryDialCodeOptions(locale), [locale]);
   const isCaptchaEnabled = TURNSTILE_SITE_KEY !== '';
   const heroProof =
     locale === 'es'
@@ -642,6 +637,33 @@ export function Home() {
   }, [locale]);
 
   useEffect(() => {
+    const plansSection = plansSectionRef.current;
+
+    if (! plansSection || typeof IntersectionObserver === 'undefined') {
+      setShouldLoadPlans(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoadPlans(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '600px 0px' },
+    );
+
+    observer.observe(plansSection);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (! shouldLoadPlans) {
+      return undefined;
+    }
+
     let cancelled = false;
 
     fetchPublicSubscriptionPlans()
@@ -657,6 +679,29 @@ export function Home() {
     return () => {
       cancelled = true;
     };
+  }, [shouldLoadPlans]);
+
+  useEffect(() => {
+    const contactSection = contactSectionRef.current;
+
+    if (! contactSection || typeof IntersectionObserver === 'undefined') {
+      setIsContactNearViewport(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsContactNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '500px 0px' },
+    );
+
+    observer.observe(contactSection);
+
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -678,6 +723,46 @@ export function Home() {
 
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (! isDemoVisible || shouldLoadDemoVideo) {
+      return undefined;
+    }
+
+    const connection = (navigator as Navigator & {
+      connection?: { effectiveType?: string; saveData?: boolean };
+    }).connection;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedData = connection?.saveData === true
+      || connection?.effectiveType === 'slow-2g'
+      || connection?.effectiveType === '2g';
+
+    if (prefersReducedMotion || prefersReducedData) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShouldLoadDemoVideo(true);
+    }, 1_500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isDemoVisible, shouldLoadDemoVideo]);
+
+  useEffect(() => {
+    const video = demoVideoRef.current;
+
+    if (! video) {
+      return;
+    }
+
+    if (isDemoVisible) {
+      void video.play().catch(() => {
+        // Browsers may still reject autoplay; the optimized poster remains visible.
+      });
+    } else {
+      video.pause();
+    }
+  }, [isDemoVisible, shouldLoadDemoVideo]);
 
   useEffect(() => {
     setDemoPhase(0);
@@ -754,7 +839,7 @@ export function Home() {
   }, [demoPhase, isDemoVisible]);
 
   useEffect(() => {
-    if (! isCaptchaEnabled) {
+    if (! isCaptchaEnabled || ! isContactNearViewport) {
       return undefined;
     }
 
@@ -800,7 +885,7 @@ export function Home() {
 
       turnstileWidgetIdRef.current = null;
     };
-  }, [isCaptchaEnabled, locale]);
+  }, [isCaptchaEnabled, isContactNearViewport, locale]);
 
   function resetCaptchaWidget() {
     if (! isCaptchaEnabled) {
@@ -862,7 +947,7 @@ export function Home() {
     <main className="landing-page">
       <header className="site-header" aria-label="Bigmelo">
         <a className="brand" href="#top" aria-label="Bigmelo">
-          <img className="brand-logo" alt="Bigmelo" src={bigmeloLogo} />
+          <img className="brand-logo" alt="Bigmelo" height="98" src={bigmeloLogo} width="382" />
         </a>
 
         <nav className="nav-links" aria-label="Main navigation">
@@ -909,7 +994,7 @@ export function Home() {
 
           <div className="hero-actions">
             <a className="button button-primary hero-avatar-button" href="#contact">
-              <img alt="" src={LANDING_DEMO_IMAGE_URL} />
+              <img alt="" height="96" src={LANDING_DEMO_THUMBNAIL_URL} width="96" />
               <span>{t.hero.primaryCta}</span>
             </a>
             <a className="button button-secondary button-arrow" href="#plans">
@@ -956,17 +1041,33 @@ export function Home() {
               <span className="demo-ring demo-ring-two" />
               <span className="demo-ring demo-ring-three" />
               <div className="landing-avatar">
-                <video
-                  autoPlay
-                  className="landing-avatar-image"
-                  loop
-                  muted
-                  playsInline
-                  poster={LANDING_DEMO_IMAGE_URL}
-                  preload="metadata"
-                >
-                  <source src={LANDING_DEMO_VIDEO_URL} type="video/mp4" />
-                </video>
+                {shouldLoadDemoVideo ? (
+                  <video
+                    aria-hidden="true"
+                    autoPlay
+                    className="landing-avatar-image"
+                    height="480"
+                    loop
+                    muted
+                    playsInline
+                    poster={LANDING_DEMO_IMAGE_URL}
+                    preload="metadata"
+                    ref={demoVideoRef}
+                    width="480"
+                  >
+                    <source src={LANDING_DEMO_VIDEO_URL} type="video/mp4" />
+                  </video>
+                ) : (
+                  <img
+                    alt=""
+                    className="landing-avatar-image"
+                    decoding="async"
+                    fetchPriority="high"
+                    height="512"
+                    src={LANDING_DEMO_IMAGE_URL}
+                    width="512"
+                  />
+                )}
               </div>
               <div className="demo-avatar-audio" aria-hidden="true">
                 <SpeakerIcon />
@@ -982,7 +1083,7 @@ export function Home() {
                 <div className="demo-message-row assistant">
                   <article className="demo-message assistant is-entering">
                     <span className="demo-message-avatar-wrap">
-                      <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                      <img alt="" className="demo-message-avatar" height="96" src={LANDING_DEMO_THUMBNAIL_URL} width="96" />
                       <i className="demo-message-play" aria-hidden="true" />
                     </span>
                     <div className="demo-message-content">
@@ -1007,7 +1108,7 @@ export function Home() {
                   <div className="demo-message-row assistant">
                     <article className="demo-message assistant is-entering">
                       <span className="demo-message-avatar-wrap">
-                        <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                        <img alt="" className="demo-message-avatar" height="96" src={LANDING_DEMO_THUMBNAIL_URL} width="96" />
                       </span>
                       <div className="demo-message-content demo-typing-message" aria-label={t.hero.demoTyping}>
                         <span />
@@ -1022,7 +1123,7 @@ export function Home() {
                   <div className="demo-message-row assistant">
                     <article className="demo-message assistant is-entering">
                       <span className="demo-message-avatar-wrap">
-                        <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                        <img alt="" className="demo-message-avatar" height="96" src={LANDING_DEMO_THUMBNAIL_URL} width="96" />
                         <i className="demo-message-play" aria-hidden="true" />
                       </span>
                       <div className="demo-message-stack">
@@ -1043,7 +1144,7 @@ export function Home() {
                           }}
                         >
                           <span className="demo-youtube-thumbnail">
-                            <img alt="" src={LANDING_YOUTUBE_THUMBNAIL_URL} />
+                            <img alt="" decoding="async" height="360" loading="lazy" src={LANDING_YOUTUBE_THUMBNAIL_URL} width="480" />
                             <i aria-hidden="true" />
                           </span>
                           <span className="demo-youtube-copy">
@@ -1071,7 +1172,7 @@ export function Home() {
                   <div className="demo-message-row assistant">
                     <article className="demo-message assistant is-entering">
                       <span className="demo-message-avatar-wrap">
-                        <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                        <img alt="" className="demo-message-avatar" height="96" src={LANDING_DEMO_THUMBNAIL_URL} width="96" />
                       </span>
                       <div className="demo-message-content demo-typing-message" aria-label={t.hero.demoTyping}>
                         <span />
@@ -1086,7 +1187,7 @@ export function Home() {
                   <div className="demo-message-row assistant">
                     <article className="demo-message assistant is-entering">
                       <span className="demo-message-avatar-wrap">
-                        <img alt="" className="demo-message-avatar" src={LANDING_DEMO_IMAGE_URL} />
+                        <img alt="" className="demo-message-avatar" height="96" src={LANDING_DEMO_THUMBNAIL_URL} width="96" />
                         <i className="demo-message-play" aria-hidden="true" />
                       </span>
                       <div className="demo-message-stack">
@@ -1096,7 +1197,7 @@ export function Home() {
                         </div>
                         <article className="demo-starter-card">
                           <div className="demo-starter-image">
-                            <img alt="Bigmelo" src={bigmeloLogo} />
+                            <img alt="Bigmelo" height="98" loading="lazy" src={bigmeloLogo} width="382" />
                           </div>
                           <div className="demo-starter-copy">
                             <span>{starterPlan.label}</span>
@@ -1141,7 +1242,7 @@ export function Home() {
         </div>
       </section>
 
-      <section className="plans-section section-shell" id="plans">
+      <section className="plans-section section-shell" id="plans" ref={plansSectionRef}>
         <div className="section-heading">
           <p className="eyebrow">{t.plans.eyebrow}</p>
           <h2>{t.plans.title}</h2>
@@ -1204,21 +1305,45 @@ export function Home() {
 
           <div className="brand-video-media">
             <div className="brand-video-frame">
-              <iframe
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="strict-origin-when-cross-origin"
-                src={LANDING_VIDEO_EMBED_URL}
-                title={t.video.videoTitle}
-              />
+              {isBrandVideoLoaded ? (
+                <iframe
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  src={LANDING_VIDEO_EMBED_URL}
+                  title={t.video.videoTitle}
+                />
+              ) : (
+                <button
+                  aria-label={t.video.videoTitle}
+                  className="brand-video-placeholder"
+                  onClick={() => {
+                    setIsBrandVideoLoaded(true);
+                    trackAnalyticsEvent('select_content', {
+                      content_type: 'landing_video_play',
+                      item_id: 'bigmelo_overview',
+                    });
+                  }}
+                  type="button"
+                >
+                  <img
+                    alt=""
+                    decoding="async"
+                    height="360"
+                    loading="lazy"
+                    src={LANDING_YOUTUBE_THUMBNAIL_URL}
+                    width="480"
+                  />
+                  <span aria-hidden="true" className="brand-video-play" />
+                </button>
+              )}
             </div>
             <p>{t.video.videoTitle}</p>
           </div>
         </div>
       </section>
 
-      <section className="contact-section section-shell" id="contact">
+      <section className="contact-section section-shell" id="contact" ref={contactSectionRef}>
         <div className="contact-copy">
           <p className="eyebrow">{t.contact.eyebrow}</p>
           <h2>{t.contact.title}</h2>
@@ -1231,7 +1356,13 @@ export function Home() {
           </div>
         </div>
 
-        <form aria-busy={isSubmitting} className="contact-form" onSubmit={handleSubmit}>
+        <form
+          aria-busy={isSubmitting}
+          className="contact-form"
+          onFocusCapture={() => setIsContactNearViewport(true)}
+          onPointerDownCapture={() => setIsContactNearViewport(true)}
+          onSubmit={handleSubmit}
+        >
           <label>
             {t.contact.name}
             <input name="name" autoComplete="name" required />
@@ -1242,23 +1373,27 @@ export function Home() {
             <input name="email" type="email" autoComplete="email" required />
           </label>
 
-          <div className="contact-phone-row">
-            <label>
-              {t.contact.phoneCountry}
-              <select name="phone_country_code" autoComplete="tel-country-code" defaultValue="+57" required>
-                {countryDialCodes.map((country) => (
-                  <option key={country.country} value={country.callingCode}>
-                    {country.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              {t.contact.phone}
-              <input name="phone_number" type="tel" autoComplete="tel-national" required />
-            </label>
-          </div>
+          <Suspense
+            fallback={(
+              <ContactPhoneFieldsFallback
+                countryLabel={t.contact.phoneCountry}
+                phoneLabel={t.contact.phone}
+              />
+            )}
+          >
+            {isContactNearViewport ? (
+              <ContactPhoneFields
+                countryLabel={t.contact.phoneCountry}
+                locale={locale}
+                phoneLabel={t.contact.phone}
+              />
+            ) : (
+              <ContactPhoneFieldsFallback
+                countryLabel={t.contact.phoneCountry}
+                phoneLabel={t.contact.phone}
+              />
+            )}
+          </Suspense>
 
           <label>
             {t.contact.message}
@@ -1296,7 +1431,7 @@ export function Home() {
 
       <footer className="site-footer">
         <a className="brand" href="#top" aria-label="Bigmelo">
-          <img className="brand-logo" alt="Bigmelo" src={bigmeloLogo} />
+          <img className="brand-logo" alt="Bigmelo" height="98" loading="lazy" src={bigmeloLogo} width="382" />
         </a>
 
         <p>{t.footer.tagline}</p>

@@ -64,9 +64,9 @@ export function AnalyticsConsent() {
   }
 
   return (
-    <aside aria-label={t.title} className="analytics-consent" role="dialog">
+    <section aria-labelledby="analytics-consent-title" className="analytics-consent">
       <div className="analytics-consent-copy">
-        <strong>{t.title}</strong>
+        <h2 id="analytics-consent-title">{t.title}</h2>
         <p>{t.body}</p>
         <a href={locale === "en" ? "/privacy" : "/privacidad"}>{t.privacy}</a>
       </div>
@@ -78,6 +78,6 @@ export function AnalyticsConsent() {
           {t.accept}
         </button>
       </div>
-    </aside>
+    </section>
   );
 }

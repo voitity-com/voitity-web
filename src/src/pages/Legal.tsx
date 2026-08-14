@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 
-import bigmeloLogo from "../assets/bigmelo-logo.png";
+import bigmeloLogo from "../assets/bigmelo-logo.webp";
 import { getAdminSignInUrl } from "../lib/admin-url";
 import { setPageMetadata } from "../lib/page-metadata";
 
@@ -1799,7 +1799,7 @@ function LegalLayout({
     <main className="legal-page">
       <header className="legal-topbar">
         <a className="brand" href="/" aria-label="Bigmelo">
-          <img className="brand-logo" alt="Bigmelo" src={bigmeloLogo} />
+          <img className="brand-logo" alt="Bigmelo" height="98" src={bigmeloLogo} width="382" />
         </a>
 
         <div className="legal-topbar-actions">
