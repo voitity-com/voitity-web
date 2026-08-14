@@ -101,7 +101,13 @@ jobs:
             --distribution-id "$WEB_DISTRIBUTION_ID" \
             --paths "/*"
           if [ -n "$PROFILE_DOMAIN_DISTRIBUTION_ID" ]; then
-            aws cloudfront create-invalidation \
-              --distribution-id "$PROFILE_DOMAIN_DISTRIBUTION_ID" \
-              --paths "/*"
+            TENANT_IDS="$(aws cloudfront list-distribution-tenants \
+              --association-filter "DistributionId=$PROFILE_DOMAIN_DISTRIBUTION_ID" \
+              --query 'DistributionTenantList[].Id' \
+              --output text)"
+            for TENANT_ID in $TENANT_IDS; do
+              aws cloudfront create-invalidation-for-distribution-tenant \
+                --id "$TENANT_ID" \
+                --invalidation-batch "Paths={Quantity=1,Items=[\"/*\"]},CallerReference=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${TENANT_ID}"
+            done
           fi
