@@ -157,11 +157,12 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Sid: InvalidateProfileDomainDistribution
+          - Sid: InvalidateBigmeloProfileDomainTenants
             Effect: Allow
             Action:
-              - cloudfront:CreateInvalidation
-            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${ProfileDomainDistribution.Id}'
+              - cloudfront:CreateInvalidationForDistributionTenant
+              - cloudfront:ListDistributionTenants
+            Resource: '*'
 
   ProfileDomainConnectionGroup:
     Type: AWS::CloudFront::ConnectionGroup
