@@ -5,9 +5,18 @@ Parameters:
   WebBucketRegionalDomainName:
     Type: String
     Description: Regional domain name of the existing private Bigmelo web S3 bucket
+  ApiInstanceRoleName:
+    Type: String
+    Description: Existing EC2 role used by the Bigmelo API
+  GitHubDeployRoleName:
+    Type: String
+    Description: Existing GitHub Actions deployment role
   ViewerRequestFunctionArn:
     Type: String
     Description: ARN of the published Bigmelo viewer-request CloudFront Function
+  ViewerCertificateArn:
+    Type: String
+    Description: Existing us-east-1 ACM certificate used by the multi-tenant template
   CachePolicyId:
     Type: String
     Description: CloudFront cache policy ID selected for the web assets
@@ -23,6 +32,37 @@ Conditions:
   HasWebAcl: !Not [!Equals [!Ref WebAclArn, '']]
 
 Resources:
+  ProfileDomainAccessLogBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AccessControl: LogDeliveryWrite
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireProfileDomainAccessLogs
+            Status: Enabled
+            ExpirationInDays: 90
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Application
+          Value: bigmelo
+        - Key: Component
+          Value: profile-custom-domain-access-logs
+        - Key: ManagedBy
+          Value: cloudformation
+
   ProfileDomainOriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
@@ -54,7 +94,10 @@ Resources:
         Enabled: true
         DefaultRootObject: index.html
         HttpVersion: http2and3
-        IPV6Enabled: true
+        Logging:
+          Bucket: !GetAtt ProfileDomainAccessLogBucket.DomainName
+          IncludeCookies: false
+          Prefix: cloudfront/
         Origins:
           - DomainName: !Ref WebBucketRegionalDomainName
             Id: BigmeloWebOrigin
@@ -69,6 +112,10 @@ Resources:
                   Comment: Bigmelo profile identifier used for audit metadata
                   DefaultValue: unknown
                   Required: false
+        ViewerCertificate:
+          AcmCertificateArn: !Ref ViewerCertificateArn
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
         WebACLId: !If [HasWebAcl, !Ref WebAclArn, !Ref AWS::NoValue]
       Tags:
         - Key: Application
@@ -77,6 +124,44 @@ Resources:
           Value: profile-custom-domains
         - Key: ManagedBy
           Value: cloudformation
+
+  ProfileDomainApiPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-api-tenant-management'
+      Roles:
+        - !Ref ApiInstanceRoleName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ManageBigmeloProfileDomainTenants
+            Effect: Allow
+            Action:
+              - cloudfront:CreateDistributionTenant
+              - cloudfront:DeleteDistributionTenant
+              - cloudfront:GetConnectionGroup
+              - cloudfront:GetDistributionTenant
+              - cloudfront:GetDistributionTenantByDomain
+              - cloudfront:GetManagedCertificateDetails
+              - cloudfront:TagResource
+              - cloudfront:UpdateDistributionTenant
+              - cloudfront:VerifyDnsConfiguration
+            Resource: '*'
+
+  ProfileDomainDeployPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-github-invalidation'
+      Roles:
+        - !Ref GitHubDeployRoleName
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: InvalidateProfileDomainDistribution
+            Effect: Allow
+            Action:
+              - cloudfront:CreateInvalidation
+            Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${ProfileDomainDistribution.Id}'
 
   ProfileDomainConnectionGroup:
     Type: AWS::CloudFront::ConnectionGroup
@@ -108,3 +193,9 @@ Outputs:
   OriginAccessControlId:
     Description: Origin access control used by the multi-tenant distribution
     Value: !GetAtt ProfileDomainOriginAccessControl.Id
+  AccessLogBucketName:
+    Description: Retained private bucket for CloudFront standard access logs
+    Value: !Ref ProfileDomainAccessLogBucket
+  ApiPolicyName:
+    Description: Inline policy that lets the API manage distribution tenants
+    Value: !Ref ProfileDomainApiPolicy
