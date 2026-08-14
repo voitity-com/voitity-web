@@ -147,6 +147,22 @@ Resources:
               - cloudfront:UpdateDistributionTenant
               - cloudfront:VerifyDnsConfiguration
             Resource: '*'
+          - Sid: RequestCloudFrontManagedTenantCertificates
+            Effect: Allow
+            Action:
+              - acm:RequestCertificate
+            Resource: '*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: us-east-1
+          - Sid: ReadCloudFrontManagedTenantCertificates
+            Effect: Allow
+            Action:
+              - acm:DescribeCertificate
+            Resource: !Sub 'arn:${AWS::Partition}:acm:us-east-1:${AWS::AccountId}:certificate/*'
+            Condition:
+              StringEquals:
+                aws:RequestedRegion: us-east-1
 
   ProfileDomainDeployPolicy:
     Type: AWS::IAM::Policy
