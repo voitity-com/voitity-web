@@ -112,7 +112,7 @@ type BusinessUnknownRecord = Record<string, unknown>;
         if (configuration.welcome_message) append("assistant", configuration.welcome_message);
         const visitorId = getVisitorId();
         const response = await businessFetch(apiBase, key, "/api/business/conversations", {
-          body: JSON.stringify({ visitor_id: visitorId }), method: "POST",
+          body: JSON.stringify({ locale: configuration.locale, visitor_id: visitorId }), method: "POST",
         });
         if (!response.ok) throw new Error("Unable to start business conversation");
         const data = dataRecord(await response.json());
@@ -152,7 +152,7 @@ type BusinessUnknownRecord = Record<string, unknown>;
       append("visitor", content);
       setBusy(true);
       businessFetch(apiBase, key, `/api/business/conversations/${encodeURIComponent(conversationId)}/messages`, {
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ locale: configuration.locale, message: content }),
         headers: { "Idempotency-Key": crypto.randomUUID(), "X-Bigmelo-Business-Session": session },
         method: "POST",
       }).then(async (response) => {
