@@ -12,7 +12,6 @@ permissions:
 env:
   AWS_REGION: us-east-1
   AWS_ROLE_ARN: arn:aws:iam::139194331469:role/bigmelo-prod-github-actions-deploy-role
-  WEB_ENV_SECRET_ID: bigmelo/prod/web/env
   WEB_BUCKET: bigmelo-prod-web-139194331469
   WEB_DISTRIBUTION_ID: E2WUNAZAZFZHYA
   PROFILE_DOMAIN_DISTRIBUTION_ID: ${{ vars.PROFILE_DOMAIN_DISTRIBUTION_ID }}
@@ -36,12 +35,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Write production env
-        run: |
-          aws secretsmanager get-secret-value \
-            --secret-id "$WEB_ENV_SECRET_ID" \
-            --region "$AWS_REGION" \
-            --query SecretString \
-            --output text > .env.production
+        run: bash ../scripts/deploy/write-production-env.sh .env.production
 
       - name: Setup Node
         uses: actions/setup-node@v7

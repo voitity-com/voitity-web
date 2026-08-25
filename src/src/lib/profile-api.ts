@@ -132,6 +132,7 @@ export type MessageResponse = {
   requestMessageId?: string;
   requestText?: string;
   messagingCapabilities?: ProfileMessagingCapabilities;
+  pending?: boolean;
 };
 
 export type ProfileInteraction = {
@@ -430,7 +431,14 @@ export async function sendProfileMessage(
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
 
   if (contentType.includes("application/json")) {
-    return normalizeMessageResponse((await response.json()) as UnknownRecord);
+    const normalized = normalizeMessageResponse(
+      (await response.json()) as UnknownRecord,
+      response.status === 202,
+    );
+
+    return normalized.pending
+      ? waitForProfileMessage(profileId, normalized, chatToken)
+      : normalized;
   }
 
   const blob = await response.blob();
@@ -477,7 +485,14 @@ export async function sendProfileAudioMessage(
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
 
   if (contentType.includes("application/json")) {
-    return normalizeMessageResponse((await response.json()) as UnknownRecord);
+    const normalized = normalizeMessageResponse(
+      (await response.json()) as UnknownRecord,
+      response.status === 202,
+    );
+
+    return normalized.pending
+      ? waitForProfileMessage(profileId, normalized, chatToken)
+      : normalized;
   }
 
   const blob = await response.blob();
@@ -643,7 +658,10 @@ function normalizeProfileFeatureSettings(
   });
 }
 
-function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
+function normalizeMessageResponse(
+  payload: UnknownRecord,
+  allowPending = false,
+): MessageResponse {
   const source = unwrapPayload(payload);
   const audioUrl = normalizeOptionalAssetUrl(
     pickString(source, [
@@ -666,6 +684,29 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
     "message",
     "content",
   ]);
+  const requestMessageId = pickString(source, [
+    "request_message_id",
+    "requestMessageId",
+    "message_id",
+    "messageId",
+  ]);
+
+  if (allowPending && !text && !audioUrl) {
+    return {
+      chatId: pickString(source, ["chat_id", "chatId"]),
+      chatToken: pickString(source, ["chat_token", "chatToken"]),
+      messagingCapabilities: normalizeMessagingCapabilities(
+        source.messaging_capabilities ?? source.messagingCapabilities,
+      ),
+      pending: true,
+      requestAudioUrl: normalizeOptionalAssetUrl(
+        pickString(source, ["request_audio_url", "requestAudioUrl"]),
+      ),
+      requestMessageId,
+      requestText: pickString(source, ["request_text", "requestText"]),
+      text: "",
+    };
+  }
 
   if (
     !text &&
@@ -684,10 +725,7 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
     requestAudioUrl: normalizeOptionalAssetUrl(
       pickString(source, ["request_audio_url", "requestAudioUrl"]),
     ),
-    requestMessageId: pickString(source, [
-      "request_message_id",
-      "requestMessageId",
-    ]),
+    requestMessageId,
     requestText: pickString(source, ["request_text", "requestText"]),
     messagingCapabilities: normalizeMessagingCapabilities(
       source.messaging_capabilities ?? source.messagingCapabilities,
@@ -697,6 +735,57 @@ function normalizeMessageResponse(payload: UnknownRecord): MessageResponse {
     ...(socialLinks.length ? { socialLinks } : {}),
     text: text ?? "Respuesta de audio recibida.",
   };
+}
+
+async function waitForProfileMessage(
+  profileId: string,
+  pending: MessageResponse,
+  previousChatToken?: string | null,
+): Promise<MessageResponse> {
+  const messageId = pending.requestMessageId;
+  const chatToken = pending.chatToken ?? previousChatToken ?? undefined;
+
+  if (!messageId || !chatToken) {
+    throw new Error("No fue posible consultar la respuesta en proceso.");
+  }
+
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, attempt < 5 ? 750 : 1500),
+    );
+
+    const response = await fetch(
+      apiUrl(
+        `/api/public/profiles/${encodeURIComponent(profileId)}/messages/${encodeURIComponent(messageId)}/status`,
+      ),
+      { headers: publicHeaders(undefined, chatToken) },
+    );
+
+    if (response.status === 202) {
+      continue;
+    }
+
+    if (!response.ok) {
+      throw await createProfileApiError(
+        response,
+        "No fue posible completar la respuesta.",
+      );
+    }
+
+    const result = normalizeMessageResponse(
+      (await response.json()) as UnknownRecord,
+    );
+
+    return {
+      ...result,
+      chatId: result.chatId ?? pending.chatId,
+      chatToken,
+    };
+  }
+
+  throw new Error(
+    "La respuesta está tardando más de lo esperado. Intenta de nuevo en unos segundos.",
+  );
 }
 
 function normalizeMessagingCapabilities(
