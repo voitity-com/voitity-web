@@ -141,11 +141,15 @@ export type ProfileInteraction = {
     | "media_opened"
     | "product_clicked"
     | "profile_viewed"
+    | "profile_shared"
     | "social_link_clicked";
   chatId?: string | null;
   destinationType?: "provider_channel" | "provider_video";
   mediaType?: "image" | "video";
-  metadata?: { destination_type?: "external_url" | "telegram" | "whatsapp" };
+  metadata?: {
+    destination_type?: "external_url" | "telegram" | "whatsapp";
+    share_method?: "clipboard" | "native";
+  };
   provider?: string;
   subjectId?: string;
   surface:

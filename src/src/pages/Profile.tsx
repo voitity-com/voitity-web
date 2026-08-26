@@ -104,6 +104,11 @@ const profileCopy = {
     sendAudio: "Send audio",
     sendFailed: "The message could not be sent.",
     sendMessage: "Send message",
+    shareComplete: "Profile shared",
+    shareCopied: "Link copied",
+    shareFailed: "The profile could not be shared",
+    shareProfile: "Share profile",
+    shareText: (name: string) => `Meet ${name} on Bigmelo.`,
     socialNav: "Social networks",
     startRecording: "Record message",
     stopRecording: "Stop recording",
@@ -155,6 +160,11 @@ const profileCopy = {
     sendAudio: "Enviar audio",
     sendFailed: "No fue posible enviar el mensaje.",
     sendMessage: "Enviar mensaje",
+    shareComplete: "Perfil compartido",
+    shareCopied: "Enlace copiado",
+    shareFailed: "No fue posible compartir el perfil",
+    shareProfile: "Compartir perfil",
+    shareText: (name: string) => `Conoce el perfil de ${name} en Bigmelo.`,
     socialNav: "Redes sociales",
     startRecording: "Grabar mensaje",
     stopRecording: "Detener grabación",
@@ -232,6 +242,39 @@ function trackProfileInteraction(
   });
 }
 
+async function copyTextToClipboard(value: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // Fall through to the selection-based copy for older or restricted browsers.
+    }
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = value;
+  textArea.setAttribute("readonly", "");
+  textArea.style.left = "-9999px";
+  textArea.style.position = "fixed";
+  textArea.style.top = "0";
+  document.body.append(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    if (!document.execCommand("copy")) {
+      throw new Error("Copy command was rejected.");
+    }
+  } finally {
+    textArea.remove();
+  }
+}
+
+function isShareCancelled(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
 function getMessagingUnavailableMessage(
   capabilities: ProfileMessagingCapabilities,
   copy: ReturnType<typeof getProfileCopy>,
@@ -268,6 +311,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToBottomRef = useRef(false);
   const hasTrackedChatStartRef = useRef(false);
+  const shareFeedbackTimerRef = useRef<number | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
   const [chatToken, setChatToken] = useState<string | null>(null);
@@ -293,6 +337,8 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
     useState<ProfileMessagingCapabilities>(DEFAULT_MESSAGING_CAPABILITIES);
   const [pulseMedia, setPulseMedia] = useState<PulseMedia | null>(null);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const [previewDurationSeconds, setPreviewDurationSeconds] = useState(0);
   const copy = getProfileCopy(profile?.locale ?? "es");
   const audioMaxDurationSeconds = Math.max(
@@ -307,6 +353,14 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
   useEffect(() => {
     setHasConfirmedAdultContent(readAdultContentConfirmation(profileStorageKey));
   }, [profileStorageKey]);
+
+  useEffect(() => {
+    return () => {
+      if (shareFeedbackTimerRef.current !== null) {
+        window.clearTimeout(shareFeedbackTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -1237,6 +1291,69 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
       ? copy.audioMuted
       : copy.audioOn;
 
+  function showShareFeedback(message: string): void {
+    if (shareFeedbackTimerRef.current !== null) {
+      window.clearTimeout(shareFeedbackTimerRef.current);
+    }
+
+    setShareFeedback(message);
+    shareFeedbackTimerRef.current = window.setTimeout(() => {
+      setShareFeedback(null);
+      shareFeedbackTimerRef.current = null;
+    }, 2400);
+  }
+
+  async function handleShareProfile(): Promise<void> {
+    if (!profile || isSharing) {
+      return;
+    }
+
+    const url = new URL(
+      profileDomain ? "/" : `/${encodeURIComponent(profile.alias)}`,
+      window.location.origin,
+    ).toString();
+    const shareData = {
+      text: copy.shareText(profile.name),
+      title: `${profile.name} (@${profile.alias}) | Bigmelo`,
+      url,
+    } satisfies ShareData;
+    let shareMethod: "clipboard" | "native" = "clipboard";
+
+    setIsSharing(true);
+    setShareFeedback(null);
+
+    try {
+      if (typeof navigator.share === "function") {
+        try {
+          await navigator.share(shareData);
+          shareMethod = "native";
+          showShareFeedback(copy.shareComplete);
+        } catch (error) {
+          if (isShareCancelled(error)) {
+            return;
+          }
+
+          await copyTextToClipboard(url);
+          showShareFeedback(copy.shareCopied);
+        }
+      } else {
+        await copyTextToClipboard(url);
+        showShareFeedback(copy.shareCopied);
+      }
+
+      trackAnalyticsEvent("profile_shared", { share_method: shareMethod });
+      trackProfileInteraction(profile.id, {
+        eventType: "profile_shared",
+        metadata: { share_method: shareMethod },
+        surface: "profile_social_nav",
+      });
+    } catch {
+      showShareFeedback(copy.shareFailed);
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
   return (
     <main className={`profile-page${embedded ? " is-embedded" : ""}`}>
       <audio
@@ -1277,7 +1394,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
             <header className="profile-title">
               <h1>{profile.name}</h1>
               <p className="profile-alias">@{profile.alias}</p>
-              {profile.networks.length ? (
+              {profile.networks.length || !embedded ? (
                 <nav
                   aria-label={copy.socialNav}
                   className="profile-social-links"
@@ -1312,6 +1429,27 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
                       )}
                     </a>
                   ))}
+                  {!embedded ? (
+                    <span className="profile-share-action">
+                      <button
+                        aria-label={copy.shareProfile}
+                        className="profile-social-link is-share"
+                        disabled={isSharing}
+                        onClick={() => {
+                          void handleShareProfile();
+                        }}
+                        title={copy.shareProfile}
+                        type="button"
+                      >
+                        <ShareIcon />
+                      </button>
+                      {shareFeedback ? (
+                        <span className="profile-share-feedback" role="status">
+                          {shareFeedback}
+                        </span>
+                      ) : null}
+                    </span>
+                  ) : null}
                 </nav>
               ) : null}
             </header>
@@ -3062,6 +3200,23 @@ function SendIcon() {
         strokeLinejoin="round"
         strokeWidth="1.9"
       />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+      <path
+        d="m8.05 10.85 7.9-4.7m-7.9 7 7.9 4.7"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+      <circle cx="6" cy="12" r="2.25" stroke="currentColor" strokeWidth="1.9" />
+      <circle cx="18" cy="5" r="2.25" stroke="currentColor" strokeWidth="1.9" />
+      <circle cx="18" cy="19" r="2.25" stroke="currentColor" strokeWidth="1.9" />
     </svg>
   );
 }
