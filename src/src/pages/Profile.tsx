@@ -300,6 +300,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
   const audioDraftRef = useRef<AudioDraft | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const messageInputRef = useRef<HTMLInputElement | null>(null);
   const recordingChunksRef = useRef<BlobPart[]>([]);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingTimerRef = useRef<number | null>(null);
@@ -310,6 +311,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
   const messageAudioBlobUrlsRef = useRef<Set<string>>(new Set());
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToBottomRef = useRef(false);
+  const wasSendingMessageRef = useRef(false);
   const hasTrackedChatStartRef = useRef(false);
   const shareFeedbackTimerRef = useRef<number | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -633,6 +635,40 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
       window.clearTimeout(scrollTimeout);
     };
   }, [isSending, messages.length, profile?.id]);
+
+  useEffect(() => {
+    if (isSending) {
+      wasSendingMessageRef.current = true;
+      return;
+    }
+
+    if (!wasSendingMessageRef.current) {
+      return;
+    }
+
+    wasSendingMessageRef.current = false;
+
+    if (
+      recordingState !== "idle" ||
+      audioDraft ||
+      !messagingCapabilities.textMessagesEnabled
+    ) {
+      return;
+    }
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      messageInputRef.current?.focus({ preventScroll: true });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+    };
+  }, [
+    audioDraft,
+    isSending,
+    messagingCapabilities.textMessagesEnabled,
+    recordingState,
+  ]);
 
   useEffect(() => {
     function updateScrollButton() {
@@ -1720,6 +1756,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
                     disabled={
                       isSending || !messagingCapabilities.textMessagesEnabled
                     }
+                    ref={messageInputRef}
                     placeholder={
                       messagingCapabilities.textMessagesEnabled
                         ? copy.messagePlaceholder
