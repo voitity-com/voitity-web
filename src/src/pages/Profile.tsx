@@ -39,19 +39,7 @@ type ProfileTemplate =
   | "profile02"
   | "profile03"
   | "profile04"
-  | "profile05"
-  | "v1"
-  | "v2"
-  | "v3"
-  | "v4"
-  | "v5"
-  | "v6"
-  | "v7"
-  | "v8"
-  | "v9"
-  | "v10"
-  | "v11"
-  | "v12";
+  | "profile05";
 
 type AudioDraft = {
   blob: Blob;
@@ -84,18 +72,6 @@ const PROFILE_TEMPLATES: ProfileTemplate[] = [
   "profile03",
   "profile04",
   "profile05",
-  "v1",
-  "v2",
-  "v3",
-  "v4",
-  "v5",
-  "v6",
-  "v7",
-  "v8",
-  "v9",
-  "v10",
-  "v11",
-  "v12",
 ];
 const DEFAULT_MESSAGING_CAPABILITIES: ProfileMessagingCapabilities = {
   audioMessagesEnabled: true,
@@ -103,41 +79,6 @@ const DEFAULT_MESSAGING_CAPABILITIES: ProfileMessagingCapabilities = {
   reason: null,
   textMessagesEnabled: true,
 };
-
-function getRequestedProfileTemplate(
-  embedded: boolean,
-): ProfileTemplate | null {
-  if (embedded || typeof window === "undefined") {
-    return null;
-  }
-
-  const searchParams = new URLSearchParams(window.location.search);
-  const requestedTemplate = PROFILE_TEMPLATES.find((template) =>
-    searchParams.has(template),
-  );
-
-  if (requestedTemplate === "v11") {
-    return DEFAULT_PROFILE_TEMPLATE;
-  }
-
-  if (requestedTemplate === "v6") {
-    return "profile02";
-  }
-
-  if (requestedTemplate === "v7") {
-    return "profile03";
-  }
-
-  if (requestedTemplate === "v3") {
-    return "profile04";
-  }
-
-  if (requestedTemplate === "v4") {
-    return "profile05";
-  }
-
-  return requestedTemplate ?? null;
-}
 
 function isProfileTemplate(
   value: string | undefined,
@@ -429,7 +370,6 @@ export function Profile({
   profileDomain,
 }: ProfileProps) {
   const profileStorageKey = profileDomain ?? profileAlias;
-  const requestedProfileTemplate = getRequestedProfileTemplate(embedded);
   const appearanceEditorEnabled = isAppearanceEditorEnabled();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -466,11 +406,9 @@ export function Profile({
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
   const activeAppearance = appearancePreview ?? profile?.appearance;
-  const profileTemplate =
-    requestedProfileTemplate ??
-    (isProfileTemplate(activeAppearance?.templateKey)
-      ? activeAppearance.templateKey
-      : DEFAULT_PROFILE_TEMPLATE);
+  const profileTemplate = isProfileTemplate(activeAppearance?.templateKey)
+    ? activeAppearance.templateKey
+    : DEFAULT_PROFILE_TEMPLATE;
   const backgroundImageUrl =
     activeAppearance?.backgroundType === "image"
       ? activeAppearance.backgroundImageUrl
