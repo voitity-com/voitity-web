@@ -1,0 +1,72 @@
+.profile-page[data-profile-template="profile01"] {
+  --profile-template-background:
+    radial-gradient(circle at 16% 12%, rgba(17, 24, 39, 0.045), transparent 28%),
+    radial-gradient(circle at 88% 82%, rgba(17, 24, 39, 0.035), transparent 34%),
+    #ffffff;
+  --profile-template-header-fade: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.97) 68%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  --profile-template-footer-fade: linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.97) 66%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  --profile-template-text: #111111;
+  --profile-template-muted: #737373;
+  --profile-template-accent: #111111;
+  --profile-template-accent-text: #ffffff;
+  --profile-template-surface: rgba(255, 255, 255, 0.9);
+  --profile-template-surface-strong: #ffffff;
+  --profile-template-border: #e4e4e7;
+  --profile-template-shadow: 0 16px 42px rgba(17, 24, 39, 0.1);
+  --profile-template-button-shadow: 0 12px 28px rgba(17, 17, 17, 0.2);
+  --profile-template-focus: rgba(17, 17, 17, 0.14);
+  --profile-template-radius: 16px;
+  --profile-template-avatar-radius: 50%;
+  --profile-template-font: Inter, ui-sans-serif, system-ui, sans-serif;
+  --profile-template-title-font: Inter, ui-sans-serif, system-ui, sans-serif;
+  --profile-template-title-weight: 700;
+  --profile-template-title-spacing: -0.05em;
+  --profile-template-disabled: #ededed;
+  --profile-template-disabled-text: #9a9a9a;
+}
+
+.profile-page[data-profile-template="profile01"] .profile-avatar::before {
+  inset: 7%;
+  background: #111111;
+  border-radius: 50%;
+  animation: none;
+}
+
+.profile-page[data-profile-template="profile01"]
+  :is(.profile-avatar img, .profile-avatar video, .avatar-fallback) {
+  border: 5px solid #ffffff;
+}
+
+.profile-page[data-profile-template="profile01"] .profile-title h1 {
+  font-size: clamp(3.2rem, 4.1vw, 4.25rem);
+  line-height: 0.96;
+}
+
+.profile-page[data-profile-template="profile01"] .profile-alias {
+  margin-top: 10px;
+  font-weight: 650;
+}
+
+.profile-page[data-profile-template="profile01"]
+  .profile-thread-message
+  .profile-message-copy
+  p {
+  font-size: 1rem;
+  line-height: 1.48;
+}
+
+@media (max-width: 620px) {
+  .profile-page[data-profile-template="profile01"] .profile-title h1 {
+    font-size: clamp(2rem, 8vw, 2.4rem);
+  }
+}

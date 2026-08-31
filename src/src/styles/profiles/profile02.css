@@ -1,0 +1,73 @@
+.profile-page[data-profile-template="profile02"] {
+  --profile-template-background:
+    radial-gradient(circle at 82% 10%, rgba(98, 40, 215, 0.2), transparent 30%),
+    radial-gradient(
+      circle at 15% 92%,
+      rgba(238, 42, 123, 0.14),
+      transparent 34%
+    ),
+    #050505;
+  --profile-template-header-fade: linear-gradient(
+    180deg,
+    rgba(5, 5, 5, 1) 0%,
+    rgba(5, 5, 5, 0.96) 68%,
+    rgba(5, 5, 5, 0) 100%
+  );
+  --profile-template-footer-fade: linear-gradient(
+    0deg,
+    rgba(5, 5, 5, 1) 0%,
+    rgba(5, 5, 5, 0.96) 66%,
+    rgba(5, 5, 5, 0) 100%
+  );
+  --profile-template-text: #fafafa;
+  --profile-template-muted: #a8a8a8;
+  --profile-template-accent: #e1306c;
+  --profile-template-accent-text: #ffffff;
+  --profile-template-surface: rgba(18, 18, 18, 0.84);
+  --profile-template-surface-strong: rgba(24, 24, 24, 0.96);
+  --profile-template-border: #2c2c2c;
+  --profile-template-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+  --profile-template-button-shadow: 0 12px 28px rgba(225, 48, 108, 0.24);
+  --profile-template-focus: rgba(225, 48, 108, 0.24);
+  --profile-template-radius: 16px;
+  --profile-template-avatar-radius: 50%;
+  --profile-template-font: Inter, ui-sans-serif, system-ui, sans-serif;
+  --profile-template-title-font: Inter, ui-sans-serif, system-ui, sans-serif;
+  --profile-template-title-weight: 700;
+  --profile-template-title-spacing: -0.05em;
+  --profile-template-disabled: #252525;
+  --profile-template-disabled-text: #777777;
+}
+
+.profile-page[data-profile-template="profile02"] .profile-avatar::before {
+  inset: 8%;
+  background: conic-gradient(
+    from 210deg,
+    #f9ce34,
+    #ee2a7b,
+    #6228d7,
+    #ee2a7b,
+    #f9ce34
+  );
+  border-radius: 50%;
+  animation: none;
+}
+
+.profile-page[data-profile-template="profile02"]
+  :is(.profile-avatar img, .profile-avatar video, .avatar-fallback) {
+  border: 5px solid #050505;
+}
+
+.profile-page[data-profile-template="profile02"]
+  :is(
+    .profile-thread-message.visitor .profile-message-copy,
+    .profile-mini-play-button,
+    .profile-audio-toggle:not(.is-muted),
+    .profile-audio-button,
+    .profile-voice-play-button,
+    .profile-message-form .profile-icon-button:not(:disabled),
+    .profile-scroll-bottom-button
+  ) {
+  background: linear-gradient(135deg, #f9ce34 0%, #ee2a7b 48%, #6228d7 100%);
+  border-color: #ee2a7b;
+}

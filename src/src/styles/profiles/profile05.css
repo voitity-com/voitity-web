@@ -1,0 +1,73 @@
+.profile-page[data-profile-template="profile05"] {
+  --profile-template-background:
+    radial-gradient(circle at 12% 22%, #ff8b73 0 8%, transparent 8.3%),
+    radial-gradient(circle at 88% 18%, #7ad8ca 0 10%, transparent 10.3%),
+    linear-gradient(140deg, #ffd864 0%, #ffc95f 44%, #ff9d8a 100%);
+  --profile-template-header-fade: linear-gradient(
+    180deg,
+    rgba(255, 216, 100, 1) 0%,
+    rgba(255, 211, 96, 0.96) 68%,
+    rgba(255, 211, 96, 0) 100%
+  );
+  --profile-template-footer-fade: linear-gradient(
+    0deg,
+    rgba(255, 166, 132, 1) 0%,
+    rgba(255, 179, 129, 0.96) 66%,
+    rgba(255, 179, 129, 0) 100%
+  );
+  --profile-template-text: #16120f;
+  --profile-template-muted: #51463c;
+  --profile-template-accent: #ff3f68;
+  --profile-template-accent-text: #ffffff;
+  --profile-template-surface: #fffdf3;
+  --profile-template-surface-strong: #fffdf3;
+  --profile-template-border: #16120f;
+  --profile-template-shadow: 6px 6px 0 #16120f;
+  --profile-template-button-shadow: 4px 4px 0 #16120f;
+  --profile-template-focus: rgba(22, 18, 15, 0.18);
+  --profile-template-radius: 22px;
+  --profile-template-avatar-radius: 50%;
+  --profile-template-font: Arial, Helvetica, sans-serif;
+  --profile-template-title-font: "Arial Black", Arial, Helvetica, sans-serif;
+  --profile-template-title-weight: 900;
+  --profile-template-title-spacing: -0.07em;
+  --profile-template-disabled: #dfbf98;
+  --profile-template-disabled-text: #695b4e;
+}
+
+.profile-page[data-profile-template="profile05"] .profile-title h1 {
+  text-shadow: 3px 3px 0 rgba(255, 253, 243, 0.86);
+}
+
+.profile-page[data-profile-template="profile05"]
+  .profile-social-link:nth-child(odd) {
+  transform: rotate(-2deg);
+}
+
+.profile-page[data-profile-template="profile05"]
+  .profile-social-link:nth-child(even) {
+  transform: rotate(2deg);
+}
+
+.profile-page[data-profile-template="profile05"] .profile-social-link:hover {
+  transform: translateY(-3px) rotate(0);
+}
+
+.profile-page[data-profile-template="profile05"]
+  :is(.profile-avatar img, .profile-avatar video, .avatar-fallback) {
+  border-width: 5px;
+}
+
+.profile-page[data-profile-template="profile05"]
+  .profile-thread-message.profile
+  .profile-message-copy
+  time {
+  color: #6b625a;
+  opacity: 1;
+}
+
+@media (max-width: 620px) {
+  .profile-page[data-profile-template="profile05"] .profile-title h1 {
+    text-shadow: 2px 2px 0 rgba(255, 253, 243, 0.86);
+  }
+}
