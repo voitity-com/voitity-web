@@ -3069,7 +3069,6 @@ video.landing-avatar-image {
   flex: 0 0 68px;
   width: 68px;
   height: 68px;
-  margin-left: -12px;
 }
 
 .profile-share-action .profile-social-link {
@@ -4593,7 +4592,6 @@ video.landing-avatar-image {
     flex-basis: 46px;
     width: 46px;
     height: 46px;
-    margin-left: -4px;
   }
 
   .profile-social-link img {
