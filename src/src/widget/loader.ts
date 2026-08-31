@@ -410,15 +410,20 @@ type UnknownRecord = Record<string, unknown>;
       }
 
       .bigmelo-panel {
-        top: max(10px, env(safe-area-inset-top));
-        right: max(10px, env(safe-area-inset-right));
-        bottom: max(10px, env(safe-area-inset-bottom));
-        left: max(10px, env(safe-area-inset-left));
+        top: calc(16px + env(safe-area-inset-top, 0px));
+        right: calc(16px + env(safe-area-inset-right, 0px));
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        left: calc(16px + env(safe-area-inset-left, 0px));
         width: auto;
         height: auto;
-        border: 1px solid rgba(16, 22, 36, 0.16);
-        border-radius: 18px;
-        box-shadow: 0 22px 64px rgba(16, 22, 36, 0.3);
+        border: 1px solid rgba(16, 22, 36, 0.18);
+        border-radius: 24px;
+        box-shadow: 0 24px 72px rgba(16, 22, 36, 0.34);
+      }
+
+      .bigmelo-close {
+        top: 12px;
+        right: 12px;
       }
     }
 
