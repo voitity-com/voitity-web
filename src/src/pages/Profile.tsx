@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 
 import { trackAnalyticsEvent } from "../lib/google-analytics";
 import { profileDescription, setPageMetadata } from "../lib/page-metadata";
+import "../styles/profiles/profile-styles";
 import {
   ChatMessage,
   ChatMessageMedia,
@@ -33,6 +34,24 @@ type GreetingAudioState =
   "idle" | "loading" | "ready" | "blocked" | "unavailable";
 type RecordingState = "idle" | "preparing" | "recording" | "preview";
 type ProfileLocale = ProfileData["locale"];
+type ProfileTemplate =
+  | "profile01"
+  | "profile02"
+  | "profile03"
+  | "profile04"
+  | "profile05"
+  | "v1"
+  | "v2"
+  | "v3"
+  | "v4"
+  | "v5"
+  | "v6"
+  | "v7"
+  | "v8"
+  | "v9"
+  | "v10"
+  | "v11"
+  | "v12";
 
 type AudioDraft = {
   blob: Blob;
@@ -51,18 +70,132 @@ type PulseMedia = {
   messageId: string;
 };
 
+type ProfileAppearancePreview = ProfileData["appearance"];
+
 const PROFILE_SESSION_KEY_PREFIX = "bigmelo:profile-session:v3:";
 const ADULT_CONTENT_SESSION_KEY_PREFIX = "bigmelo:adult-content:v1:";
 const AVATAR_VIDEO_LOOP_DELAY_MS = 5000;
 const MEDIA_MODAL_CLOSE_TRANSITION_MS = 460;
 const MEDIA_PULSE_DURATION_MS = 2000;
 const WAVEFORM_BAR_COUNT = 22;
+const DEFAULT_PROFILE_TEMPLATE: ProfileTemplate = "profile01";
+const PROFILE_TEMPLATES: ProfileTemplate[] = [
+  "profile02",
+  "profile03",
+  "profile04",
+  "profile05",
+  "v1",
+  "v2",
+  "v3",
+  "v4",
+  "v5",
+  "v6",
+  "v7",
+  "v8",
+  "v9",
+  "v10",
+  "v11",
+  "v12",
+];
 const DEFAULT_MESSAGING_CAPABILITIES: ProfileMessagingCapabilities = {
   audioMessagesEnabled: true,
   audioMaxDurationSeconds: 30,
   reason: null,
   textMessagesEnabled: true,
 };
+
+function getRequestedProfileTemplate(
+  embedded: boolean,
+): ProfileTemplate | null {
+  if (embedded || typeof window === "undefined") {
+    return null;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const requestedTemplate = PROFILE_TEMPLATES.find((template) =>
+    searchParams.has(template),
+  );
+
+  if (requestedTemplate === "v11") {
+    return DEFAULT_PROFILE_TEMPLATE;
+  }
+
+  if (requestedTemplate === "v6") {
+    return "profile02";
+  }
+
+  if (requestedTemplate === "v7") {
+    return "profile03";
+  }
+
+  if (requestedTemplate === "v3") {
+    return "profile04";
+  }
+
+  if (requestedTemplate === "v4") {
+    return "profile05";
+  }
+
+  return requestedTemplate ?? null;
+}
+
+function isProfileTemplate(
+  value: string | undefined,
+): value is ProfileTemplate {
+  return (
+    value === DEFAULT_PROFILE_TEMPLATE ||
+    PROFILE_TEMPLATES.includes(value as ProfileTemplate)
+  );
+}
+
+function isAppearanceEditorEnabled(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("appearanceEditor")
+  );
+}
+
+function parseAppearancePreviewMessage(
+  value: unknown,
+): ProfileAppearancePreview | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const message = value as Record<string, unknown>;
+  const appearance = message.appearance;
+
+  if (
+    message.type !== "bigmelo:profile-appearance-preview" ||
+    !appearance ||
+    typeof appearance !== "object" ||
+    Array.isArray(appearance)
+  ) {
+    return null;
+  }
+
+  const preview = appearance as Record<string, unknown>;
+  const templateKey =
+    typeof preview.templateKey === "string"
+      ? preview.templateKey
+      : DEFAULT_PROFILE_TEMPLATE;
+  const backgroundType = preview.backgroundType === "image" ? "image" : "css";
+  const backgroundImageUrl =
+    typeof preview.backgroundImageUrl === "string"
+      ? preview.backgroundImageUrl
+      : null;
+
+  if (!isProfileTemplate(templateKey)) {
+    return null;
+  }
+
+  return {
+    backgroundImageUrl,
+    backgroundType,
+    hasBackgroundImage: Boolean(backgroundImageUrl),
+    templateKey,
+  };
+}
 
 const profileCopy = {
   en: {
@@ -80,8 +213,7 @@ const profileCopy = {
     audioMuted: "Audio muted",
     audioOn: "Audio on",
     cancelRecording: "Cancel recording",
-    chatLimitReached:
-      "This profile reached its monthly visitor message limit.",
+    chatLimitReached: "This profile reached its monthly visitor message limit.",
     defaultInitial: (name: string) =>
       `Hi, I am ${name}. Ask me about my work, my projects, or anything you want to know about me.`,
     discardAudio: "Discard audio",
@@ -279,10 +411,7 @@ function getMessagingUnavailableMessage(
   capabilities: ProfileMessagingCapabilities,
   copy: ReturnType<typeof getProfileCopy>,
 ): string {
-  if (
-    capabilities.textMessagesEnabled &&
-    !capabilities.audioMessagesEnabled
-  ) {
+  if (capabilities.textMessagesEnabled && !capabilities.audioMessagesEnabled) {
     return copy.audioLimitReached;
   }
 
@@ -293,10 +422,18 @@ function getMessagingUnavailableMessage(
   return copy.subscriptionInactive;
 }
 
-export function Profile({ embedded = false, onProfileNotFound, profileAlias, profileDomain }: ProfileProps) {
+export function Profile({
+  embedded = false,
+  onProfileNotFound,
+  profileAlias,
+  profileDomain,
+}: ProfileProps) {
   const profileStorageKey = profileDomain ?? profileAlias;
+  const requestedProfileTemplate = getRequestedProfileTemplate(embedded);
+  const appearanceEditorEnabled = isAppearanceEditorEnabled();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const composerRowRef = useRef<HTMLElement | null>(null);
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
   const audioDraftRef = useRef<AudioDraft | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -310,11 +447,14 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
   const isComponentMountedRef = useRef(true);
   const messageAudioBlobUrlsRef = useRef<Set<string>>(new Set());
   const messageListRef = useRef<HTMLDivElement | null>(null);
+  const keepMessageListPinnedRef = useRef(true);
   const shouldScrollToBottomRef = useRef(false);
   const wasSendingMessageRef = useRef(false);
   const hasTrackedChatStartRef = useRef(false);
   const shareFeedbackTimerRef = useRef<number | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [appearancePreview, setAppearancePreview] =
+    useState<ProfileAppearancePreview | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
   const [chatToken, setChatToken] = useState<string | null>(null);
   const [avatarKind, setAvatarKind] = useState<"image" | "video">("image");
@@ -325,6 +465,32 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
   const [isSending, setIsSending] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
+  const activeAppearance = appearancePreview ?? profile?.appearance;
+  const profileTemplate =
+    requestedProfileTemplate ??
+    (isProfileTemplate(activeAppearance?.templateKey)
+      ? activeAppearance.templateKey
+      : DEFAULT_PROFILE_TEMPLATE);
+  const backgroundImageUrl =
+    activeAppearance?.backgroundType === "image"
+      ? activeAppearance.backgroundImageUrl
+      : null;
+  const profilePageClassName = [
+    "profile-page",
+    embedded ? "is-embedded" : "",
+    backgroundImageUrl ? "has-custom-background" : "",
+    `profile-template-${profileTemplate}`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const profilePageStyle = backgroundImageUrl
+    ? {
+        backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)), url("${backgroundImageUrl.replaceAll('"', "%22")}")`,
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+      }
+    : undefined;
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [greetingAudioState, setGreetingAudioState] =
@@ -353,8 +519,30 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
   );
 
   useEffect(() => {
-    setHasConfirmedAdultContent(readAdultContentConfirmation(profileStorageKey));
+    setHasConfirmedAdultContent(
+      readAdultContentConfirmation(profileStorageKey),
+    );
   }, [profileStorageKey]);
+
+  useEffect(() => {
+    if (!appearanceEditorEnabled) {
+      return;
+    }
+
+    const handleAppearancePreview = (event: MessageEvent): void => {
+      const nextAppearance = parseAppearancePreviewMessage(event.data);
+
+      if (nextAppearance) {
+        setAppearancePreview(nextAppearance);
+      }
+    };
+
+    window.addEventListener("message", handleAppearancePreview);
+
+    return () => {
+      window.removeEventListener("message", handleAppearancePreview);
+    };
+  }, [appearanceEditorEnabled]);
 
   useEffect(() => {
     return () => {
@@ -421,9 +609,11 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
         const hasStoredChatSession = Boolean(
           storedSession?.chatId && storedSession.chatToken,
         );
-        setChatId(hasStoredChatSession ? storedSession?.chatId ?? null : null);
+        setChatId(
+          hasStoredChatSession ? (storedSession?.chatId ?? null) : null,
+        );
         setChatToken(
-          hasStoredChatSession ? storedSession?.chatToken ?? null : null,
+          hasStoredChatSession ? (storedSession?.chatToken ?? null) : null,
         );
         shouldScrollToBottomRef.current = true;
         setMessages(
@@ -535,7 +725,13 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
         URL.revokeObjectURL(nextAvatarUrl);
       }
     };
-  }, [embedded, onProfileNotFound, profileAlias, profileDomain, profileStorageKey]);
+  }, [
+    embedded,
+    onProfileNotFound,
+    profileAlias,
+    profileDomain,
+    profileStorageKey,
+  ]);
 
   useEffect(() => {
     if (!profile) {
@@ -616,6 +812,103 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
       messages,
     });
   }, [chatId, chatToken, messages, profile, profileStorageKey]);
+
+  useEffect(() => {
+    const composerRow = composerRowRef.current;
+    const messageList = messageListRef.current;
+
+    if (!composerRow || !messageList) {
+      return;
+    }
+
+    const activeComposerRow: HTMLElement = composerRow;
+    const activeMessageList: HTMLDivElement = messageList;
+    let composerScrollFrame = 0;
+
+    function updateComposerHeight() {
+      const composerHeight = Math.ceil(
+        activeComposerRow.getBoundingClientRect().height,
+      );
+      activeMessageList.style.setProperty(
+        "--profile-composer-height",
+        `${composerHeight}px`,
+      );
+
+      if (keepMessageListPinnedRef.current) {
+        window.cancelAnimationFrame(composerScrollFrame);
+        composerScrollFrame = window.requestAnimationFrame(
+          scrollMessageListToBottom,
+        );
+      }
+    }
+
+    updateComposerHeight();
+    window.addEventListener("resize", updateComposerHeight);
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(updateComposerHeight);
+    resizeObserver?.observe(activeComposerRow);
+
+    return () => {
+      window.cancelAnimationFrame(composerScrollFrame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateComposerHeight);
+      activeMessageList.style.removeProperty("--profile-composer-height");
+    };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    const messageList = messageListRef.current;
+
+    if (!messageList) {
+      return;
+    }
+
+    const activeMessageList: HTMLDivElement = messageList;
+
+    function updatePinnedState() {
+      keepMessageListPinnedRef.current =
+        isMessageListNearBottom(activeMessageList);
+    }
+
+    updatePinnedState();
+    activeMessageList.addEventListener("scroll", updatePinnedState, {
+      passive: true,
+    });
+
+    return () => {
+      activeMessageList.removeEventListener("scroll", updatePinnedState);
+    };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    const messageList = messageListRef.current;
+
+    if (!messageList || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    let scrollFrame = 0;
+    const resizeObserver = new ResizeObserver(() => {
+      if (!keepMessageListPinnedRef.current) {
+        return;
+      }
+
+      window.cancelAnimationFrame(scrollFrame);
+      scrollFrame = window.requestAnimationFrame(scrollMessageListToBottom);
+    });
+
+    Array.from(messageList.children).forEach((messageElement) => {
+      resizeObserver.observe(messageElement);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(scrollFrame);
+      resizeObserver.disconnect();
+    };
+  }, [isSending, messages.length, profile?.id]);
 
   useEffect(() => {
     if (!shouldScrollToBottomRef.current) {
@@ -725,8 +1018,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
     setMessages((current) => [...current, visitorMessage]);
 
     try {
-      const shouldRequestAudioResponse =
-        profile.voiceEnabled && !isVoiceMuted;
+      const shouldRequestAudioResponse = profile.voiceEnabled && !isVoiceMuted;
       const response = await sendProfileMessage(
         profile.id,
         visitorMessage.text,
@@ -1069,8 +1361,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
     setMessages((current) => [...current, pendingMessage]);
 
     try {
-      const shouldRequestAudioResponse =
-        profile.voiceEnabled && !isVoiceMuted;
+      const shouldRequestAudioResponse = profile.voiceEnabled && !isVoiceMuted;
       const response = await sendProfileAudioMessage(
         profile.id,
         localAudioBlob,
@@ -1240,6 +1531,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
 
   function scrollToConversationBottom() {
     setShowScrollToBottom(false);
+    keepMessageListPinnedRef.current = true;
     scrollMessageListToBottom();
     window.requestAnimationFrame(() => {
       scrollMessageListToBottom();
@@ -1391,7 +1683,11 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
   }
 
   return (
-    <main className={`profile-page${embedded ? " is-embedded" : ""}`}>
+    <main
+      className={profilePageClassName}
+      data-profile-template={profileTemplate}
+      style={profilePageStyle}
+    >
       <audio
         ref={audioRef}
         onEnded={() => setIsAudioPlaying(false)}
@@ -1543,7 +1839,9 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
                               media={message.media}
                               profileId={profile.id}
                               onConfirmAdultContent={() => {
-                                writeAdultContentConfirmation(profileStorageKey);
+                                writeAdultContentConfirmation(
+                                  profileStorageKey,
+                                );
                                 setHasConfirmedAdultContent(true);
                               }}
                               onPulseComplete={() => {
@@ -1674,7 +1972,9 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
                     type="button"
                     onClick={toggleVoiceMute}
                   >
-                    <SpeakerIcon muted={!profile.voiceEnabled || isVoiceMuted} />
+                    <SpeakerIcon
+                      muted={!profile.voiceEnabled || isVoiceMuted}
+                    />
                   </button>
                 </div>
                 {greetingAudioState === "unavailable" ? (
@@ -1687,7 +1987,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
               </section>
             </section>
 
-            <section className="profile-composer-row">
+            <section ref={composerRowRef} className="profile-composer-row">
               {error && profile ? (
                 <p className="profile-inline-error">{error}</p>
               ) : null}
@@ -1831,8 +2131,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
                       aria-label={copy.sendAudio}
                       className="profile-icon-button"
                       disabled={
-                        isSending ||
-                        !messagingCapabilities.audioMessagesEnabled
+                        isSending || !messagingCapabilities.audioMessagesEnabled
                       }
                       title={
                         messagingCapabilities.audioMessagesEnabled
@@ -1854,8 +2153,7 @@ export function Profile({ embedded = false, onProfileNotFound, profileAlias, pro
                       aria-label={copy.startRecording}
                       className="profile-icon-button"
                       disabled={
-                        isSending ||
-                        !messagingCapabilities.audioMessagesEnabled
+                        isSending || !messagingCapabilities.audioMessagesEnabled
                       }
                       title={
                         messagingCapabilities.audioMessagesEnabled
@@ -2346,7 +2644,11 @@ function ProfileMessageMedia({
                     rel="noopener noreferrer"
                     target="_blank"
                     onClick={() => {
-                      trackMediaExternalClick(selectedMedia, "provider_video", "chat_media_modal");
+                      trackMediaExternalClick(
+                        selectedMedia,
+                        "provider_video",
+                        "chat_media_modal",
+                      );
                     }}
                   >
                     {copy.viewOnYouTube}
@@ -2359,7 +2661,11 @@ function ProfileMessageMedia({
                     rel="noopener noreferrer"
                     target="_blank"
                     onClick={() => {
-                      trackMediaExternalClick(selectedMedia, "provider_channel", "chat_media_modal");
+                      trackMediaExternalClick(
+                        selectedMedia,
+                        "provider_channel",
+                        "chat_media_modal",
+                      );
                     }}
                   >
                     {copy.goToChannel}
@@ -2373,10 +2679,15 @@ function ProfileMessageMedia({
                 rel="noopener noreferrer"
                 target="_blank"
                 onClick={() => {
-                  trackMediaExternalClick(selectedMedia, "provider_video", "chat_media_modal");
+                  trackMediaExternalClick(
+                    selectedMedia,
+                    "provider_video",
+                    "chat_media_modal",
+                  );
                 }}
               >
-                {selectedMedia.actionLabel ?? copy.viewOnProvider(getMediaProviderLabel(selectedMedia))}
+                {selectedMedia.actionLabel ??
+                  copy.viewOnProvider(getMediaProviderLabel(selectedMedia))}
               </a>
             ) : null}
           </div>
@@ -2459,7 +2770,11 @@ function ProfileMessageMedia({
                       rel="noopener noreferrer"
                       target="_blank"
                       onClick={() => {
-                        trackMediaExternalClick(item, "provider_channel", "chat_media_card");
+                        trackMediaExternalClick(
+                          item,
+                          "provider_channel",
+                          "chat_media_card",
+                        );
                       }}
                     >
                       {copy.goToChannel}
@@ -2473,7 +2788,11 @@ function ProfileMessageMedia({
                   rel="noopener noreferrer"
                   target="_blank"
                   onClick={() => {
-                    trackMediaExternalClick(item, "provider_video", "chat_media_card");
+                    trackMediaExternalClick(
+                      item,
+                      "provider_video",
+                      "chat_media_card",
+                    );
                   }}
                 >
                   {item.actionLabel ?? copy.viewOnProvider(provider)}
@@ -2776,6 +3095,15 @@ function getScrollDistanceFromBottom() {
   return documentElement.scrollHeight - scrollTop - viewportHeight;
 }
 
+function isMessageListNearBottom(messageList: HTMLElement) {
+  return (
+    messageList.scrollHeight -
+      messageList.scrollTop -
+      messageList.clientHeight <=
+    48
+  );
+}
+
 function readProfileSession(profileAlias: string): ProfileSession | null {
   if (typeof window === "undefined") {
     return null;
@@ -2887,9 +3215,7 @@ function filterMessagesByProfileFeatures(
       ...message,
       ...(media.length ? { media } : { media: undefined }),
       ...(products.length ? { products } : { products: undefined }),
-      ...(socialLinks.length
-        ? { socialLinks }
-        : { socialLinks: undefined }),
+      ...(socialLinks.length ? { socialLinks } : { socialLinks: undefined }),
     };
   });
 }
@@ -2907,12 +3233,14 @@ function inferStoredSocialLinks(
 
   const normalizedAnswer = normalizeSocialMentionText(message.text);
   const normalizedQuestion = normalizeSocialMentionText(questionText);
-  const isGenericSocialRequest = /\b(redes? sociales|tus redes|donde (?:puedo )?seguirte|social (?:media|networks?)|your socials|where can i follow)\b/.test(
-    normalizedQuestion,
-  );
-  const hasLinkIntent = /\b(aqui|here|enlace|link|ver|visitar|visit|see|find)\b/.test(
-    normalizedAnswer,
-  );
+  const isGenericSocialRequest =
+    /\b(redes? sociales|tus redes|donde (?:puedo )?seguirte|social (?:media|networks?)|your socials|where can i follow)\b/.test(
+      normalizedQuestion,
+    );
+  const hasLinkIntent =
+    /\b(aqui|here|enlace|link|ver|visitar|visit|see|find)\b/.test(
+      normalizedAnswer,
+    );
   const mediaDestinations = new Set(
     media
       .filter((item) => item.permalink || item.channelUrl)
@@ -3253,7 +3581,13 @@ function ShareIcon() {
       />
       <circle cx="6" cy="12" r="2.25" stroke="currentColor" strokeWidth="1.9" />
       <circle cx="18" cy="5" r="2.25" stroke="currentColor" strokeWidth="1.9" />
-      <circle cx="18" cy="19" r="2.25" stroke="currentColor" strokeWidth="1.9" />
+      <circle
+        cx="18"
+        cy="19"
+        r="2.25"
+        stroke="currentColor"
+        strokeWidth="1.9"
+      />
     </svg>
   );
 }

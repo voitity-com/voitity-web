@@ -1,0 +1,239 @@
+.profile-page[data-profile-template] {
+  color: var(--profile-template-text);
+  background: var(--profile-template-background);
+  background-attachment: fixed;
+  font-family: var(--profile-template-font);
+}
+
+.profile-page[data-profile-template]::before {
+  background: var(--profile-template-header-fade);
+}
+
+.profile-page[data-profile-template]::after {
+  background: var(--profile-template-footer-fade);
+}
+
+.profile-page[data-profile-template] .profile-title h1 {
+  color: var(--profile-template-text);
+  font-family: var(--profile-template-title-font);
+  font-weight: var(--profile-template-title-weight);
+  letter-spacing: var(--profile-template-title-spacing);
+}
+
+.profile-page[data-profile-template]
+  :is(
+    .profile-alias,
+    .profile-message-copy p,
+    .profile-audio-note,
+    .profile-footer-note
+  ) {
+  color: var(--profile-template-muted);
+}
+
+.profile-page[data-profile-template] .profile-message-copy time {
+  color: var(--profile-template-muted);
+  opacity: 0.76;
+}
+
+.profile-page[data-profile-template]
+  .profile-thread-message.visitor
+  .profile-message-copy
+  time {
+  color: var(--profile-template-accent-text);
+  opacity: 0.82;
+}
+
+.profile-page[data-profile-template] .profile-social-link {
+  color: var(--profile-template-text);
+  background: var(--profile-template-surface);
+  border: 1px solid var(--profile-template-border);
+  border-radius: var(--profile-template-radius);
+  box-shadow: var(--profile-template-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.profile-page[data-profile-template] .profile-social-link:hover {
+  background: var(--profile-template-surface-strong);
+  border-color: var(--profile-template-accent);
+  transform: translateY(-3px);
+}
+
+.profile-page[data-profile-template] .profile-social-link:focus-visible {
+  outline-color: var(--profile-template-accent);
+}
+
+.profile-page[data-profile-template] .profile-share-feedback {
+  color: var(--profile-template-accent-text);
+  background: var(--profile-template-accent);
+}
+
+.profile-page[data-profile-template]
+  :is(.profile-avatar img, .profile-avatar video, .avatar-fallback) {
+  border: 2px solid var(--profile-template-border);
+  border-radius: var(--profile-template-avatar-radius);
+  box-shadow: var(--profile-template-shadow);
+}
+
+.profile-page[data-profile-template]
+  :is(
+    .profile-mini-avatar,
+    .profile-mini-avatar img,
+    .profile-mini-avatar video,
+    .profile-mini-avatar span
+  ) {
+  border-color: var(--profile-template-border);
+  border-radius: var(--profile-template-avatar-radius);
+}
+
+.profile-page[data-profile-template]
+  .profile-thread-message.profile
+  .profile-message-copy {
+  padding: 17px 19px;
+  background: var(--profile-template-surface);
+  border: 1px solid var(--profile-template-border);
+  border-radius: var(--profile-template-radius) var(--profile-template-radius)
+    var(--profile-template-radius) 6px;
+  box-shadow: var(--profile-template-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.profile-page[data-profile-template]
+  .profile-thread-message.profile
+  .profile-message-copy
+  p {
+  color: var(--profile-template-text);
+}
+
+.profile-page[data-profile-template]
+  .profile-thread-message.visitor
+  .profile-message-copy {
+  padding: 17px 19px;
+  color: var(--profile-template-accent-text);
+  background: var(--profile-template-accent);
+  border: 1px solid var(--profile-template-accent);
+  border-radius: var(--profile-template-radius) var(--profile-template-radius)
+    6px var(--profile-template-radius);
+  box-shadow: var(--profile-template-button-shadow);
+}
+
+.profile-page[data-profile-template]
+  .profile-thread-message.visitor
+  .profile-message-copy
+  p {
+  color: var(--profile-template-accent-text);
+}
+
+.profile-page[data-profile-template]
+  :is(.profile-message-form input, .profile-voice-recorder) {
+  color: var(--profile-template-text);
+  background: var(--profile-template-surface-strong);
+  border-color: var(--profile-template-border);
+  border-radius: var(--profile-template-radius);
+  box-shadow: var(--profile-template-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.profile-page[data-profile-template] .profile-message-form input::placeholder {
+  color: var(--profile-template-muted);
+  opacity: 0.78;
+}
+
+.profile-page[data-profile-template] .profile-message-form input:focus {
+  border-color: var(--profile-template-accent);
+  box-shadow:
+    var(--profile-template-shadow),
+    0 0 0 4px var(--profile-template-focus);
+}
+
+.profile-page[data-profile-template]
+  :is(
+    .profile-mini-play-button,
+    .profile-audio-toggle,
+    .profile-audio-button,
+    .profile-voice-play-button,
+    .profile-message-form .profile-icon-button,
+    .profile-scroll-bottom-button
+  ) {
+  color: var(--profile-template-accent-text);
+  background: var(--profile-template-accent);
+  border-color: var(--profile-template-border);
+  box-shadow: var(--profile-template-button-shadow);
+}
+
+.profile-page[data-profile-template]
+  :is(.profile-audio-toggle.is-muted, .profile-message-play-button) {
+  color: var(--profile-template-text);
+  background: var(--profile-template-surface-strong);
+  border-color: var(--profile-template-border);
+  box-shadow: var(--profile-template-shadow);
+}
+
+.profile-page[data-profile-template]
+  :is(
+    .profile-message-form .profile-icon-button:disabled,
+    .profile-message-form input:disabled
+  ) {
+  color: var(--profile-template-disabled-text);
+  background: var(--profile-template-disabled);
+  border-color: transparent;
+}
+
+.profile-page[data-profile-template]
+  :is(.profile-recording-time, .profile-recording-status) {
+  color: var(--profile-template-text);
+}
+
+.profile-page[data-profile-template] .profile-voice-waveform span {
+  background: var(--profile-template-muted);
+}
+
+.profile-page[data-profile-template] .profile-voice-waveform span.is-active {
+  background: var(--profile-template-accent);
+}
+
+.profile-page[data-profile-template] .profile-message-product-card {
+  color: var(--profile-template-text);
+  background: var(--profile-template-surface-strong);
+  border-color: var(--profile-template-border);
+  border-radius: var(--profile-template-radius);
+  box-shadow: var(--profile-template-shadow);
+}
+
+.profile-page[data-profile-template]
+  :is(.profile-message-product-body strong, .profile-message-media-body span) {
+  color: var(--profile-template-text);
+}
+
+.profile-page[data-profile-template]
+  :is(
+    .profile-message-product-body p,
+    .profile-message-media-body > span:last-child
+  ) {
+  color: var(--profile-template-muted);
+}
+
+.profile-page[data-profile-template]
+  :is(
+    .profile-message-product-body a,
+    .profile-message-media-link,
+    .profile-media-modal-link
+  ) {
+  color: var(--profile-template-accent-text);
+  background: var(--profile-template-accent);
+  border-color: var(--profile-template-accent);
+}
+
+@media (max-width: 620px) {
+  .profile-page[data-profile-template] {
+    background-attachment: scroll;
+  }
+
+  .profile-page[data-profile-template]
+    .profile-thread-message.profile
+    .profile-message-copy,
+  .profile-page[data-profile-template]
+    .profile-thread-message.visitor
+    .profile-message-copy {
+    padding: 11px 13px;
+  }
+}

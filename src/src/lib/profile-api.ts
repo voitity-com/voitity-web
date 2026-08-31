@@ -27,6 +27,7 @@ export type ProfileMessagingCapabilities = {
 export type ProfileData = {
   id: string;
   alias: string;
+  appearance: ProfileAppearance;
   conversationMessages: ProfileConversationMessages;
   featureSettings: ProfileFeatureSetting[];
   locale: "en" | "es";
@@ -38,6 +39,13 @@ export type ProfileData = {
   networks: ProfileSocialNetwork[];
   voiceAutoplayEnabled: boolean;
   voiceEnabled: boolean;
+};
+
+export type ProfileAppearance = {
+  backgroundImageUrl: string | null;
+  backgroundType: "css" | "image";
+  hasBackgroundImage: boolean;
+  templateKey: string;
 };
 
 export type ProfileFeatureSetting = {
@@ -611,6 +619,7 @@ function normalizeProfile(
     alias:
       pickString(source, ["alias", "slug", "profile_alias", "profileAlias"]) ??
       fallbackAlias,
+    appearance: normalizeProfileAppearance(source.appearance),
     conversationMessages: buildConversationMessages(source, name, locale),
     description,
     details: buildDetails(source),
@@ -627,6 +636,26 @@ function normalizeProfile(
     networks: buildProfileSocialNetworks(source, socialNetworkDefinitions),
     voiceAutoplayEnabled,
     voiceEnabled,
+  };
+}
+
+function normalizeProfileAppearance(value: unknown): ProfileAppearance {
+  const appearance = isRecord(value) ? value : {};
+  const backgroundImageUrl = normalizeOptionalAssetUrl(
+    pickString(appearance, ["background_image_url", "backgroundImageUrl"]),
+  );
+
+  return {
+    backgroundImageUrl: backgroundImageUrl ?? null,
+    backgroundType:
+      pickString(appearance, ["background_type", "backgroundType"]) === "image"
+        ? "image"
+        : "css",
+    hasBackgroundImage:
+      pickBoolean(appearance, ["has_background_image", "hasBackgroundImage"]) ??
+      Boolean(backgroundImageUrl),
+    templateKey:
+      pickString(appearance, ["template_key", "templateKey"]) ?? "profile01",
   };
 }
 
