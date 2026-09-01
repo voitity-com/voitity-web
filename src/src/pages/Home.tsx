@@ -434,6 +434,18 @@ function getPlanCheckoutUrl(plan: Plan, locale: Locale): string {
   url.searchParams.set('cycle', plan.cycle);
   url.searchParams.set('locale', locale);
 
+  if (typeof window !== 'undefined') {
+    const landingParams = new URLSearchParams(window.location.search);
+
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']) {
+      const value = landingParams.get(key)?.trim().slice(0, 255);
+
+      if (value) {
+        url.searchParams.set(key, value);
+      }
+    }
+  }
+
   return url.toString();
 }
 
