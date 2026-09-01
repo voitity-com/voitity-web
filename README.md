@@ -8,6 +8,8 @@ Landing page inicial de bigmelo en React con Vite y TypeScript.
 - El proyecto Vite vive en `src/`.
 - El codigo fuente de React vive en `src/src/`.
 - La landing soporta español e ingles, cargando por defecto segun el idioma del navegador.
+- Los CTA de prueba conservan `utm_source`, `utm_medium`, `utm_campaign`,
+  `utm_term` y `utm_content` al enviar al usuario al registro del administrador.
 - Cualquier ruta `/:profile_alias` carga la vista publica del perfil y consume
   exclusivamente los endpoints `/api/public`. El navegador no contiene un
   token Sanctum compartido; las conversaciones se continuan con un token
