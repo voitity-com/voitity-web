@@ -1673,6 +1673,7 @@ export function Profile({
                     <a
                       aria-label={network.name}
                       className="profile-social-link"
+                      data-network={network.key}
                       href={network.url}
                       key={network.key}
                       rel="noopener noreferrer"
