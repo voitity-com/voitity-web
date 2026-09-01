@@ -38,6 +38,11 @@ const Profile = lazy(async () => {
 
   return { default: module.Profile };
 });
+const TrainerLanding = lazy(async () => {
+  const module = await import('./pages/TrainerLanding');
+
+  return { default: module.TrainerLanding };
+});
 
 export function App() {
   const [pathname, setPathname] = useState(window.location.pathname);
@@ -45,6 +50,7 @@ export function App() {
   const profileAlias = pathname.split('/').filter(Boolean)[0];
   const hostname = window.location.hostname.toLowerCase().replace(/\.$/, '');
   const isCustomDomain = !isBigmeloOrLocalHost(hostname);
+  const isTrainerLanding = isTrainerLandingPath(pathname);
   const widgetKey = new URLSearchParams(window.location.search).get('widget')?.trim() ?? '';
   const isWidgetMode = widgetKey !== '';
 
@@ -74,6 +80,8 @@ export function App() {
 
     const safeTitle = isCustomDomain
       ? 'Public profile | Bigmelo'
+      : isTrainerLanding
+        ? 'Bigmelo para entrenadores | El link en bio que responde por ti'
       : profileAlias
       ? ['privacidad', 'privacy'].includes(profileAlias)
         ? 'Privacy | Bigmelo'
@@ -91,7 +99,7 @@ export function App() {
         trackPageView(pathname, safeTitle);
       }
     });
-  }, [isCustomDomain, isWidgetMode, pathname, profileAlias]);
+  }, [isCustomDomain, isTrainerLanding, isWidgetMode, pathname, profileAlias]);
 
   let page: ReactNode;
 
@@ -105,6 +113,10 @@ export function App() {
     page = <NotFound />;
   } else if (isCustomDomain) {
     page = <Profile onProfileNotFound={handleProfileNotFound} profileDomain={hostname} />;
+  } else if (isTrainerLanding) {
+    page = <TrainerLanding />;
+  } else if (profileAlias === 'landing') {
+    page = <NotFound />;
   } else if (profileAlias === 'privacidad') {
     page = <PrivacyPolicy locale="es" />;
   } else if (profileAlias === 'privacy') {
@@ -141,6 +153,12 @@ function RouteSkeleton() {
       <span />
     </div>
   );
+}
+
+function isTrainerLandingPath(pathname: string): boolean {
+  const normalizedPath = pathname.replace(/\/+$/u, '').toLowerCase();
+
+  return normalizedPath === '/landing/entrenadores' || normalizedPath === '/landing/entrenadorv51';
 }
 
 function isBigmeloOrLocalHost(hostname: string): boolean {

@@ -168,8 +168,51 @@ for (const legalPage of [
   );
 }
 
+const trainerLandingPages = [
+  { path: "landing/entrenadores", title: "El link en bio que responde por ti" },
+  { path: "landing/entrenadorV51", title: "El link en bio que responde por ti" },
+];
+
+for (const landingPage of trainerLandingPages) {
+  const canonicalLanding = landingPage.path === "landing/entrenadores";
+  const directory = path.join(distDirectory, landingPage.path);
+  await mkdir(directory, { recursive: true });
+  await writeFile(
+    path.join(directory, "index.html"),
+    renderDocument(
+      {
+        canonical: `${siteUrl}/landing/entrenadores`,
+        description:
+          "Bigmelo convierte el link en bio de entrenadores y coaches fitness en un perfil interactivo que responde, recomienda programas y dirige prospectos a WhatsApp.",
+        image: `${siteUrl}/landing/real-mobile/profile02-chat-product.png`,
+        locale: "es",
+        robots: canonicalLanding
+          ? "index,follow,max-image-preview:large,max-snippet:-1"
+          : "noindex,follow",
+        structuredData: {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          applicationCategory: "BusinessApplication",
+          name: "Bigmelo",
+          offers: {
+            "@type": "Offer",
+            price: "12.99",
+            priceCurrency: "USD",
+          },
+          operatingSystem: "Web",
+          url: `${siteUrl}/landing/entrenadores`,
+        },
+        title: `${landingPage.title} | Bigmelo`,
+        type: "website",
+      },
+      trainerLandingFallback(),
+    ),
+  );
+}
+
 const sitemapEntries = [
   { loc: `${siteUrl}/` },
+  { loc: `${siteUrl}/landing/entrenadores` },
   ...profiles
     .filter(
       (profile) =>
@@ -300,6 +343,10 @@ function profileFallback({ alias, image, name, networks }) {
 
 function notFoundFallback() {
   return '<main class="not-found-page"><div><p>404</p><h1>Página no encontrada</h1><p>El perfil o la página que buscas no está disponible.</p><a href="/">Volver a Bigmelo</a></div></main>';
+}
+
+function trainerLandingFallback() {
+  return '<main class="seo-home-fallback"><h1>El link en bio que responde por ti</h1><p>Bigmelo responde preguntas, recomienda tus programas fitness y dirige prospectos a WhatsApp.</p><a href="https://admin.bigmelo.com/auth/custom/sign-up?locale=es&amp;intent=trial&amp;plan=starter&amp;cycle=month">Crear mi Bigmelo gratis</a></main>';
 }
 
 function normalizeNetworks(value) {

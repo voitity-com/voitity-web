@@ -59,6 +59,15 @@
 }
 
 .profile-page[data-profile-template="profile02"]
+  .profile-social-link[data-network="tiktok"]
+  img {
+  filter:
+    invert(1)
+    drop-shadow(-1px 0 0 #25f4ee)
+    drop-shadow(1px 0 0 #fe2c55);
+}
+
+.profile-page[data-profile-template="profile02"]
   :is(
     .profile-thread-message.visitor .profile-message-copy,
     .profile-mini-play-button,
