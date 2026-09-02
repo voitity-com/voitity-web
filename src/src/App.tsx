@@ -92,11 +92,21 @@ export function App() {
             : 'Public profile | Bigmelo'
       : 'Home | Bigmelo';
 
-    trackPageView(pathname, safeTitle);
+    const pageParameters = isTrainerLanding
+      ? {
+          audience: 'fitness_coaches_colombia',
+          billing_cycle: 'monthly',
+          landing_variant: 'entrenadores',
+          plan: 'starter',
+          trial_days: 7,
+        }
+      : undefined;
+
+    trackPageView(pathname, safeTitle, pageParameters);
 
     return subscribeToAnalyticsConsent((consent) => {
       if (consent === 'granted') {
-        trackPageView(pathname, safeTitle);
+        trackPageView(pathname, safeTitle, pageParameters);
       }
     });
   }, [isCustomDomain, isTrainerLanding, isWidgetMode, pathname, profileAlias]);

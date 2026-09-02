@@ -77,7 +77,7 @@ function CleanHeader({ signupUrl }: { signupUrl: string }) {
 }
 
 function HeroArtwork({ selectedTemplate, setSelectedTemplate }: { selectedTemplate: TemplateKey; setSelectedTemplate: (key: TemplateKey) => void }) {
-  return <div className="cf-hero-art cf-hero-art--fan" data-clean-reveal>{HERO_TEMPLATE_ORDER.map((key) => <button aria-label={`Mostrar ${templateData[key].label}`} className={selectedTemplate === key ? 'is-active' : ''} key={key} onClick={() => setSelectedTemplate(key)} type="button"><ProfileShot screen={key} /></button>)}</div>;
+  return <div className="cf-hero-art cf-hero-art--fan" data-clean-reveal>{HERO_TEMPLATE_ORDER.map((key) => <button aria-label={`Mostrar ${templateData[key].label}`} className={selectedTemplate === key ? 'is-active' : ''} key={key} onClick={() => selectTemplate(key, 'hero', setSelectedTemplate)} type="button"><ProfileShot screen={key} /></button>)}</div>;
 }
 
 function ChannelStrip() {
@@ -102,7 +102,7 @@ function BenefitCards() {
 
 function TemplateGallery({ selectedTemplate, setSelectedTemplate }: { selectedTemplate: TemplateKey; setSelectedTemplate: (key: TemplateKey) => void }) {
   const selected = templateData[selectedTemplate];
-  return <section className="pf-templates cf-templates" id="plantillas"><div className="pf-shell pf-template-layout"><div className="pf-template-copy" data-clean-reveal><span>PROFILE 01–05</span><h2>Así vienen realmente las plantillas.</h2><p>Cada captura conserva el fondo CSS original de su template. Solo redondeamos las esquinas exteriores al presentarla dentro del landing.</p><div aria-label="Plantillas originales de Bigmelo" role="tablist">{(Object.keys(templateData) as TemplateKey[]).map((key) => <button aria-selected={selectedTemplate === key} className={selectedTemplate === key ? 'is-active' : ''} key={key} onClick={() => setSelectedTemplate(key)} role="tab" type="button"><i style={{ background: templateData[key].color }} />{templateData[key].label}</button>)}</div><small>Perfil de prueba Sofía Mendoza.</small></div><div className="pf-template-preview" data-clean-reveal role="tabpanel"><img alt={`Captura real de ${selected.label} con su fondo original`} key={selectedTemplate} src={selected.src} /></div></div></section>;
+  return <section className="pf-templates cf-templates" id="plantillas"><div className="pf-shell pf-template-layout"><div className="pf-template-copy" data-clean-reveal><span>PROFILE 01–05</span><h2>Así vienen realmente las plantillas.</h2><p>Cada captura conserva el fondo CSS original de su template. Solo redondeamos las esquinas exteriores al presentarla dentro del landing.</p><div aria-label="Plantillas originales de Bigmelo" role="tablist">{(Object.keys(templateData) as TemplateKey[]).map((key) => <button aria-selected={selectedTemplate === key} className={selectedTemplate === key ? 'is-active' : ''} key={key} onClick={() => selectTemplate(key, 'gallery', setSelectedTemplate)} role="tab" type="button"><i style={{ background: templateData[key].color }} />{templateData[key].label}</button>)}</div><small>Perfil de prueba Sofía Mendoza.</small></div><div className="pf-template-preview" data-clean-reveal role="tabpanel"><img alt={`Captura real de ${selected.label} con su fondo original`} key={selectedTemplate} src={selected.src} /></div></div></section>;
 }
 
 function AdminConnections() {
@@ -156,7 +156,7 @@ function createSignupUrl(): string {
   url.searchParams.set('plan', 'starter');
   url.searchParams.set('cycle', 'month');
   const incoming = new URLSearchParams(window.location.search);
-  for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']) {
+  for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'gbraid', 'wbraid']) {
     const value = incoming.get(key)?.trim();
     if (value) url.searchParams.set(key, value);
   }
@@ -284,15 +284,15 @@ function useHeaderNavigation() {
     };
 
     const trackedSections = [
-      ['hero', '.clean-hero'],
-      ['how_it_works', '#como-funciona'],
-      ['product_proof', '#producto'],
-      ['benefits', '.pf-capabilities'],
-      ['templates', '#plantillas'],
-      ['admin_control', '.pf-connected'],
-      ['trial', '#precio'],
-      ['faq', '#preguntas'],
-      ['final', '.cf-final'],
+      ['hero', '.clean-hero .pf-hero__copy'],
+      ['how_it_works', '#como-funciona .pf-section-heading'],
+      ['product_proof', '#producto .pf-feature-copy'],
+      ['benefits', '.pf-capabilities .pf-section-heading'],
+      ['templates', '#plantillas .pf-template-copy'],
+      ['admin_control', '.pf-connected .pf-section-heading'],
+      ['trial', '#precio .pf-section-heading'],
+      ['faq', '#preguntas .pf-section-heading'],
+      ['final', '.cf-final .pf-shell'],
     ] as const;
     const seenSections = new Set<string>();
     const sectionObserver = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
@@ -303,7 +303,7 @@ function useHeaderNavigation() {
         seenSections.add(section);
         trackLandingEvent('landing_section_view', { section });
       });
-    }, { threshold: 0.22 }) : null;
+    }, { threshold: 0.2 }) : null;
     trackedSections.forEach(([section, selector]) => {
       const target = root.querySelector<HTMLElement>(selector);
       if (!target) return;
@@ -383,10 +383,25 @@ function useHeaderNavigation() {
 }
 
 function trackSignup(location: 'final' | 'header' | 'hero' | 'middle' | 'trial') {
-  trackLandingEvent('landing_cta_click', { location });
-  trackLandingEvent('signup_started', { location, plan: 'starter_monthly' });
+  trackLandingEvent('landing_cta_click', { cta_location: location });
+}
+
+function selectTemplate(key: TemplateKey, location: 'gallery' | 'hero', setSelectedTemplate: (key: TemplateKey) => void) {
+  setSelectedTemplate(key);
+  trackLandingEvent('select_content', {
+    content_type: 'profile_template',
+    item_id: key,
+    location,
+  });
 }
 
 function trackLandingEvent(eventName: string, parameters: Record<string, string>) {
-  trackAnalyticsEvent(eventName, { landing_variant: 'entrenadores', ...parameters });
+  trackAnalyticsEvent(eventName, {
+    audience: 'fitness_coaches_colombia',
+    billing_cycle: 'monthly',
+    landing_variant: 'entrenadores',
+    plan: 'starter',
+    trial_days: 7,
+    ...parameters,
+  });
 }

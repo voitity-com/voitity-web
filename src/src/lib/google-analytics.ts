@@ -15,6 +15,16 @@ const CONSENT_COOKIE_NAME = "bigmelo_analytics_consent";
 const CONSENT_EVENT_NAME = "bigmelo:analytics-consent";
 const SCRIPT_ELEMENT_ID = "bigmelo-google-analytics";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+const ATTRIBUTION_PARAMETER_KEYS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+  "gclid",
+  "gbraid",
+  "wbraid",
+] as const;
 
 let consentDefaultsConfigured = false;
 let analyticsConfigured = false;
@@ -111,13 +121,15 @@ function loadGoogleAnalytics(): void {
 
   if (!analyticsConfigured) {
     const initialPagePath = sanitizePublicPath(window.location.pathname);
+    const initialPageLocation = buildSafePageLocation(window.location.pathname, window.location.search);
 
     invokeGtag("js", new Date());
     invokeGtag("config", getMeasurementId(), {
       allow_ad_personalization_signals: false,
       allow_google_signals: false,
-      page_location: `${window.location.origin}${initialPagePath}`,
-      page_referrer: "",
+      page_location: initialPageLocation,
+      page_path: initialPagePath,
+      page_referrer: getSafePageReferrer(),
       page_title: "Bigmelo",
       send_page_view: false,
     });
@@ -172,7 +184,8 @@ export function subscribeToAnalyticsConsent(listener: (consent: AnalyticsConsent
 }
 
 export function sanitizePublicPath(pathname: string): string {
-  const firstSegment = pathname.split("/").filter(Boolean)[0];
+  const normalizedPath = pathname.replace(/\/+$/u, "").toLowerCase();
+  const firstSegment = normalizedPath.split("/").filter(Boolean)[0];
   const knownPaths = new Set([
     "data-deletion",
     "eliminacion-datos",
@@ -188,16 +201,25 @@ export function sanitizePublicPath(pathname: string): string {
     return "/";
   }
 
+  if (normalizedPath === "/landing/entrenadores" || normalizedPath === "/landing/entrenadorv51") {
+    return "/landing/entrenadores";
+  }
+
   return knownPaths.has(firstSegment) ? `/${firstSegment}` : "/profile/:alias";
 }
 
-export function trackPageView(pathname: string, pageTitle: string): void {
+export function trackPageView(
+  pathname: string,
+  pageTitle: string,
+  parameters: AnalyticsEventParameters = {},
+): void {
   if (getAnalyticsConsent() !== "granted" || !isGoogleAnalyticsEnabled()) {
     return;
   }
 
   const pagePath = sanitizePublicPath(pathname);
-  const pageViewKey = `${pagePath}|${pageTitle}`;
+  const pageLocation = buildSafePageLocation(pathname, window.location.search);
+  const pageViewKey = `${pageLocation}|${pageTitle}`;
 
   if (lastPageViewKey === pageViewKey) {
     return;
@@ -206,17 +228,19 @@ export function trackPageView(pathname: string, pageTitle: string): void {
   lastPageViewKey = pageViewKey;
   loadGoogleAnalytics();
   invokeGtag("config", getMeasurementId(), {
-    page_location: `${window.location.origin}${pagePath}`,
-    page_referrer: "",
+    page_location: pageLocation,
+    page_path: pagePath,
+    page_referrer: getSafePageReferrer(),
     page_title: pageTitle,
     send_page_view: false,
     update: true,
   });
   invokeGtag("event", "page_view", {
     app_surface: "public",
-    page_location: `${window.location.origin}${pagePath}`,
+    page_location: pageLocation,
     page_path: pagePath,
     page_title: pageTitle,
+    ...sanitizeEventParameters(parameters),
   });
 }
 
@@ -229,16 +253,58 @@ export function trackAnalyticsEvent(eventName: string, parameters: AnalyticsEven
     return;
   }
 
-  const safeParameters = Object.fromEntries(
-    Object.entries(parameters).filter(
-      ([key, value]) =>
-        /^[a-z][a-z0-9_]{0,39}$/.test(key) &&
-        value !== undefined &&
-        value !== null &&
-        (typeof value !== "string" || /^[a-z0-9_.:-]{1,100}$/i.test(value)),
-    ),
-  );
+  const safeParameters = sanitizeEventParameters(parameters);
 
   loadGoogleAnalytics();
   invokeGtag("event", eventName, { app_surface: "public", ...safeParameters });
+}
+
+function buildSafePageLocation(pathname: string, search: string): string {
+  const safeUrl = new URL(sanitizePublicPath(pathname), window.location.origin);
+  const incoming = new URLSearchParams(search);
+
+  ATTRIBUTION_PARAMETER_KEYS.forEach((key) => {
+    const value = incoming.get(key)?.trim().slice(0, 255);
+
+    if (value) {
+      safeUrl.searchParams.set(key, value);
+    }
+  });
+
+  return safeUrl.toString();
+}
+
+function getSafePageReferrer(): string {
+  if (!document.referrer) {
+    return "";
+  }
+
+  try {
+    const referrer = new URL(document.referrer);
+
+    if (isBigmeloHost(referrer.hostname)) {
+      return `${referrer.origin}${sanitizePublicPath(referrer.pathname)}`;
+    }
+
+    return referrer.origin;
+  } catch {
+    return "";
+  }
+}
+
+function sanitizeEventParameters(parameters: AnalyticsEventParameters): Record<string, AnalyticsEventParameter> {
+  return Object.fromEntries(
+    Object.entries(parameters).filter(
+      (entry): entry is [string, AnalyticsEventParameter] => {
+        const [key, value] = entry;
+
+        return (
+          /^[a-z][a-z0-9_]{0,39}$/.test(key) &&
+          value !== undefined &&
+          value !== null &&
+          (typeof value !== "string" || /^[a-z0-9_.:-]{1,100}$/i.test(value))
+        );
+      },
+    ),
+  );
 }
