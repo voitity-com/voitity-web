@@ -99,6 +99,15 @@ function isAppearanceEditorEnabled(): boolean {
   );
 }
 
+function shouldRestoreMessageInputFocus(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    !window.matchMedia(
+      "(max-width: 620px), (hover: none) and (pointer: coarse)",
+    ).matches
+  );
+}
+
 function parseAppearancePreviewMessage(
   value: unknown,
 ): ProfileAppearancePreview | null {
@@ -1016,7 +1025,8 @@ export function Profile({
     if (
       recordingState !== "idle" ||
       audioDraft ||
-      !messagingCapabilities.textMessagesEnabled
+      !messagingCapabilities.textMessagesEnabled ||
+      !shouldRestoreMessageInputFocus()
     ) {
       return;
     }
