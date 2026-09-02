@@ -193,6 +193,7 @@
   .clean-v51 .pf-header .pf-button.is-small { min-height: 44px; }
   .clean-v51 .pf-actions { gap: 10px; }
   .clean-v51 .pf-hero .pf-text-link { min-height: 44px; padding-inline: 12px; }
+  .clean-v51 #como-funciona .pf-section-heading h2 { font-size: clamp(2.35rem, 10.5vw, 3.15rem); line-height: .96; }
   .clean-v51 .cf-final > div > span { color: rgba(255,255,255,.9); }
   .clean-v51 .cf-final .pf-trial-copy { color: rgba(255,255,255,.88); font-size: .7rem; line-height: 1.55; }
   .clean-v51 .pf-final__screens { height: 430px; }
