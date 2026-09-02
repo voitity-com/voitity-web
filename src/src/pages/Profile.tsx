@@ -388,6 +388,7 @@ export function Profile({
   const messageAudioBlobUrlsRef = useRef<Set<string>>(new Set());
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const keepMessageListPinnedRef = useRef(true);
+  const pendingProfileResponseScrollRef = useRef<string | null>(null);
   const shouldScrollToBottomRef = useRef(false);
   const wasSendingMessageRef = useRef(false);
   const hasTrackedChatStartRef = useRef(false);
@@ -868,6 +869,64 @@ export function Profile({
   }, [isSending, messages.length, profile?.id]);
 
   useEffect(() => {
+    const messageId = pendingProfileResponseScrollRef.current;
+
+    if (!messageId) {
+      return;
+    }
+
+    let scrollFrame = 0;
+    scrollFrame = window.requestAnimationFrame(() => {
+      const messageList = messageListRef.current;
+      const messageElement = messageList?.querySelector<HTMLElement>(
+        `[data-message-id="${messageId}"]`,
+      );
+
+      if (!messageList || !messageElement) {
+        return;
+      }
+
+      pendingProfileResponseScrollRef.current = null;
+      const isMobile = messageList.clientWidth <= 620;
+      const messageListStyles = window.getComputedStyle(messageList);
+      const readableHeight = Math.max(
+        0,
+        messageList.clientHeight -
+          Number.parseFloat(messageListStyles.paddingTop) -
+          Number.parseFloat(messageListStyles.paddingBottom),
+      );
+      const isLongResponse =
+        messageElement.getBoundingClientRect().height > readableHeight;
+
+      if (!isMobile || !isLongResponse) {
+        keepMessageListPinnedRef.current = true;
+        scrollToConversationBottom();
+        return;
+      }
+
+      const messageListRect = messageList.getBoundingClientRect();
+      const messageRect = messageElement.getBoundingClientRect();
+      const targetTop = Math.max(
+        0,
+        messageList.scrollTop + messageRect.top - messageListRect.top - 6,
+      );
+
+      setShowScrollToBottom(false);
+      keepMessageListPinnedRef.current = false;
+      messageList.scrollTo({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "auto"
+          : "smooth",
+        top: targetTop,
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(scrollFrame);
+    };
+  }, [messages.length, profile?.id]);
+
+  useEffect(() => {
     if (isSending) {
       wasSendingMessageRef.current = true;
       return;
@@ -993,7 +1052,7 @@ export function Profile({
       );
       const responseSocialLinks = response.socialLinks ?? [];
 
-      shouldScrollToBottomRef.current = true;
+      prepareProfileResponseScroll(answerMessageId);
       setMessages((current) => [
         ...current,
         {
@@ -1362,7 +1421,7 @@ export function Profile({
       );
       const responseSocialLinks = response.socialLinks ?? [];
 
-      shouldScrollToBottomRef.current = true;
+      prepareProfileResponseScroll(answerMessageId);
       setMessages((current) => [
         ...current.map((message) =>
           message.id === pendingMessageId ? resolvedVisitorMessage : message,
@@ -1478,6 +1537,12 @@ export function Profile({
         block: "end",
       });
     });
+  }
+
+  function prepareProfileResponseScroll(messageId: string) {
+    pendingProfileResponseScrollRef.current = messageId;
+    shouldScrollToBottomRef.current = false;
+    keepMessageListPinnedRef.current = false;
   }
 
   function scrollMessageListToBottom() {
@@ -1730,6 +1795,7 @@ export function Profile({
                 {messages.map((message) => (
                   <article
                     className={`profile-conversation-row ${message.role}`}
+                    data-message-id={message.id}
                     key={message.id}
                   >
                     {message.role === "profile" ? (

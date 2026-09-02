@@ -11,6 +11,7 @@ type TemplateKey = 'profile01' | 'profile02' | 'profile03' | 'profile04' | 'prof
 const MOBILE_BASE = '/landing/real-mobile';
 const ADMIN_BASE = '/landing/real-product';
 const CANONICAL_PATH = '/landing/entrenadores';
+const DEMO_PROFILE_URL = 'https://bigmelo.com/bigsofia';
 const HERO_TEMPLATE_ORDER: TemplateKey[] = ['profile01', 'profile03', 'profile02', 'profile04', 'profile05'];
 const LANDING_COPY = {
   lead: 'Responde preguntas, recomienda tus programas y ayuda a tus seguidores a elegir antes de escribirte.',
@@ -49,7 +50,7 @@ export function TrainerLandingPage() {
     <main className="perspective-funnel clean-profile-funnel clean-v51">
       <CleanHeader signupUrl={signupUrl} />
       <section className="pf-hero clean-hero clean-hero--fan" id="inicio">
-        <div className="pf-shell pf-hero__copy" data-clean-reveal><h1>{LANDING_COPY.title}</h1><p>{LANDING_COPY.lead}</p><div className="pf-actions"><a className="pf-button" href={signupUrl} onClick={() => trackSignup('hero')}>Crear mi Bigmelo gratis <Arrow /></a><a className="pf-text-link" href="/test-profile" onClick={() => trackLandingEvent('landing_demo_click', { location: 'hero' })} rel="noreferrer" target="_blank">Probar perfil demo <Arrow /></a></div><TrialLine /></div>
+        <div className="pf-shell pf-hero__copy" data-clean-reveal><h1>{LANDING_COPY.title}</h1><p>{LANDING_COPY.lead}</p><div className="pf-actions"><a className="pf-button" href={signupUrl} onClick={() => trackSignup('hero')}>Crear mi Bigmelo gratis <Arrow /></a><a className="pf-text-link" href={DEMO_PROFILE_URL} onClick={() => trackLandingEvent('landing_demo_click', { location: 'hero' })} rel="noreferrer" target="_blank">Probar perfil demo <Arrow /></a></div><TrialLine /></div>
         <HeroArtwork selectedTemplate={selectedTemplate} setSelectedTemplate={setSelectedTemplate} />
       </section>
       <ChannelStrip />
@@ -84,7 +85,7 @@ function ChannelStrip() {
 }
 
 function EvidenceStrip() {
-  return <section className="pf-facts cf-evidence" aria-label="Evidencia verificable de Bigmelo"><div className="pf-shell" data-clean-reveal><a href="/test-profile" onClick={() => trackLandingEvent('landing_demo_click', { location: 'evidence' })} rel="noreferrer" target="_blank"><strong>Demo real</strong><span>Prueba el perfil de Sofía</span></a><article><strong>Capturas reales</strong><span>Tomadas directamente del producto</span></article><article><strong>5 plantillas</strong><span>Con sus fondos originales</span></article><article><strong>Guía inicial</strong><span>Para los primeros 20 usuarios</span></article></div></section>;
+  return <section className="pf-facts cf-evidence" aria-label="Evidencia verificable de Bigmelo"><div className="pf-shell" data-clean-reveal><a href={DEMO_PROFILE_URL} onClick={() => trackLandingEvent('landing_demo_click', { location: 'evidence' })} rel="noreferrer" target="_blank"><strong>Demo real</strong><span>Prueba el perfil de Sofía</span></a><article><strong>Capturas reales</strong><span>Tomadas directamente del producto</span></article><article><strong>5 plantillas</strong><span>Con sus fondos originales</span></article><article><strong>Guía inicial</strong><span>Para los primeros 20 usuarios</span></article></div></section>;
 }
 
 function ConversationProof() {
