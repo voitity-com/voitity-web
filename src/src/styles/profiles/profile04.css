@@ -44,6 +44,8 @@
   --profile-template-title-spacing: -0.065em;
   --profile-template-disabled: #293148;
   --profile-template-disabled-text: #8792a8;
+  --profile-template-voice-wave-color: rgba(101, 244, 210, 1);
+  --profile-template-voice-wave-fade: rgba(178, 156, 255, 0.9);
 }
 
 .profile-page[data-profile-template="profile04"] .profile-title h1 {

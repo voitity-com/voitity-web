@@ -33,6 +33,8 @@
   --profile-template-title-spacing: -0.05em;
   --profile-template-disabled: #ededed;
   --profile-template-disabled-text: #9a9a9a;
+  --profile-template-voice-wave-color: rgba(17, 24, 39, 0.94);
+  --profile-template-voice-wave-fade: rgba(31, 41, 55, 0.72);
 }
 
 .profile-page[data-profile-template="profile01"] .profile-avatar::before {

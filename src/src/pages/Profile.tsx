@@ -66,6 +66,9 @@ const AVATAR_VIDEO_LOOP_DELAY_MS = 5000;
 const MEDIA_MODAL_CLOSE_TRANSITION_MS = 460;
 const MEDIA_PULSE_DURATION_MS = 2000;
 const WAVEFORM_BAR_COUNT = 22;
+const VOICE_RING_PATHS = [19, 47, 83].map((seed) =>
+  createCircularWavePath(47, 260, seed),
+);
 const DEFAULT_PROFILE_TEMPLATE: ProfileTemplate = "profile01";
 const PROFILE_TEMPLATES: ProfileTemplate[] = [
   "profile02",
@@ -346,6 +349,78 @@ async function copyTextToClipboard(value: string): Promise<void> {
 
 function isShareCancelled(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
+}
+
+function createCircularWavePath(
+  radius: number,
+  pointCount: number,
+  seed: number,
+): string {
+  const center = 50;
+  const fullCircle = Math.PI * 2;
+  let randomState = seed >>> 0;
+  const random = (): number => {
+    randomState = (randomState * 1664525 + 1013904223) >>> 0;
+    return randomState / 4294967296;
+  };
+  const waveBursts = Array.from({ length: 5 }, () => ({
+    amplitude: 0.65 + random() * 1.85,
+    center: random() * fullCircle,
+    phase: random() * fullCircle,
+    waveCount: 16 + Math.floor(random() * 13),
+    width: 0.18 + random() * 0.38,
+  }));
+  const points = Array.from({ length: pointCount }, (_, index) => {
+    const angle = (index / pointCount) * fullCircle;
+    const radialOffset = waveBursts.reduce((offset, burst) => {
+      const directDistance = Math.abs(angle - burst.center);
+      const circularDistance = Math.min(
+        directDistance,
+        fullCircle - directDistance,
+      );
+      const envelope = Math.exp(
+        -(circularDistance * circularDistance) /
+          (2 * burst.width * burst.width),
+      );
+
+      if (envelope < 0.045) {
+        return offset;
+      }
+
+      return (
+        offset +
+        Math.sin(angle * burst.waveCount + burst.phase) *
+          burst.amplitude *
+          envelope
+      );
+    }, 0);
+    const waveRadius = radius + Math.max(-3, Math.min(3, radialOffset));
+    const x = center + Math.cos(angle) * waveRadius;
+    const y = center + Math.sin(angle) * waveRadius;
+
+    return `${index === 0 ? "M" : "L"} ${x.toFixed(3)} ${y.toFixed(3)}`;
+  });
+
+  return `${points.join(" ")} Z`;
+}
+
+function VoiceRing({
+  className,
+  pathIndex,
+}: {
+  className: string;
+  pathIndex: number;
+}) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`voice-ring ${className}`}
+      focusable="false"
+      viewBox="0 0 100 100"
+    >
+      <path className="voice-ring-path" d={VOICE_RING_PATHS[pathIndex]} />
+    </svg>
+  );
 }
 
 function getMessagingUnavailableMessage(
@@ -1945,9 +2020,9 @@ export function Profile({
                       : "profile-avatar"
                   }
                 >
-                  <span className="voice-ring voice-ring-one" />
-                  <span className="voice-ring voice-ring-two" />
-                  <span className="voice-ring voice-ring-three" />
+                  <VoiceRing className="voice-ring-one" pathIndex={0} />
+                  <VoiceRing className="voice-ring-two" pathIndex={1} />
+                  <VoiceRing className="voice-ring-three" pathIndex={2} />
 
                   {avatarUrl && avatarKind === "video" ? (
                     <ProfileAvatarVideo autoPlay src={avatarUrl} />

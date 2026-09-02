@@ -4123,10 +4123,24 @@ video.landing-avatar-image {
   position: absolute;
   z-index: 2;
   inset: 12%;
-  border: 2px solid rgba(107, 114, 128, 0);
-  border-radius: 50%;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  color: rgba(107, 114, 128, 0);
   opacity: 0;
   pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.voice-ring-path {
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 0.42;
+  transform-box: fill-box;
+  transform-origin: center;
+  vector-effect: non-scaling-stroke;
 }
 
 .profile-avatar.is-speaking .voice-ring {
@@ -4139,6 +4153,19 @@ video.landing-avatar-image {
 
 .profile-avatar.is-speaking .voice-ring-three {
   animation-delay: 0.68s;
+}
+
+.profile-avatar.is-speaking .voice-ring-path {
+  animation: avatar-wave-travel 8.5s linear infinite;
+}
+
+.profile-avatar.is-speaking .voice-ring-two .voice-ring-path {
+  animation-duration: 10.5s;
+  animation-direction: reverse;
+}
+
+.profile-avatar.is-speaking .voice-ring-three .voice-ring-path {
+  animation-duration: 12.5s;
 }
 
 .profile-audio-button {
@@ -4421,18 +4448,30 @@ video.landing-avatar-image {
 
 @keyframes avatar-wave {
   0% {
-    border-color: rgba(107, 114, 128, 0.42);
+    color: var(
+      --profile-template-voice-wave-color,
+      rgba(107, 114, 128, 0.42)
+    );
     opacity: 0.9;
     transform: scale(1);
   }
   72% {
-    border-color: rgba(107, 114, 128, 0.16);
+    color: var(
+      --profile-template-voice-wave-fade,
+      rgba(107, 114, 128, 0.16)
+    );
     opacity: 0.32;
   }
   100% {
-    border-color: rgba(107, 114, 128, 0);
+    color: rgba(107, 114, 128, 0);
     opacity: 0;
-    transform: scale(1.54);
+    transform: scale(2.15);
+  }
+}
+
+@keyframes avatar-wave-travel {
+  to {
+    transform: rotate(360deg);
   }
 }
 
