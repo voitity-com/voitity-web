@@ -4801,13 +4801,32 @@ video.landing-avatar-image {
       var(--profile-composer-height, 80px) +
         max(10px, env(safe-area-inset-bottom)) + 16px
     );
-    scrollbar-width: none;
+    scrollbar-color: var(
+        --profile-template-voice-wave-color,
+        rgba(107, 114, 128, 0.8)
+      )
+      transparent;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
     -webkit-mask-image: none;
     mask-image: none;
   }
 
   .profile-message-list::-webkit-scrollbar {
-    display: none;
+    display: block;
+    width: 3px;
+  }
+
+  .profile-message-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .profile-message-list::-webkit-scrollbar-thumb {
+    background-color: var(
+      --profile-template-voice-wave-color,
+      rgba(107, 114, 128, 0.8)
+    );
+    border-radius: 999px;
   }
 
   .profile-conversation-row {
