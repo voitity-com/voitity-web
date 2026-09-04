@@ -1,20 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { getMobileKeyboardInset } from "../src/lib/mobile-keyboard.ts";
+import { getMobileComposerShift } from "../src/lib/mobile-keyboard.ts";
 
-test("detects a keyboard that overlays the visual viewport", () => {
-  assert.equal(getMobileKeyboardInset(844, 500, 0), 344);
+test("lifts a composer that would be covered by an overlay keyboard", () => {
+  assert.equal(getMobileComposerShift(834, 500), -344);
 });
 
-test("does not add an offset when the browser resizes the layout viewport", () => {
-  assert.equal(getMobileKeyboardInset(500, 500, 0), 0);
+test("keeps an already visible composer in its natural position", () => {
+  assert.equal(getMobileComposerShift(470, 500), 0);
 });
 
-test("accounts for a visual viewport shifted by browser chrome", () => {
-  assert.equal(getMobileKeyboardInset(844, 500, 44), 300);
+test("respects a custom bottom gap", () => {
+  assert.equal(getMobileComposerShift(490, 500, 20), -10);
 });
 
-test("never returns a negative keyboard offset", () => {
-  assert.equal(getMobileKeyboardInset(500, 540, 0), 0);
+test("ignores invalid viewport measurements", () => {
+  assert.equal(getMobileComposerShift(Number.NaN, 500), 0);
 });

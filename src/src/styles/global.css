@@ -4593,12 +4593,19 @@ video.landing-avatar-image {
   .profile-page {
     --profile-header-height: 136px;
     --profile-footer-height: 116px;
+    min-height: 100dvh;
     padding: 0;
   }
 
   .profile-shell {
+    height: 100dvh;
     min-height: 100svh;
-    padding: 88px 12px 88px;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: stretch;
+    overflow: visible;
+    padding: 88px 12px max(10px, env(safe-area-inset-bottom));
   }
 
   .profile-title {
@@ -4749,9 +4756,10 @@ video.landing-avatar-image {
 
   .profile-conversation {
     width: 100%;
-    min-height: calc(100svh - 176px);
+    height: auto;
+    min-height: 0;
     display: grid;
-    grid-template-rows: minmax(136px, min(31svh, 280px)) minmax(210px, 1fr);
+    grid-template-rows: minmax(96px, min(31svh, 280px)) minmax(0, 1fr);
     align-content: stretch;
     gap: clamp(4px, 1.2svh, 10px);
     margin: 0;
@@ -4760,7 +4768,8 @@ video.landing-avatar-image {
   .profile-avatar-stage {
     position: static;
     width: 100%;
-    height: min(31svh, 280px);
+    height: 100%;
+    min-height: 0;
     align-content: end;
     justify-items: center;
     padding: 0;
@@ -4768,7 +4777,10 @@ video.landing-avatar-image {
   }
 
   .profile-avatar {
-    width: min(66vw, 260px, calc(31svh - 4px));
+    width: auto;
+    height: 100%;
+    max-width: min(66vw, 260px);
+    max-height: min(31svh, 260px);
   }
 
   .profile-audio-toggle {
@@ -4785,22 +4797,15 @@ video.landing-avatar-image {
 
   .profile-message-list {
     width: 100%;
-    min-height: min(42svh, 250px);
-    max-height: clamp(220px, 47svh, 430px);
+    min-height: 0;
+    max-height: none;
     display: flex;
     flex-direction: column;
     gap: 8px;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 6px 2px
-      calc(
-        var(--profile-composer-height, 80px) +
-          max(10px, env(safe-area-inset-bottom)) + 16px
-      );
-    scroll-padding-bottom: calc(
-      var(--profile-composer-height, 80px) +
-        max(10px, env(safe-area-inset-bottom)) + 16px
-    );
+    padding: 6px 2px 16px;
+    scroll-padding-bottom: 16px;
     scrollbar-color: var(
         --profile-template-voice-wave-color,
         rgba(107, 114, 128, 0.8)
@@ -5007,19 +5012,28 @@ video.landing-avatar-image {
   }
 
   .profile-composer-row {
-    right: 10px;
-    bottom: calc(
-      max(10px, env(safe-area-inset-bottom)) +
-        var(--profile-keyboard-offset, 0px)
-    );
-    left: 10px;
-    width: auto;
+    position: relative;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    width: 100%;
+    align-self: end;
     gap: 6px;
-    transform: none;
+    transform: translateY(var(--profile-composer-shift, 0px));
   }
 
   .profile-page.has-open-keyboard .profile-composer-row {
     max-height: calc(var(--profile-visual-viewport-height, 100svh) - 20px);
+    will-change: transform;
+  }
+
+  .profile-page.has-open-keyboard .profile-shell {
+    height: var(--profile-visual-viewport-height, 100svh);
+    min-height: var(--profile-visual-viewport-height, 100svh);
+  }
+
+  .profile-page.has-open-keyboard .profile-conversation {
+    grid-template-rows: minmax(76px, min(23svh, 150px)) minmax(0, 1fr);
   }
 
   .profile-footer-note {
@@ -5120,12 +5134,12 @@ video.landing-avatar-image {
   @media (max-height: 700px) {
     .profile-shell {
       padding-top: 78px;
-      padding-bottom: 82px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
     }
 
     .profile-conversation {
-      min-height: calc(100svh - 160px);
-      grid-template-rows: minmax(112px, 27svh) minmax(190px, 1fr);
+      min-height: 0;
+      grid-template-rows: minmax(76px, min(23svh, 150px)) minmax(0, 1fr);
       gap: 3px;
     }
 
@@ -5159,16 +5173,19 @@ video.landing-avatar-image {
     }
 
     .profile-avatar-stage {
-      height: 27svh;
+      height: 100%;
     }
 
     .profile-avatar {
-      width: min(58vw, 220px, calc(27svh - 2px));
+      width: auto;
+      height: 100%;
+      max-width: min(58vw, 220px);
+      max-height: min(23svh, 150px);
     }
 
     .profile-message-list {
-      min-height: min(44svh, 230px);
-      max-height: clamp(196px, 49svh, 330px);
+      min-height: 0;
+      max-height: none;
     }
   }
 }

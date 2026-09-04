@@ -1,14 +1,20 @@
-export const MOBILE_KEYBOARD_MIN_INSET_PX = 80;
+export const MOBILE_COMPOSER_BOTTOM_GAP_PX = 10;
 
-export function getMobileKeyboardInset(
-  layoutViewportHeight: number,
+export function getMobileComposerShift(
+  composerBottom: number,
   visualViewportHeight: number,
-  visualViewportOffsetTop: number,
+  bottomGap = MOBILE_COMPOSER_BOTTOM_GAP_PX,
 ): number {
-  return Math.max(
+  if (
+    !Number.isFinite(composerBottom) ||
+    !Number.isFinite(visualViewportHeight) ||
+    !Number.isFinite(bottomGap)
+  ) {
+    return 0;
+  }
+
+  return Math.min(
     0,
-    Math.round(
-      layoutViewportHeight - visualViewportHeight - visualViewportOffsetTop,
-    ),
+    Math.round(visualViewportHeight - bottomGap - composerBottom),
   );
 }

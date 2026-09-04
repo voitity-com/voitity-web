@@ -3,8 +3,8 @@ import { createPortal } from "react-dom";
 
 import { trackAnalyticsEvent } from "../lib/google-analytics";
 import {
-  getMobileKeyboardInset,
-  MOBILE_KEYBOARD_MIN_INSET_PX,
+  getMobileComposerShift,
+  MOBILE_COMPOSER_BOTTOM_GAP_PX,
 } from "../lib/mobile-keyboard";
 import { profileDescription, setPageMetadata } from "../lib/page-metadata";
 import "../styles/profiles/profile-styles";
@@ -893,92 +893,150 @@ export function Profile({
     const profilePage = profilePageRef.current;
     const visualViewport = window.visualViewport;
 
-    if (!composerRow || !messageList || !profilePage || !visualViewport) {
+    if (!composerRow || !messageList || !profilePage) {
       return;
     }
 
     const activeComposerRow: HTMLElement = composerRow;
     const activeMessageList: HTMLDivElement = messageList;
     const activeProfilePage: HTMLElement = profilePage;
-    const activeVisualViewport: VisualViewport = visualViewport;
     const mobileQuery = window.matchMedia(
       "(max-width: 620px), (hover: none) and (pointer: coarse)",
     );
     let updateFrame = 0;
-    let settleFrame = 0;
+    let keyboardTrackingFrame = 0;
+    let keyboardTrackingStartedAt = 0;
+    let currentComposerShift = 0;
+    const settleTimers = new Set<number>();
 
     function resetKeyboardLayout() {
       activeProfilePage.classList.remove("has-open-keyboard");
-      activeProfilePage.style.removeProperty("--profile-keyboard-offset");
+      activeProfilePage.style.removeProperty("--profile-composer-shift");
       activeProfilePage.style.removeProperty(
         "--profile-visual-viewport-height",
       );
+      currentComposerShift = 0;
+    }
+
+    function applyKeyboardLayout() {
+      const inputIsFocused = document.activeElement === messageInputRef.current;
+
+      if (!mobileQuery.matches || !inputIsFocused) {
+        resetKeyboardLayout();
+        return;
+      }
+
+      const viewportHeight = Math.round(
+        visualViewport?.height ?? window.innerHeight,
+      );
+      const layoutViewportHeight = Math.max(
+        document.documentElement.clientHeight,
+        window.innerHeight,
+      );
+      const keyboardObstruction = Math.max(
+        0,
+        Math.round(layoutViewportHeight - viewportHeight),
+      );
+      const composerRect = activeComposerRow.getBoundingClientRect();
+      const composerBottomWithoutShift =
+        composerRect.bottom - currentComposerShift;
+      const composerShift = getMobileComposerShift(
+        composerBottomWithoutShift,
+        viewportHeight,
+        MOBILE_COMPOSER_BOTTOM_GAP_PX,
+      );
+
+      currentComposerShift = composerShift;
+      activeProfilePage.classList.toggle(
+        "has-open-keyboard",
+        composerShift < 0 || keyboardObstruction >= 80,
+      );
+      activeProfilePage.style.setProperty(
+        "--profile-composer-shift",
+        `${composerShift}px`,
+      );
+      activeProfilePage.style.setProperty(
+        "--profile-visual-viewport-height",
+        `${viewportHeight}px`,
+      );
+      if (keepMessageListPinnedRef.current) {
+        activeMessageList.scrollTop = activeMessageList.scrollHeight;
+      }
     }
 
     function updateKeyboardLayout() {
       window.cancelAnimationFrame(updateFrame);
-      updateFrame = window.requestAnimationFrame(() => {
-        const inputIsFocused =
-          document.activeElement === messageInputRef.current;
-        const layoutViewportHeight = Math.max(
-          document.documentElement.clientHeight,
-          window.innerHeight,
-        );
-        const keyboardInset = getMobileKeyboardInset(
-          layoutViewportHeight,
-          activeVisualViewport.height,
-          activeVisualViewport.offsetTop,
-        );
-        const keyboardIsOpen =
-          mobileQuery.matches &&
-          inputIsFocused &&
-          keyboardInset >= MOBILE_KEYBOARD_MIN_INSET_PX;
+      updateFrame = window.requestAnimationFrame(applyKeyboardLayout);
+    }
 
-        if (!keyboardIsOpen) {
-          resetKeyboardLayout();
-          return;
-        }
+    function trackKeyboardAnimation(timestamp: number) {
+      applyKeyboardLayout();
 
-        activeProfilePage.classList.add("has-open-keyboard");
-        activeProfilePage.style.setProperty(
-          "--profile-keyboard-offset",
-          `${keyboardInset}px`,
+      if (
+        document.activeElement === messageInputRef.current &&
+        timestamp - keyboardTrackingStartedAt < 1200
+      ) {
+        keyboardTrackingFrame = window.requestAnimationFrame(
+          trackKeyboardAnimation,
         );
-        activeProfilePage.style.setProperty(
-          "--profile-visual-viewport-height",
-          `${Math.round(activeVisualViewport.height)}px`,
-        );
+      }
+    }
 
-        if (keepMessageListPinnedRef.current) {
-          activeMessageList.scrollTop = activeMessageList.scrollHeight;
-        }
+    function settleFocusedInput() {
+      for (const delay of [80, 260, 520]) {
+        const timer = window.setTimeout(() => {
+          settleTimers.delete(timer);
 
-        window.cancelAnimationFrame(settleFrame);
-        settleFrame = window.requestAnimationFrame(() => {
+          if (document.activeElement !== messageInputRef.current) {
+            return;
+          }
+
+          applyKeyboardLayout();
           messageInputRef.current?.scrollIntoView({
-            block: "nearest",
+            block: "center",
             inline: "nearest",
           });
-        });
-      });
+        }, delay);
+        settleTimers.add(timer);
+      }
+    }
+
+    function handleFocusChange() {
+      window.cancelAnimationFrame(keyboardTrackingFrame);
+
+      if (document.activeElement !== messageInputRef.current) {
+        updateKeyboardLayout();
+        return;
+      }
+
+      keyboardTrackingStartedAt = performance.now();
+      keyboardTrackingFrame = window.requestAnimationFrame(
+        trackKeyboardAnimation,
+      );
+      settleFocusedInput();
     }
 
     updateKeyboardLayout();
-    activeVisualViewport.addEventListener("resize", updateKeyboardLayout);
-    activeVisualViewport.addEventListener("scroll", updateKeyboardLayout);
+    visualViewport?.addEventListener("resize", updateKeyboardLayout);
+    visualViewport?.addEventListener("scroll", updateKeyboardLayout);
     window.addEventListener("resize", updateKeyboardLayout);
-    activeComposerRow.addEventListener("focusin", updateKeyboardLayout);
-    activeComposerRow.addEventListener("focusout", updateKeyboardLayout);
+    window.addEventListener("scroll", updateKeyboardLayout, { passive: true });
+    activeComposerRow.addEventListener("focusin", handleFocusChange);
+    activeComposerRow.addEventListener("focusout", handleFocusChange);
     mobileQuery.addEventListener("change", updateKeyboardLayout);
 
     return () => {
       window.cancelAnimationFrame(updateFrame);
-      window.cancelAnimationFrame(settleFrame);
-      activeVisualViewport.removeEventListener("resize", updateKeyboardLayout);
-      activeVisualViewport.removeEventListener("scroll", updateKeyboardLayout);
+      window.cancelAnimationFrame(keyboardTrackingFrame);
+      for (const timer of settleTimers) {
+        window.clearTimeout(timer);
+      }
+      visualViewport?.removeEventListener("resize", updateKeyboardLayout);
+      visualViewport?.removeEventListener("scroll", updateKeyboardLayout);
       window.removeEventListener("resize", updateKeyboardLayout);
-      activeComposerRow.removeEventListener("focusin", updateKeyboardLayout);
-      activeComposerRow.removeEventListener("focusout", updateKeyboardLayout);
+      window.removeEventListener("scroll", updateKeyboardLayout);
+      activeComposerRow.removeEventListener("focusin", handleFocusChange);
+      activeComposerRow.removeEventListener("focusout", handleFocusChange);
       mobileQuery.removeEventListener("change", updateKeyboardLayout);
       resetKeyboardLayout();
     };
