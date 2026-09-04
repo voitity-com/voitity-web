@@ -172,6 +172,7 @@ export type ProfileInteraction = {
 };
 
 export type AvatarMedia = {
+  imageUrl: string | null;
   kind: "image" | "video";
   url: string;
 };
@@ -394,17 +395,28 @@ export async function fetchAvatarMedia(
       throw new Error("El avatar no tiene archivo disponible.");
     }
 
+    const imageFile =
+      pickString(source, ["image_url", "imageUrl"]) ??
+      pickNestedString(source, ["ai_image", "file"]);
+
     return {
+      imageUrl: imageFile
+        ? toAssetUrl(imageFile)
+        : !isVideoFile(file)
+          ? toAssetUrl(file)
+          : null,
       kind: isVideoFile(file) ? "video" : "image",
       url: toAssetUrl(file),
     };
   }
 
   const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
 
   return {
+    imageUrl: contentType.includes("video") ? null : url,
     kind: contentType.includes("video") ? "video" : "image",
-    url: URL.createObjectURL(blob),
+    url,
   };
 }
 

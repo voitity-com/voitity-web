@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title description">
+  <title id="title">Avatar de perfil vacío</title>
+  <desc id="description">Silueta neutral para un perfil que todavía no tiene avatar.</desc>
+  <defs>
+    <linearGradient id="background" x1="160" y1="80" x2="1040" y2="1120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#E7EBF0"/>
+    </linearGradient>
+    <linearGradient id="silhouette" x1="600" y1="300" x2="600" y2="1010" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A7B0BE"/>
+      <stop offset="1" stop-color="#7C8797"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1200" rx="600" fill="url(#background)"/>
+  <circle cx="600" cy="600" r="548" fill="none" stroke="#D0D5DD" stroke-width="16"/>
+  <circle cx="600" cy="438" r="174" fill="url(#silhouette)"/>
+  <path d="M250 1020C270 796 417 668 600 668C783 668 930 796 950 1020C853 1098 732 1142 600 1142C468 1142 347 1098 250 1020Z" fill="url(#silhouette)"/>
+</svg>

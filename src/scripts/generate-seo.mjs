@@ -14,6 +14,7 @@ const apiBaseUrl = (
 ).replace(/\/+$/, "");
 const siteUrl = "https://bigmelo.com";
 const defaultImage = `${siteUrl}/bigmelo-icon.png`;
+const profilePlaceholderImage = `${siteUrl}/profile-avatar-placeholder.png`;
 
 const homeMetadata = {
   canonical: `${siteUrl}/`,
@@ -67,7 +68,9 @@ for (const profile of profiles) {
   const name = profile.name.trim();
   const canonical = `${siteUrl}/${encodeURIComponent(alias)}`;
   const networks = normalizeNetworks(profile.networks);
-  const image = isHttpUrl(profile.image_url) ? profile.image_url : defaultImage;
+  const image = isHttpUrl(profile.image_url)
+    ? profile.image_url
+    : profilePlaceholderImage;
   const description =
     locale === "en"
       ? `Meet ${name} (@${alias}), visit their official social profiles and start an interactive conversation on Bigmelo.`

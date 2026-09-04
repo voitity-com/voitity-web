@@ -80,6 +80,7 @@ const AVATAR_VIDEO_LOOP_DELAY_MS = 5000;
 const MEDIA_MODAL_CLOSE_TRANSITION_MS = 460;
 const MEDIA_PULSE_DURATION_MS = 2000;
 const WAVEFORM_BAR_COUNT = 22;
+const PROFILE_AVATAR_PLACEHOLDER_PATH = "/profile-avatar-placeholder.png";
 const VOICE_RING_PATHS = [19, 47, 83].map((seed) =>
   createCircularWavePath(47, 260, seed),
 );
@@ -124,6 +125,49 @@ function isMobileInteractionViewport(): boolean {
       "(max-width: 620px), (hover: none) and (pointer: coarse)",
     ).matches
   );
+}
+
+function absoluteProfileImageUrl(imageUrl: string): string {
+  return new URL(imageUrl, window.location.origin).toString();
+}
+
+function setProfilePageMetadata(
+  profile: ProfileData,
+  profileDomain: string | undefined,
+  imageUrl: string,
+): void {
+  const description = profileDescription(
+    profile.name,
+    profile.alias,
+    profile.locale,
+  );
+  const publicProfileUrl = profileDomain
+    ? `https://${profileDomain}/`
+    : `https://bigmelo.com/${encodeURIComponent(profile.alias)}`;
+  const absoluteImageUrl = absoluteProfileImageUrl(imageUrl);
+
+  setPageMetadata({
+    canonicalOrigin: profileDomain ? window.location.origin : undefined,
+    canonicalPath: profileDomain ? "/" : `/${profile.alias}`,
+    description,
+    image: absoluteImageUrl,
+    locale: profile.locale,
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      mainEntity: {
+        "@type": "Person",
+        alternateName: `@${profile.alias}`,
+        image: absoluteImageUrl,
+        name: profile.name,
+        sameAs: profile.networks.map((network) => network.url),
+        url: publicProfileUrl,
+      },
+      url: publicProfileUrl,
+    },
+    title: `${profile.name} (@${profile.alias}) | Bigmelo`,
+    type: "profile",
+  });
 }
 
 function parseAppearancePreviewMessage(
@@ -503,6 +547,9 @@ export function Profile({
   const [chatToken, setChatToken] = useState<string | null>(null);
   const [avatarKind, setAvatarKind] = useState<"image" | "video">("image");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarImageUrl, setAvatarImageUrl] = useState(
+    PROFILE_AVATAR_PLACEHOLDER_PATH,
+  );
   const [avatarDisplayState, setAvatarDisplayState] =
     useState<AvatarDisplayState>("loading");
   const hasVisibleAvatar =
@@ -615,6 +662,7 @@ export function Profile({
         setIsAudioPlaying(false);
         setIsVoiceMuted(false);
         setAvatarUrl("");
+        setAvatarImageUrl(PROFILE_AVATAR_PLACEHOLDER_PATH);
         setAvatarDisplayState("loading");
         setMessagingCapabilities(DEFAULT_MESSAGING_CAPABILITIES);
         hasTrackedChatStartRef.current = false;
@@ -677,44 +725,32 @@ export function Profile({
         setIsLoading(false);
 
         if (!embedded) {
-          const description = profileDescription(
-            nextProfile.name,
-            nextProfile.alias,
-            nextProfile.locale,
+          setProfilePageMetadata(
+            nextProfile,
+            profileDomain,
+            PROFILE_AVATAR_PLACEHOLDER_PATH,
           );
-          setPageMetadata({
-            canonicalOrigin: profileDomain ? window.location.origin : undefined,
-            canonicalPath: profileDomain ? "/" : `/${nextProfile.alias}`,
-            description,
-            locale: nextProfile.locale,
-            structuredData: {
-              "@context": "https://schema.org",
-              "@type": "ProfilePage",
-              mainEntity: {
-                "@type": "Person",
-                alternateName: `@${nextProfile.alias}`,
-                name: nextProfile.name,
-                sameAs: nextProfile.networks.map((network) => network.url),
-                url: profileDomain
-                  ? `https://${profileDomain}/`
-                  : `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
-              },
-              url: profileDomain
-                ? `https://${profileDomain}/`
-                : `https://bigmelo.com/${encodeURIComponent(nextProfile.alias)}`,
-            },
-            title: `${nextProfile.name} (@${nextProfile.alias}) | Bigmelo`,
-            type: "profile",
-          });
         }
 
         fetchAvatarMedia(nextProfile.id)
           .then((media) => {
             if (isMounted) {
+              const nextAvatarImageUrl =
+                media.imageUrl ?? PROFILE_AVATAR_PLACEHOLDER_PATH;
               nextAvatarUrl = media.url;
               setAvatarKind(media.kind);
               setAvatarUrl(media.url);
+              setAvatarImageUrl(nextAvatarImageUrl);
               setAvatarDisplayState("ready");
+              if (!embedded) {
+                setProfilePageMetadata(
+                  nextProfile,
+                  profileDomain,
+                  nextAvatarImageUrl.startsWith("blob:")
+                    ? PROFILE_AVATAR_PLACEHOLDER_PATH
+                    : nextAvatarImageUrl,
+                );
+              }
             } else {
               URL.revokeObjectURL(media.url);
             }
@@ -2267,27 +2303,7 @@ export function Profile({
                     {message.role === "profile" ? (
                       <div className="profile-thread-message profile">
                         <div className="profile-mini-avatar">
-                          {hasVisibleAvatar && avatarKind === "video" ? (
-                            <ProfileAvatarVideo
-                              src={avatarUrl}
-                              onError={() => {
-                                setAvatarDisplayState("fallback");
-                              }}
-                            />
-                          ) : hasVisibleAvatar ? (
-                            <img
-                              alt=""
-                              src={avatarUrl}
-                              onError={() => {
-                                setAvatarDisplayState("fallback");
-                              }}
-                            />
-                          ) : null}
-                          {avatarDisplayState === "fallback" ? (
-                            <span aria-hidden="true">
-                              {profile.name.charAt(0).toUpperCase()}
-                            </span>
-                          ) : null}
+                          <ProfileMiniAvatarImage src={avatarImageUrl} />
                           {message.audioUrl && canUseVoicePlayback ? (
                             <button
                               aria-label={copy.audioMessage}
@@ -2392,27 +2408,7 @@ export function Profile({
                   <article className="profile-conversation-row profile">
                     <div className="profile-thread-message profile">
                       <div className="profile-mini-avatar">
-                        {hasVisibleAvatar && avatarKind === "video" ? (
-                          <ProfileAvatarVideo
-                            src={avatarUrl}
-                            onError={() => {
-                              setAvatarDisplayState("fallback");
-                            }}
-                          />
-                        ) : hasVisibleAvatar ? (
-                          <img
-                            alt=""
-                            src={avatarUrl}
-                            onError={() => {
-                              setAvatarDisplayState("fallback");
-                            }}
-                          />
-                        ) : null}
-                        {avatarDisplayState === "fallback" ? (
-                          <span aria-hidden="true">
-                            {profile.name.charAt(0).toUpperCase()}
-                          </span>
-                        ) : null}
+                        <ProfileMiniAvatarImage src={avatarImageUrl} />
                       </div>
                       <div className="profile-message-copy">
                         <p>{copy.typing}</p>
@@ -2444,6 +2440,7 @@ export function Profile({
                   {hasVisibleAvatar && avatarKind === "video" ? (
                     <ProfileAvatarVideo
                       autoPlay
+                      poster={avatarImageUrl}
                       src={avatarUrl}
                       onError={() => {
                         setAvatarDisplayState("fallback");
@@ -2761,10 +2758,12 @@ function getNetworkInitial(name: string) {
 function ProfileAvatarVideo({
   autoPlay = false,
   onError,
+  poster,
   src,
 }: {
   autoPlay?: boolean;
   onError?: () => void;
+  poster?: string;
   src: string;
 }) {
   const replayTimerRef = useRef<number | null>(null);
@@ -2814,6 +2813,7 @@ function ProfileAvatarVideo({
       autoPlay={autoPlay}
       muted
       playsInline
+      poster={poster}
       ref={videoRef}
       src={src}
       onError={onError}
@@ -2835,6 +2835,24 @@ function ProfileAvatarVideo({
           replayTimerRef.current = null;
           playFromStart();
         }, AVATAR_VIDEO_LOOP_DELAY_MS);
+      }}
+    />
+  );
+}
+
+function ProfileMiniAvatarImage({ src }: { src: string }) {
+  return (
+    <img
+      alt=""
+      src={src || PROFILE_AVATAR_PLACEHOLDER_PATH}
+      onError={(event) => {
+        const placeholderUrl = absoluteProfileImageUrl(
+          PROFILE_AVATAR_PLACEHOLDER_PATH,
+        );
+
+        if (event.currentTarget.src !== placeholderUrl) {
+          event.currentTarget.src = placeholderUrl;
+        }
       }}
     />
   );
