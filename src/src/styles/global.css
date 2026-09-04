@@ -3957,6 +3957,9 @@ video.landing-avatar-image {
 .profile-mini-avatar span {
   position: absolute;
   z-index: 1;
+  inset: 13%;
+  width: auto;
+  height: auto;
   display: grid;
   place-items: center;
   color: #111827;
@@ -4111,6 +4114,9 @@ video.landing-avatar-image {
 .avatar-fallback {
   position: absolute;
   z-index: 1;
+  inset: 12%;
+  width: auto;
+  height: auto;
   display: grid;
   place-items: center;
   color: #111827;
@@ -4593,19 +4599,13 @@ video.landing-avatar-image {
   .profile-page {
     --profile-header-height: 136px;
     --profile-footer-height: 116px;
-    min-height: 100dvh;
+    min-height: var(--profile-stable-viewport-height, 100dvh);
     padding: 0;
   }
 
   .profile-shell {
-    height: 100dvh;
-    min-height: 100svh;
-    display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
-    gap: 8px;
-    align-items: stretch;
-    overflow: visible;
-    padding: 88px 12px max(10px, env(safe-area-inset-bottom));
+    min-height: var(--profile-stable-viewport-height, 100dvh);
+    padding: 88px 12px 88px;
   }
 
   .profile-title {
@@ -4756,10 +4756,11 @@ video.landing-avatar-image {
 
   .profile-conversation {
     width: 100%;
-    height: auto;
-    min-height: 0;
+    min-height: calc(
+      var(--profile-stable-viewport-height, 100dvh) - 176px
+    );
     display: grid;
-    grid-template-rows: minmax(96px, min(31svh, 280px)) minmax(0, 1fr);
+    grid-template-rows: minmax(136px, min(31svh, 280px)) minmax(210px, 1fr);
     align-content: stretch;
     gap: clamp(4px, 1.2svh, 10px);
     margin: 0;
@@ -4768,8 +4769,7 @@ video.landing-avatar-image {
   .profile-avatar-stage {
     position: static;
     width: 100%;
-    height: 100%;
-    min-height: 0;
+    height: min(31svh, 280px);
     align-content: end;
     justify-items: center;
     padding: 0;
@@ -4777,10 +4777,7 @@ video.landing-avatar-image {
   }
 
   .profile-avatar {
-    width: auto;
-    height: 100%;
-    max-width: min(66vw, 260px);
-    max-height: min(31svh, 260px);
+    width: min(66vw, 260px, calc(31svh - 4px));
   }
 
   .profile-audio-toggle {
@@ -4797,16 +4794,22 @@ video.landing-avatar-image {
 
   .profile-message-list {
     width: 100%;
-    height: 100%;
-    min-height: 0;
-    max-height: 100%;
+    min-height: min(42svh, 250px);
+    max-height: clamp(220px, 47svh, 430px);
     display: flex;
     flex-direction: column;
     gap: 8px;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 6px 2px 16px;
-    scroll-padding-bottom: 16px;
+    padding: 6px 2px
+      calc(
+        var(--profile-composer-height, 80px) +
+          max(10px, env(safe-area-inset-bottom)) + 16px
+      );
+    scroll-padding-bottom: calc(
+      var(--profile-composer-height, 80px) +
+        max(10px, env(safe-area-inset-bottom)) + 16px
+    );
     scrollbar-color: var(
         --profile-template-voice-wave-color,
         rgba(107, 114, 128, 0.8)
@@ -4982,6 +4985,7 @@ video.landing-avatar-image {
   }
 
   .profile-mini-avatar span {
+    inset: 0;
     font-size: 0.9rem;
   }
 
@@ -5013,28 +5017,20 @@ video.landing-avatar-image {
   }
 
   .profile-composer-row {
-    position: relative;
-    right: auto;
-    bottom: auto;
-    left: auto;
-    width: 100%;
-    align-self: end;
+    right: 10px;
+    bottom: calc(
+      max(10px, env(safe-area-inset-bottom)) +
+        var(--profile-keyboard-inset, 0px)
+    );
+    left: 10px;
+    width: auto;
     gap: 6px;
-    transform: translateY(var(--profile-composer-shift, 0px));
+    transform: none;
   }
 
   .profile-page.has-open-keyboard .profile-composer-row {
-    max-height: calc(var(--profile-visual-viewport-height, 100svh) - 20px);
-    will-change: transform;
-  }
-
-  .profile-page.has-open-keyboard .profile-shell {
-    height: var(--profile-visual-viewport-height, 100svh);
-    min-height: var(--profile-visual-viewport-height, 100svh);
-  }
-
-  .profile-page.has-open-keyboard .profile-conversation {
-    grid-template-rows: minmax(76px, min(23svh, 150px)) minmax(0, 1fr);
+    max-height: calc(var(--profile-visible-viewport-bottom, 100svh) - 20px);
+    will-change: bottom;
   }
 
   .profile-footer-note {
@@ -5135,12 +5131,15 @@ video.landing-avatar-image {
   @media (max-height: 700px) {
     .profile-shell {
       padding-top: 78px;
-      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      padding-bottom: 82px;
     }
 
     .profile-conversation {
+      height: calc(
+        var(--profile-stable-viewport-height, 100dvh) - 160px
+      );
       min-height: 0;
-      grid-template-rows: minmax(76px, min(23svh, 150px)) minmax(0, 1fr);
+      grid-template-rows: minmax(112px, 27svh) minmax(0, 1fr);
       gap: 3px;
     }
 
@@ -5178,10 +5177,7 @@ video.landing-avatar-image {
     }
 
     .profile-avatar {
-      width: auto;
-      height: 100%;
-      max-width: min(58vw, 220px);
-      max-height: min(23svh, 150px);
+      width: min(58vw, 220px, calc(27svh - 2px));
     }
 
     .profile-message-list {
@@ -5189,6 +5185,47 @@ video.landing-avatar-image {
       min-height: 0;
       max-height: 100%;
     }
+  }
+
+  .profile-page.has-open-keyboard .profile-conversation {
+    height: max(
+      80px,
+      calc(
+        var(--profile-visible-viewport-bottom, 100svh) - 88px -
+          var(--profile-composer-height, 80px) -
+          max(10px, env(safe-area-inset-bottom)) - 8px
+      )
+    );
+    min-height: 0;
+    grid-template-rows: minmax(76px, min(23svh, 150px)) minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .profile-page.has-open-keyboard .profile-avatar-stage {
+    height: min(23svh, 150px);
+  }
+
+  .profile-page.has-open-keyboard .profile-avatar {
+    width: min(58vw, 220px, calc(min(23svh, 150px) - 2px));
+  }
+
+  .profile-page.has-open-keyboard .profile-message-list {
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    padding-bottom: 16px;
+    scroll-padding-bottom: 16px;
+  }
+
+  .profile-page.has-open-keyboard.has-compact-keyboard .profile-conversation {
+    grid-template-rows: 0 minmax(0, 1fr);
+  }
+
+  .profile-page.has-open-keyboard.has-compact-keyboard
+    .profile-avatar-stage {
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
   }
 }
 

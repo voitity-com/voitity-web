@@ -3,8 +3,10 @@ import { createPortal } from "react-dom";
 
 import { trackAnalyticsEvent } from "../lib/google-analytics";
 import {
-  getMobileComposerShift,
-  MOBILE_COMPOSER_BOTTOM_GAP_PX,
+  getMobileComposerInset,
+  getMobileKeyboardFallbackInset,
+  getMobileKeyboardInset,
+  MOBILE_KEYBOARD_MIN_INSET_PX,
 } from "../lib/mobile-keyboard";
 import { profileDescription, setPageMetadata } from "../lib/page-metadata";
 import "../styles/profiles/profile-styles";
@@ -37,6 +39,7 @@ type ProfileProps = {
 type GreetingAudioState =
   "idle" | "loading" | "ready" | "blocked" | "unavailable";
 type RecordingState = "idle" | "preparing" | "recording" | "preview";
+type AvatarDisplayState = "loading" | "ready" | "fallback";
 type ProfileLocale = ProfileData["locale"];
 type ProfileTemplate =
   | "profile01"
@@ -63,6 +66,13 @@ type PulseMedia = {
 };
 
 type ProfileAppearancePreview = ProfileData["appearance"];
+
+type VirtualKeyboardLike = EventTarget & {
+  boundingRect?: {
+    height: number;
+    top: number;
+  };
+};
 
 const PROFILE_SESSION_KEY_PREFIX = "bigmelo:profile-session:v3:";
 const ADULT_CONTENT_SESSION_KEY_PREFIX = "bigmelo:adult-content:v1:";
@@ -104,9 +114,13 @@ function isAppearanceEditorEnabled(): boolean {
 }
 
 function shouldRestoreMessageInputFocus(): boolean {
+  return typeof window !== "undefined" && !isMobileInteractionViewport();
+}
+
+function isMobileInteractionViewport(): boolean {
   return (
     typeof window !== "undefined" &&
-    !window.matchMedia(
+    window.matchMedia(
       "(max-width: 620px), (hover: none) and (pointer: coarse)",
     ).matches
   );
@@ -489,6 +503,10 @@ export function Profile({
   const [chatToken, setChatToken] = useState<string | null>(null);
   const [avatarKind, setAvatarKind] = useState<"image" | "video">("image");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarDisplayState, setAvatarDisplayState] =
+    useState<AvatarDisplayState>("loading");
+  const hasVisibleAvatar =
+    avatarDisplayState === "ready" && Boolean(avatarUrl);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -596,6 +614,8 @@ export function Profile({
         setGreetingAudioError(null);
         setIsAudioPlaying(false);
         setIsVoiceMuted(false);
+        setAvatarUrl("");
+        setAvatarDisplayState("loading");
         setMessagingCapabilities(DEFAULT_MESSAGING_CAPABILITIES);
         hasTrackedChatStartRef.current = false;
 
@@ -694,6 +714,7 @@ export function Profile({
               nextAvatarUrl = media.url;
               setAvatarKind(media.kind);
               setAvatarUrl(media.url);
+              setAvatarDisplayState("ready");
             } else {
               URL.revokeObjectURL(media.url);
             }
@@ -701,6 +722,7 @@ export function Profile({
           .catch(() => {
             if (isMounted) {
               setAvatarKind("image");
+              setAvatarDisplayState("fallback");
             }
           });
 
@@ -903,62 +925,145 @@ export function Profile({
     const mobileQuery = window.matchMedia(
       "(max-width: 620px), (hover: none) and (pointer: coarse)",
     );
+    const touchQuery = window.matchMedia(
+      "(hover: none) and (pointer: coarse)",
+    );
+    const virtualKeyboard = (
+      navigator as Navigator & { virtualKeyboard?: VirtualKeyboardLike }
+    ).virtualKeyboard;
+    const getVisualViewportBottom = () =>
+      Math.round(
+        Math.max(0, visualViewport?.offsetTop ?? 0) +
+          (visualViewport?.height ?? window.innerHeight),
+      );
+    const getInitialViewportHeight = () =>
+      Math.max(
+        window.innerHeight,
+        getVisualViewportBottom(),
+      );
+    let stableViewportHeight = getInitialViewportHeight();
+    let lastViewportWidth = window.innerWidth;
     let updateFrame = 0;
-    let keyboardTrackingFrame = 0;
-    let keyboardTrackingStartedAt = 0;
-    let currentComposerShift = 0;
-    const settleTimers = new Set<number>();
+    let keyboardTrackingInterval: number | null = null;
+    let keyboardTrackingUntil = 0;
+    let fallbackTimer: number | null = null;
+    let fallbackReleaseTimer: number | null = null;
+    let orientationTimer: number | null = null;
+    let fallbackKeyboardIsOpen = false;
+    let keyboardIsOpen = false;
+
+    function syncStableViewportHeight() {
+      activeProfilePage.style.setProperty(
+        "--profile-stable-viewport-height",
+        `${stableViewportHeight}px`,
+      );
+    }
 
     function resetKeyboardLayout() {
       activeProfilePage.classList.remove("has-open-keyboard");
-      activeProfilePage.style.removeProperty("--profile-composer-shift");
+      activeProfilePage.classList.remove("has-compact-keyboard");
+      activeProfilePage.style.removeProperty("--profile-keyboard-inset");
       activeProfilePage.style.removeProperty(
-        "--profile-visual-viewport-height",
+        "--profile-visible-viewport-bottom",
       );
-      currentComposerShift = 0;
+      keyboardIsOpen = false;
+    }
+
+    function clearFallbackTimer() {
+      if (fallbackTimer !== null) {
+        window.clearTimeout(fallbackTimer);
+        fallbackTimer = null;
+      }
+    }
+
+    function clearFallbackReleaseTimer() {
+      if (fallbackReleaseTimer !== null) {
+        window.clearTimeout(fallbackReleaseTimer);
+        fallbackReleaseTimer = null;
+      }
+    }
+
+    function getMeasuredKeyboardInset() {
+      const viewportInset = getMobileKeyboardInset(
+        stableViewportHeight,
+        visualViewport?.height ?? window.innerHeight,
+        visualViewport?.offsetTop ?? 0,
+      );
+      const keyboardRect = virtualKeyboard?.boundingRect;
+      const virtualKeyboardInset = keyboardRect?.height
+        ? getMobileKeyboardInset(
+            stableViewportHeight,
+            Math.max(0, keyboardRect.top),
+          )
+        : 0;
+
+      return Math.max(viewportInset, virtualKeyboardInset);
     }
 
     function applyKeyboardLayout() {
-      const inputIsFocused = document.activeElement === messageInputRef.current;
-
-      if (!mobileQuery.matches || !inputIsFocused) {
+      if (!mobileQuery.matches) {
+        fallbackKeyboardIsOpen = false;
         resetKeyboardLayout();
         return;
       }
 
-      const viewportHeight = Math.round(
-        visualViewport?.height ?? window.innerHeight,
-      );
-      const layoutViewportHeight = Math.max(
-        document.documentElement.clientHeight,
-        window.innerHeight,
-      );
-      const keyboardObstruction = Math.max(
-        0,
-        Math.round(layoutViewportHeight - viewportHeight),
-      );
-      const composerRect = activeComposerRow.getBoundingClientRect();
-      const composerBottomWithoutShift =
-        composerRect.bottom - currentComposerShift;
-      const composerShift = getMobileComposerShift(
-        composerBottomWithoutShift,
-        viewportHeight,
-        MOBILE_COMPOSER_BOTTOM_GAP_PX,
+      const inputIsFocused = document.activeElement === messageInputRef.current;
+      const viewportBottom = getVisualViewportBottom();
+      const canHaveKeyboard =
+        inputIsFocused ||
+        keyboardIsOpen ||
+        fallbackKeyboardIsOpen ||
+        performance.now() < keyboardTrackingUntil;
+
+      if (
+        !keyboardIsOpen &&
+        !fallbackKeyboardIsOpen &&
+        !inputIsFocused &&
+        viewportBottom > stableViewportHeight
+      ) {
+        stableViewportHeight = viewportBottom;
+        syncStableViewportHeight();
+      }
+
+      const measuredKeyboardInset = canHaveKeyboard
+        ? getMeasuredKeyboardInset()
+        : 0;
+      const fallbackKeyboardInset = fallbackKeyboardIsOpen
+        ? getMobileKeyboardFallbackInset(stableViewportHeight)
+        : 0;
+      const keyboardInset = Math.max(
+        measuredKeyboardInset,
+        fallbackKeyboardInset,
       );
 
-      currentComposerShift = composerShift;
+      if (!canHaveKeyboard || keyboardInset < MOBILE_KEYBOARD_MIN_INSET_PX) {
+        resetKeyboardLayout();
+        return;
+      }
+
+      keyboardIsOpen = true;
+      const visibleViewportBottom = Math.max(
+        MOBILE_KEYBOARD_MIN_INSET_PX,
+        stableViewportHeight - keyboardInset,
+      );
+      const composerInset = getMobileComposerInset(
+        window.innerHeight,
+        visibleViewportBottom,
+      );
+      activeProfilePage.classList.add("has-open-keyboard");
       activeProfilePage.classList.toggle(
-        "has-open-keyboard",
-        composerShift < 0 || keyboardObstruction >= 80,
+        "has-compact-keyboard",
+        visibleViewportBottom < 420,
       );
       activeProfilePage.style.setProperty(
-        "--profile-composer-shift",
-        `${composerShift}px`,
+        "--profile-keyboard-inset",
+        `${composerInset}px`,
       );
       activeProfilePage.style.setProperty(
-        "--profile-visual-viewport-height",
-        `${viewportHeight}px`,
+        "--profile-visible-viewport-bottom",
+        `${visibleViewportBottom}px`,
       );
+
       if (keepMessageListPinnedRef.current) {
         activeMessageList.scrollTop = activeMessageList.scrollHeight;
       }
@@ -969,76 +1074,187 @@ export function Profile({
       updateFrame = window.requestAnimationFrame(applyKeyboardLayout);
     }
 
-    function trackKeyboardAnimation(timestamp: number) {
-      applyKeyboardLayout();
-
-      if (
-        document.activeElement === messageInputRef.current &&
-        timestamp - keyboardTrackingStartedAt < 1200
-      ) {
-        keyboardTrackingFrame = window.requestAnimationFrame(
-          trackKeyboardAnimation,
-        );
+    function stopKeyboardTracking() {
+      if (keyboardTrackingInterval !== null) {
+        window.clearInterval(keyboardTrackingInterval);
+        keyboardTrackingInterval = null;
       }
     }
 
-    function settleFocusedInput() {
-      for (const delay of [80, 260, 520]) {
-        const timer = window.setTimeout(() => {
-          settleTimers.delete(timer);
+    function startKeyboardTracking(duration = 1800) {
+      keyboardTrackingUntil = Math.max(
+        keyboardTrackingUntil,
+        performance.now() + duration,
+      );
 
-          if (document.activeElement !== messageInputRef.current) {
-            return;
-          }
-
-          applyKeyboardLayout();
-          messageInputRef.current?.scrollIntoView({
-            block: "center",
-            inline: "nearest",
-          });
-        }, delay);
-        settleTimers.add(timer);
-      }
-    }
-
-    function handleFocusChange() {
-      window.cancelAnimationFrame(keyboardTrackingFrame);
-
-      if (document.activeElement !== messageInputRef.current) {
-        updateKeyboardLayout();
+      if (keyboardTrackingInterval !== null) {
         return;
       }
 
-      keyboardTrackingStartedAt = performance.now();
-      keyboardTrackingFrame = window.requestAnimationFrame(
-        trackKeyboardAnimation,
-      );
-      settleFocusedInput();
+      keyboardTrackingInterval = window.setInterval(() => {
+        applyKeyboardLayout();
+
+        if (
+          !keyboardIsOpen &&
+          !fallbackKeyboardIsOpen &&
+          performance.now() >= keyboardTrackingUntil
+        ) {
+          stopKeyboardTracking();
+        }
+      }, 120);
     }
 
+    function scheduleKeyboardFallback() {
+      clearFallbackTimer();
+      fallbackTimer = window.setTimeout(() => {
+        fallbackTimer = null;
+
+        if (
+          document.activeElement !== messageInputRef.current ||
+          getMeasuredKeyboardInset() >= MOBILE_KEYBOARD_MIN_INSET_PX
+        ) {
+          return;
+        }
+
+        if (touchQuery.matches || navigator.maxTouchPoints > 0) {
+          fallbackKeyboardIsOpen = true;
+          startKeyboardTracking();
+          updateKeyboardLayout();
+        }
+      }, 320);
+    }
+
+    function beginKeyboardInteraction() {
+      clearFallbackReleaseTimer();
+      startKeyboardTracking();
+      scheduleKeyboardFallback();
+      updateKeyboardLayout();
+    }
+
+    function handleFocusIn(event: FocusEvent) {
+      if (event.target === messageInputRef.current) {
+        beginKeyboardInteraction();
+      }
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (event.target === messageInputRef.current) {
+        beginKeyboardInteraction();
+      }
+    }
+
+    function handleFocusOut(event: FocusEvent) {
+      if (event.target !== messageInputRef.current) {
+        return;
+      }
+
+      clearFallbackTimer();
+      clearFallbackReleaseTimer();
+      startKeyboardTracking(1600);
+      fallbackReleaseTimer = window.setTimeout(() => {
+        fallbackReleaseTimer = null;
+
+        if (document.activeElement === messageInputRef.current) {
+          return;
+        }
+
+        if (fallbackKeyboardIsOpen) {
+          fallbackKeyboardIsOpen = false;
+          resetKeyboardLayout();
+          stopKeyboardTracking();
+          return;
+        }
+
+        updateKeyboardLayout();
+      }, 1200);
+    }
+
+    function handleViewportChange() {
+      startKeyboardTracking(900);
+      updateKeyboardLayout();
+    }
+
+    function handleOrientationChange() {
+      clearFallbackTimer();
+      clearFallbackReleaseTimer();
+      fallbackKeyboardIsOpen = false;
+      resetKeyboardLayout();
+      stopKeyboardTracking();
+
+      if (orientationTimer !== null) {
+        window.clearTimeout(orientationTimer);
+      }
+
+      orientationTimer = window.setTimeout(() => {
+        orientationTimer = null;
+        lastViewportWidth = window.innerWidth;
+        stableViewportHeight = getInitialViewportHeight();
+        syncStableViewportHeight();
+        updateKeyboardLayout();
+      }, 360);
+    }
+
+    function handleWindowResize() {
+      if (Math.abs(window.innerWidth - lastViewportWidth) >= 40) {
+        handleOrientationChange();
+        return;
+      }
+
+      handleViewportChange();
+    }
+
+    function handlePageReturn() {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
+      fallbackKeyboardIsOpen = false;
+      resetKeyboardLayout();
+      stableViewportHeight = getInitialViewportHeight();
+      syncStableViewportHeight();
+      startKeyboardTracking(900);
+    }
+
+    syncStableViewportHeight();
     updateKeyboardLayout();
-    visualViewport?.addEventListener("resize", updateKeyboardLayout);
-    visualViewport?.addEventListener("scroll", updateKeyboardLayout);
-    window.addEventListener("resize", updateKeyboardLayout);
-    window.addEventListener("scroll", updateKeyboardLayout, { passive: true });
-    activeComposerRow.addEventListener("focusin", handleFocusChange);
-    activeComposerRow.addEventListener("focusout", handleFocusChange);
+    visualViewport?.addEventListener("resize", handleViewportChange);
+    visualViewport?.addEventListener("scroll", handleViewportChange);
+    virtualKeyboard?.addEventListener("geometrychange", handleViewportChange);
+    window.addEventListener("resize", handleWindowResize);
+    window.addEventListener("orientationchange", handleOrientationChange);
+    window.addEventListener("pageshow", handlePageReturn);
+    document.addEventListener("visibilitychange", handlePageReturn);
+    activeComposerRow.addEventListener("focusin", handleFocusIn);
+    activeComposerRow.addEventListener("focusout", handleFocusOut);
+    activeComposerRow.addEventListener("pointerdown", handlePointerDown);
     mobileQuery.addEventListener("change", updateKeyboardLayout);
 
     return () => {
       window.cancelAnimationFrame(updateFrame);
-      window.cancelAnimationFrame(keyboardTrackingFrame);
-      for (const timer of settleTimers) {
-        window.clearTimeout(timer);
+      stopKeyboardTracking();
+      clearFallbackTimer();
+      clearFallbackReleaseTimer();
+      if (orientationTimer !== null) {
+        window.clearTimeout(orientationTimer);
       }
-      visualViewport?.removeEventListener("resize", updateKeyboardLayout);
-      visualViewport?.removeEventListener("scroll", updateKeyboardLayout);
-      window.removeEventListener("resize", updateKeyboardLayout);
-      window.removeEventListener("scroll", updateKeyboardLayout);
-      activeComposerRow.removeEventListener("focusin", handleFocusChange);
-      activeComposerRow.removeEventListener("focusout", handleFocusChange);
+      visualViewport?.removeEventListener("resize", handleViewportChange);
+      visualViewport?.removeEventListener("scroll", handleViewportChange);
+      virtualKeyboard?.removeEventListener(
+        "geometrychange",
+        handleViewportChange,
+      );
+      window.removeEventListener("resize", handleWindowResize);
+      window.removeEventListener("orientationchange", handleOrientationChange);
+      window.removeEventListener("pageshow", handlePageReturn);
+      document.removeEventListener("visibilitychange", handlePageReturn);
+      activeComposerRow.removeEventListener("focusin", handleFocusIn);
+      activeComposerRow.removeEventListener("focusout", handleFocusOut);
+      activeComposerRow.removeEventListener("pointerdown", handlePointerDown);
       mobileQuery.removeEventListener("change", updateKeyboardLayout);
       resetKeyboardLayout();
+      activeProfilePage.style.removeProperty(
+        "--profile-stable-viewport-height",
+      );
     };
   }, [profile?.id]);
 
@@ -1252,6 +1468,10 @@ export function Profile({
       role: "visitor",
       text: draft.trim(),
     };
+
+    if (isMobileInteractionViewport()) {
+      messageInputRef.current?.blur();
+    }
 
     setDraft("");
     setIsSending(true);
@@ -2047,14 +2267,27 @@ export function Profile({
                     {message.role === "profile" ? (
                       <div className="profile-thread-message profile">
                         <div className="profile-mini-avatar">
-                          {avatarUrl && avatarKind === "video" ? (
-                            <ProfileAvatarVideo src={avatarUrl} />
-                          ) : avatarUrl ? (
-                            <img alt="" src={avatarUrl} />
+                          {hasVisibleAvatar && avatarKind === "video" ? (
+                            <ProfileAvatarVideo
+                              src={avatarUrl}
+                              onError={() => {
+                                setAvatarDisplayState("fallback");
+                              }}
+                            />
+                          ) : hasVisibleAvatar ? (
+                            <img
+                              alt=""
+                              src={avatarUrl}
+                              onError={() => {
+                                setAvatarDisplayState("fallback");
+                              }}
+                            />
                           ) : null}
-                          <span aria-hidden="true">
-                            {profile.name.charAt(0).toUpperCase()}
-                          </span>
+                          {avatarDisplayState === "fallback" ? (
+                            <span aria-hidden="true">
+                              {profile.name.charAt(0).toUpperCase()}
+                            </span>
+                          ) : null}
                           {message.audioUrl && canUseVoicePlayback ? (
                             <button
                               aria-label={copy.audioMessage}
@@ -2159,14 +2392,27 @@ export function Profile({
                   <article className="profile-conversation-row profile">
                     <div className="profile-thread-message profile">
                       <div className="profile-mini-avatar">
-                        {avatarUrl && avatarKind === "video" ? (
-                          <ProfileAvatarVideo src={avatarUrl} />
-                        ) : avatarUrl ? (
-                          <img alt="" src={avatarUrl} />
+                        {hasVisibleAvatar && avatarKind === "video" ? (
+                          <ProfileAvatarVideo
+                            src={avatarUrl}
+                            onError={() => {
+                              setAvatarDisplayState("fallback");
+                            }}
+                          />
+                        ) : hasVisibleAvatar ? (
+                          <img
+                            alt=""
+                            src={avatarUrl}
+                            onError={() => {
+                              setAvatarDisplayState("fallback");
+                            }}
+                          />
                         ) : null}
-                        <span aria-hidden="true">
-                          {profile.name.charAt(0).toUpperCase()}
-                        </span>
+                        {avatarDisplayState === "fallback" ? (
+                          <span aria-hidden="true">
+                            {profile.name.charAt(0).toUpperCase()}
+                          </span>
+                        ) : null}
                       </div>
                       <div className="profile-message-copy">
                         <p>{copy.typing}</p>
@@ -2195,21 +2441,29 @@ export function Profile({
                   <VoiceRing className="voice-ring-two" pathIndex={1} />
                   <VoiceRing className="voice-ring-three" pathIndex={2} />
 
-                  {avatarUrl && avatarKind === "video" ? (
-                    <ProfileAvatarVideo autoPlay src={avatarUrl} />
-                  ) : avatarUrl ? (
+                  {hasVisibleAvatar && avatarKind === "video" ? (
+                    <ProfileAvatarVideo
+                      autoPlay
+                      src={avatarUrl}
+                      onError={() => {
+                        setAvatarDisplayState("fallback");
+                      }}
+                    />
+                  ) : hasVisibleAvatar ? (
                     <img
                       alt={profile.name}
                       src={avatarUrl}
-                      onError={(event) => {
-                        event.currentTarget.style.display = "none";
+                      onError={() => {
+                        setAvatarDisplayState("fallback");
                       }}
                     />
                   ) : null}
 
-                  <div className="avatar-fallback" aria-hidden="true">
-                    {profile.name.charAt(0).toUpperCase()}
-                  </div>
+                  {avatarDisplayState === "fallback" ? (
+                    <div className="avatar-fallback" aria-hidden="true">
+                      {profile.name.charAt(0).toUpperCase()}
+                    </div>
+                  ) : null}
                   <button
                     aria-label={voiceToggleLabel}
                     aria-pressed={profile.voiceEnabled ? !isVoiceMuted : false}
@@ -2506,9 +2760,11 @@ function getNetworkInitial(name: string) {
 
 function ProfileAvatarVideo({
   autoPlay = false,
+  onError,
   src,
 }: {
   autoPlay?: boolean;
+  onError?: () => void;
   src: string;
 }) {
   const replayTimerRef = useRef<number | null>(null);
@@ -2560,6 +2816,7 @@ function ProfileAvatarVideo({
       playsInline
       ref={videoRef}
       src={src}
+      onError={onError}
       onEnded={() => {
         const video = videoRef.current;
 
