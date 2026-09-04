@@ -5008,11 +5008,18 @@ video.landing-avatar-image {
 
   .profile-composer-row {
     right: 10px;
-    bottom: max(10px, env(safe-area-inset-bottom));
+    bottom: calc(
+      max(10px, env(safe-area-inset-bottom)) +
+        var(--profile-keyboard-offset, 0px)
+    );
     left: 10px;
     width: auto;
     gap: 6px;
     transform: none;
+  }
+
+  .profile-page.has-open-keyboard .profile-composer-row {
+    max-height: calc(var(--profile-visual-viewport-height, 100svh) - 20px);
   }
 
   .profile-footer-note {

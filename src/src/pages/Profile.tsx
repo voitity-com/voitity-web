@@ -2,6 +2,10 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { trackAnalyticsEvent } from "../lib/google-analytics";
+import {
+  getMobileKeyboardInset,
+  MOBILE_KEYBOARD_MIN_INSET_PX,
+} from "../lib/mobile-keyboard";
 import { profileDescription, setPageMetadata } from "../lib/page-metadata";
 import "../styles/profiles/profile-styles";
 import {
@@ -462,6 +466,7 @@ export function Profile({
   const audioDraftRef = useRef<AudioDraft | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const messageInputRef = useRef<HTMLInputElement | null>(null);
+  const profilePageRef = useRef<HTMLElement | null>(null);
   const recordingChunksRef = useRef<BlobPart[]>([]);
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const recordingTimerRef = useRef<number | null>(null);
@@ -879,6 +884,103 @@ export function Profile({
       resizeObserver?.disconnect();
       window.removeEventListener("resize", updateComposerHeight);
       activeMessageList.style.removeProperty("--profile-composer-height");
+    };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    const composerRow = composerRowRef.current;
+    const messageList = messageListRef.current;
+    const profilePage = profilePageRef.current;
+    const visualViewport = window.visualViewport;
+
+    if (!composerRow || !messageList || !profilePage || !visualViewport) {
+      return;
+    }
+
+    const activeComposerRow: HTMLElement = composerRow;
+    const activeMessageList: HTMLDivElement = messageList;
+    const activeProfilePage: HTMLElement = profilePage;
+    const activeVisualViewport: VisualViewport = visualViewport;
+    const mobileQuery = window.matchMedia(
+      "(max-width: 620px), (hover: none) and (pointer: coarse)",
+    );
+    let updateFrame = 0;
+    let settleFrame = 0;
+
+    function resetKeyboardLayout() {
+      activeProfilePage.classList.remove("has-open-keyboard");
+      activeProfilePage.style.removeProperty("--profile-keyboard-offset");
+      activeProfilePage.style.removeProperty(
+        "--profile-visual-viewport-height",
+      );
+    }
+
+    function updateKeyboardLayout() {
+      window.cancelAnimationFrame(updateFrame);
+      updateFrame = window.requestAnimationFrame(() => {
+        const inputIsFocused =
+          document.activeElement === messageInputRef.current;
+        const layoutViewportHeight = Math.max(
+          document.documentElement.clientHeight,
+          window.innerHeight,
+        );
+        const keyboardInset = getMobileKeyboardInset(
+          layoutViewportHeight,
+          activeVisualViewport.height,
+          activeVisualViewport.offsetTop,
+        );
+        const keyboardIsOpen =
+          mobileQuery.matches &&
+          inputIsFocused &&
+          keyboardInset >= MOBILE_KEYBOARD_MIN_INSET_PX;
+
+        if (!keyboardIsOpen) {
+          resetKeyboardLayout();
+          return;
+        }
+
+        activeProfilePage.classList.add("has-open-keyboard");
+        activeProfilePage.style.setProperty(
+          "--profile-keyboard-offset",
+          `${keyboardInset}px`,
+        );
+        activeProfilePage.style.setProperty(
+          "--profile-visual-viewport-height",
+          `${Math.round(activeVisualViewport.height)}px`,
+        );
+
+        if (keepMessageListPinnedRef.current) {
+          activeMessageList.scrollTop = activeMessageList.scrollHeight;
+        }
+
+        window.cancelAnimationFrame(settleFrame);
+        settleFrame = window.requestAnimationFrame(() => {
+          messageInputRef.current?.scrollIntoView({
+            block: "nearest",
+            inline: "nearest",
+          });
+        });
+      });
+    }
+
+    updateKeyboardLayout();
+    activeVisualViewport.addEventListener("resize", updateKeyboardLayout);
+    activeVisualViewport.addEventListener("scroll", updateKeyboardLayout);
+    window.addEventListener("resize", updateKeyboardLayout);
+    activeComposerRow.addEventListener("focusin", updateKeyboardLayout);
+    activeComposerRow.addEventListener("focusout", updateKeyboardLayout);
+    mobileQuery.addEventListener("change", updateKeyboardLayout);
+
+    return () => {
+      window.cancelAnimationFrame(updateFrame);
+      window.cancelAnimationFrame(settleFrame);
+      activeVisualViewport.removeEventListener("resize", updateKeyboardLayout);
+      activeVisualViewport.removeEventListener("scroll", updateKeyboardLayout);
+      window.removeEventListener("resize", updateKeyboardLayout);
+      activeComposerRow.removeEventListener("focusin", updateKeyboardLayout);
+      activeComposerRow.removeEventListener("focusout", updateKeyboardLayout);
+      mobileQuery.removeEventListener("change", updateKeyboardLayout);
+      resetKeyboardLayout();
     };
   }, [profile?.id]);
 
@@ -1772,6 +1874,7 @@ export function Profile({
 
   return (
     <main
+      ref={profilePageRef}
       className={profilePageClassName}
       data-profile-template={profileTemplate}
       style={profilePageStyle}

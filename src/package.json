@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/generate-seo.mjs",
     "check:performance": "node scripts/check-performance-budget.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:mobile-keyboard": "node --disable-warning=ExperimentalWarning --test tests/mobile-keyboard.test.mjs"
   },
   "dependencies": {
     "libphonenumber-js": "^1.13.9",
