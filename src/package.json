@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/generate-seo.mjs",
+    "build": "tsc -b && vite build && node scripts/generate-seo.mjs && node scripts/check-seo-output.mjs",
+    "check:seo": "node scripts/check-seo-output.mjs",
     "check:performance": "node scripts/check-performance-budget.mjs",
     "preview": "vite preview",
+    "test:analytics": "node --disable-warning=ExperimentalWarning --test tests/analytics-safety.test.mjs",
     "test:mobile-keyboard": "node --disable-warning=ExperimentalWarning --test tests/mobile-keyboard.test.mjs"
   },
   "dependencies": {

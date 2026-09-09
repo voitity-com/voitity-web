@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_GA4_ALLOWED_HOSTS?: string;
   readonly VITE_GA4_MEASUREMENT_ID?: string;
 }
 

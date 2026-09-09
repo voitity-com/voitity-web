@@ -31,6 +31,7 @@ import {
 type ProfileProps = {
   embedded?: boolean;
   onProfileNotFound: () => void;
+  suppressViewTracking?: boolean;
 } & (
   | { profileAlias: string; profileDomain?: never }
   | { profileAlias?: never; profileDomain: string }
@@ -514,6 +515,7 @@ export function Profile({
   onProfileNotFound,
   profileAlias,
   profileDomain,
+  suppressViewTracking = false,
 }: ProfileProps) {
   const profileStorageKey = profileDomain ?? profileAlias;
   const appearanceEditorEnabled = isAppearanceEditorEnabled();
@@ -679,11 +681,13 @@ export function Profile({
         setIsVoiceMuted(
           !nextProfile.voiceEnabled || !nextProfile.voiceAutoplayEnabled,
         );
-        trackProfileInteraction(nextProfile.id, {
-          eventType: "profile_viewed",
-          surface: embedded ? "widget_chat" : "profile_page",
-        });
-        trackAnalyticsEvent("profile_view");
+        if (!suppressViewTracking) {
+          trackProfileInteraction(nextProfile.id, {
+            eventType: "profile_viewed",
+            surface: embedded ? "widget_chat" : "profile_page",
+          });
+          trackAnalyticsEvent("profile_view");
+        }
         setMessagingCapabilities(nextProfile.messagingCapabilities);
         const storedSession = readProfileSession(profileStorageKey);
         const initialMessage = nextProfile.conversationMessages.initial;
@@ -817,6 +821,7 @@ export function Profile({
     profileAlias,
     profileDomain,
     profileStorageKey,
+    suppressViewTracking,
   ]);
 
   useEffect(() => {

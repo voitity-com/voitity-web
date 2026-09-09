@@ -13,6 +13,7 @@ declare global {
 const DEFAULT_MEASUREMENT_ID = "G-T9MKE6R87P";
 const CONSENT_COOKIE_NAME = "bigmelo_analytics_consent";
 const CONSENT_EVENT_NAME = "bigmelo:analytics-consent";
+const PREFERENCES_EVENT_NAME = "bigmelo:analytics-preferences";
 const SCRIPT_ELEMENT_ID = "bigmelo-google-analytics";
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 const ATTRIBUTION_PARAMETER_KEYS = [
@@ -25,6 +26,8 @@ const ATTRIBUTION_PARAMETER_KEYS = [
   "gbraid",
   "wbraid",
 ] as const;
+const DEFAULT_ALLOWED_HOSTS = ["bigmelo.com", ".bigmelo.com"];
+const SAFE_ATTRIBUTION_VALUE = /^[a-z0-9._~-]{1,100}$/i;
 
 let consentDefaultsConfigured = false;
 let analyticsConfigured = false;
@@ -41,16 +44,50 @@ function isBigmeloHost(hostname: string): boolean {
 }
 
 export function isGoogleAnalyticsEnabled(): boolean {
-  const hostname = window.location.hostname.toLowerCase();
-  const isLocalHost =
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "::1" ||
-    hostname.endsWith(".localhost") ||
-    hostname.endsWith(".localdev.me") ||
-    hostname.endsWith(".nip.io");
+  const configuredHosts = import.meta.env.VITE_GA4_ALLOWED_HOSTS?.trim();
+  const allowedHosts = configuredHosts
+    ? configuredHosts.split(",").map((host) => host.trim().toLowerCase()).filter(Boolean)
+    : DEFAULT_ALLOWED_HOSTS;
 
-  return import.meta.env.PROD && !isLocalHost;
+  return shouldEnableGoogleAnalytics({
+    allowedHosts,
+    hostname: window.location.hostname,
+    isProduction: import.meta.env.PROD,
+    search: window.location.search,
+  });
+}
+
+export function shouldEnableGoogleAnalytics({
+  allowedHosts = DEFAULT_ALLOWED_HOSTS,
+  hostname,
+  isProduction,
+  search,
+}: {
+  allowedHosts?: string[];
+  hostname: string;
+  isProduction: boolean;
+  search: string;
+}): boolean {
+  const normalizedHostname = hostname.toLowerCase().replace(/\.$/u, "");
+  const isLocalHost =
+    normalizedHostname === "localhost" ||
+    normalizedHostname === "127.0.0.1" ||
+    normalizedHostname === "::1" ||
+    normalizedHostname.endsWith(".localhost") ||
+    normalizedHostname.endsWith(".localdev.me") ||
+    normalizedHostname.endsWith(".nip.io");
+
+  const isLandingDemo = new URLSearchParams(search).get("landing_demo") === "1";
+  const isAllowedHost = allowedHosts.some((allowedHost) => {
+    const normalizedAllowedHost = allowedHost.trim().toLowerCase();
+
+    return normalizedAllowedHost.startsWith(".")
+      ? normalizedHostname.endsWith(normalizedAllowedHost)
+      : normalizedHostname === normalizedAllowedHost;
+  },
+  );
+
+  return isProduction && !isLocalHost && !isLandingDemo && isAllowedHost;
 }
 
 function invokeGtag(...args: unknown[]): void {
@@ -141,6 +178,7 @@ function loadGoogleAnalytics(): void {
     script.async = true;
     script.id = SCRIPT_ELEMENT_ID;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(getMeasurementId())}`;
+    script.addEventListener("error", () => script.remove(), { once: true });
     document.head.appendChild(script);
   }
 }
@@ -183,6 +221,18 @@ export function subscribeToAnalyticsConsent(listener: (consent: AnalyticsConsent
   };
 }
 
+export function openAnalyticsPreferences(): void {
+  window.dispatchEvent(new Event(PREFERENCES_EVENT_NAME));
+}
+
+export function subscribeToAnalyticsPreferences(listener: () => void): () => void {
+  window.addEventListener(PREFERENCES_EVENT_NAME, listener);
+
+  return () => {
+    window.removeEventListener(PREFERENCES_EVENT_NAME, listener);
+  };
+}
+
 export function sanitizePublicPath(pathname: string): string {
   const normalizedPath = pathname.replace(/\/+$/u, "").toLowerCase();
   const firstSegment = normalizedPath.split("/").filter(Boolean)[0];
@@ -203,6 +253,14 @@ export function sanitizePublicPath(pathname: string): string {
 
   if (normalizedPath === "/landing/entrenadores" || normalizedPath === "/landing/entrenadorv51") {
     return "/landing/entrenadores";
+  }
+
+  if (normalizedPath === "/landing/homev01") {
+    return "/";
+  }
+
+  if (["/landing/homev02", "/landing/homev03"].includes(normalizedPath)) {
+    return normalizedPath;
   }
 
   return knownPaths.has(firstSegment) ? `/${firstSegment}` : "/profile/:alias";
@@ -259,14 +317,14 @@ export function trackAnalyticsEvent(eventName: string, parameters: AnalyticsEven
   invokeGtag("event", eventName, { app_surface: "public", ...safeParameters });
 }
 
-function buildSafePageLocation(pathname: string, search: string): string {
+export function buildSafePageLocation(pathname: string, search: string): string {
   const safeUrl = new URL(sanitizePublicPath(pathname), window.location.origin);
   const incoming = new URLSearchParams(search);
 
   ATTRIBUTION_PARAMETER_KEYS.forEach((key) => {
-    const value = incoming.get(key)?.trim().slice(0, 255);
+    const value = incoming.get(key)?.trim();
 
-    if (value) {
+    if (value && SAFE_ATTRIBUTION_VALUE.test(value)) {
       safeUrl.searchParams.set(key, value);
     }
   });
@@ -292,7 +350,7 @@ function getSafePageReferrer(): string {
   }
 }
 
-function sanitizeEventParameters(parameters: AnalyticsEventParameters): Record<string, AnalyticsEventParameter> {
+export function sanitizeEventParameters(parameters: AnalyticsEventParameters): Record<string, AnalyticsEventParameter> {
   return Object.fromEntries(
     Object.entries(parameters).filter(
       (entry): entry is [string, AnalyticsEventParameter] => {

@@ -5,6 +5,7 @@ import {
   initializeGoogleAnalytics,
   setAnalyticsConsent,
   subscribeToAnalyticsConsent,
+  subscribeToAnalyticsPreferences,
   type AnalyticsConsent as AnalyticsConsentValue,
 } from "../lib/google-analytics";
 
@@ -33,17 +34,20 @@ function getDocumentLocale(): Locale {
 
 export function AnalyticsConsent() {
   const [consent, setConsent] = useState<AnalyticsConsentValue>(() => getAnalyticsConsent());
-  const [isOpen, setIsOpen] = useState(consent !== "granted");
+  const [isOpen, setIsOpen] = useState(consent === "unset");
   const [locale, setLocale] = useState<Locale>(() => getDocumentLocale());
   const t = copy[locale];
 
   useEffect(() => {
-    setConsent(initializeGoogleAnalytics());
+    const currentConsent = initializeGoogleAnalytics();
+    setConsent(currentConsent);
+    setIsOpen(currentConsent === "unset");
 
     const unsubscribe = subscribeToAnalyticsConsent((nextConsent) => {
       setConsent(nextConsent);
       setIsOpen(false);
     });
+    const unsubscribePreferences = subscribeToAnalyticsPreferences(() => setIsOpen(true));
     const languageObserver = new MutationObserver(() => {
       setLocale(getDocumentLocale());
     });
@@ -52,6 +56,7 @@ export function AnalyticsConsent() {
     return () => {
       languageObserver.disconnect();
       unsubscribe();
+      unsubscribePreferences();
     };
   }, []);
 

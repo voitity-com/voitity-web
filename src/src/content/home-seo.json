@@ -1,0 +1,19 @@
+{
+  "canonical": "https://bigmelo.com/",
+  "image": "https://bigmelo.com/og-homev01.png",
+  "imageAlt": {
+    "en": "Bigmelo preview with Sofia Mendoza's interactive mobile profile",
+    "es": "Vista de Bigmelo con el perfil interactivo móvil de Sofía Mendoza"
+  },
+  "imageHeight": 630,
+  "imageType": "image/png",
+  "imageWidth": 1200,
+  "en": {
+    "description": "Create an interactive profile with AI, your image, and voice. Answer questions, recommend products, and turn your link in bio into a 24/7 conversation.",
+    "title": "Bigmelo: the AI link in bio that answers for you"
+  },
+  "es": {
+    "description": "Crea un perfil interactivo con IA, tu imagen y voz. Responde preguntas, recomienda productos y convierte tu link en bio en una conversación 24/7.",
+    "title": "Bigmelo: el link en bio con IA que responde por ti"
+  }
+}
