@@ -6,6 +6,9 @@ import { loadEnv } from "vite";
 const projectRoot = process.cwd();
 const distDirectory = path.join(projectRoot, "dist");
 const baseHtml = await readFile(path.join(distDirectory, "index.html"), "utf8");
+const homeSeo = JSON.parse(
+  await readFile(path.join(projectRoot, "src/content/home-seo.json"), "utf8"),
+);
 const env = loadEnv("production", projectRoot, "");
 const apiBaseUrl = (
   process.env.SEO_API_BASE_URL ||
@@ -15,34 +18,55 @@ const apiBaseUrl = (
 const siteUrl = "https://bigmelo.com";
 const defaultImage = `${siteUrl}/bigmelo-icon.png`;
 const profilePlaceholderImage = `${siteUrl}/profile-avatar-placeholder.png`;
+const homeStructuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@id": `${siteUrl}/#website`,
+      "@type": "WebSite",
+      description: homeSeo.es.description,
+      inLanguage: "es-CO",
+      name: "Bigmelo",
+      url: homeSeo.canonical,
+    },
+    {
+      "@id": `${siteUrl}/#organization`,
+      "@type": "Organization",
+      logo: defaultImage,
+      name: "Bigmelo",
+      url: homeSeo.canonical,
+    },
+    {
+      "@id": `${siteUrl}/#software`,
+      "@type": "SoftwareApplication",
+      applicationCategory: "BusinessApplication",
+      description: homeSeo.es.description,
+      name: "Bigmelo",
+      offers: {
+        "@type": "Offer",
+        price: "12.99",
+        priceCurrency: "USD",
+        url: `${siteUrl}/#planes`,
+      },
+      operatingSystem: "Web",
+      provider: { "@id": `${siteUrl}/#organization` },
+      url: homeSeo.canonical,
+    },
+  ],
+};
 
 const homeMetadata = {
-  canonical: `${siteUrl}/`,
-  description:
-    "Crea una presencia digital interactiva con IA, imagen y voz para compartir tu experiencia, responder preguntas y conectar tus redes oficiales.",
-  image: defaultImage,
+  canonical: homeSeo.canonical,
+  description: homeSeo.es.description,
+  image: homeSeo.image,
+  imageAlt: homeSeo.imageAlt.es,
+  imageHeight: homeSeo.imageHeight,
+  imageType: homeSeo.imageType,
+  imageWidth: homeSeo.imageWidth,
   locale: "es",
-  robots: "index,follow,max-image-preview:large,max-snippet:-1",
-  structuredData: {
-    "@context": "https://schema.org",
-    "@graph": [
-      { "@type": "WebSite", name: "Bigmelo", url: `${siteUrl}/` },
-      {
-        "@type": "Organization",
-        logo: defaultImage,
-        name: "Bigmelo",
-        url: `${siteUrl}/`,
-      },
-      {
-        "@type": "SoftwareApplication",
-        applicationCategory: "BusinessApplication",
-        name: "Bigmelo",
-        operatingSystem: "Web",
-        url: `${siteUrl}/`,
-      },
-    ],
-  },
-  title: "Bigmelo: perfiles interactivos con IA, imagen y voz",
+  robots: "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
+  structuredData: homeStructuredData,
+  title: homeSeo.es.title,
   type: "website",
 };
 
@@ -213,6 +237,58 @@ for (const landingPage of trainerLandingPages) {
   );
 }
 
+const homeProposalPages = [
+  {
+    description: homeSeo.es.description,
+    path: "landing/homev01",
+    primary: true,
+    title: homeSeo.es.title,
+  },
+  {
+    description: "Bigmelo convierte tu conocimiento en una experiencia digital viva que habla, responde y recomienda.",
+    path: "landing/homev02",
+    title: "No publiques otro link. Publica una conversación",
+  },
+  {
+    description: "Una página pública con tu identidad, tu voz y respuestas basadas en información que tú apruebas.",
+    path: "landing/homev03",
+    title: "Todo lo que sabes. Ahora sí puede responder",
+  },
+];
+
+for (const landingPage of homeProposalPages) {
+  const directory = path.join(distDirectory, landingPage.path);
+  await mkdir(directory, { recursive: true });
+  await writeFile(
+    path.join(directory, "index.html"),
+    renderDocument(
+      {
+        canonical: landingPage.primary ? homeSeo.canonical : `${siteUrl}/${landingPage.path}`,
+        description: landingPage.description,
+        image: landingPage.primary
+          ? homeSeo.image
+          : `${siteUrl}/landing/real-mobile/profile02-chat-product.png`,
+        ...(landingPage.primary
+          ? {
+              imageAlt: homeSeo.imageAlt.es,
+              imageHeight: homeSeo.imageHeight,
+              imageType: homeSeo.imageType,
+              imageWidth: homeSeo.imageWidth,
+            }
+          : {}),
+        locale: "es",
+        robots: landingPage.primary
+          ? homeMetadata.robots
+          : "noindex,follow",
+        ...(landingPage.primary ? { structuredData: homeStructuredData } : {}),
+        title: landingPage.primary ? landingPage.title : `${landingPage.title} | Bigmelo`,
+        type: "website",
+      },
+      landingPage.primary ? homeFallback() : homeProposalFallback(landingPage.title),
+    ),
+  );
+}
+
 const sitemapEntries = [
   { loc: `${siteUrl}/` },
   { loc: `${siteUrl}/landing/entrenadores` },
@@ -315,11 +391,26 @@ function metadataTags(metadata) {
     `<meta data-bigmelo-seo property="og:description" content="${escapeHtml(metadata.description)}" />`,
     `<meta data-bigmelo-seo property="og:url" content="${escapeHtml(metadata.canonical)}" />`,
     `<meta data-bigmelo-seo property="og:image" content="${escapeHtml(metadata.image)}" />`,
+    metadata.imageAlt
+      ? `<meta data-bigmelo-seo property="og:image:alt" content="${escapeHtml(metadata.imageAlt)}" />`
+      : "",
+    metadata.imageWidth
+      ? `<meta data-bigmelo-seo property="og:image:width" content="${escapeHtml(metadata.imageWidth)}" />`
+      : "",
+    metadata.imageHeight
+      ? `<meta data-bigmelo-seo property="og:image:height" content="${escapeHtml(metadata.imageHeight)}" />`
+      : "",
+    metadata.imageType
+      ? `<meta data-bigmelo-seo property="og:image:type" content="${escapeHtml(metadata.imageType)}" />`
+      : "",
     `<meta data-bigmelo-seo property="og:locale" content="${metadata.locale === "en" ? "en_US" : "es_CO"}" />`,
     `<meta data-bigmelo-seo name="twitter:card" content="${twitterCard}" />`,
     `<meta data-bigmelo-seo name="twitter:title" content="${escapeHtml(metadata.title)}" />`,
     `<meta data-bigmelo-seo name="twitter:description" content="${escapeHtml(metadata.description)}" />`,
     `<meta data-bigmelo-seo name="twitter:image" content="${escapeHtml(metadata.image)}" />`,
+    metadata.imageAlt
+      ? `<meta data-bigmelo-seo name="twitter:image:alt" content="${escapeHtml(metadata.imageAlt)}" />`
+      : "",
     structuredData,
   ]
     .filter(Boolean)
@@ -327,7 +418,7 @@ function metadataTags(metadata) {
 }
 
 function homeFallback() {
-  return '<main class="seo-home-fallback"><h1>Presencia digital con IA, imagen y voz</h1><p>Bigmelo convierte tu experiencia en un perfil interactivo para responder preguntas y conectar tus redes oficiales.</p><a href="#contacto">Crear mi perfil</a></main>';
+  return `<main class="seo-home-fallback"><h1>Una versión de ti que conversa, orienta y conecta.</h1><p>${escapeHtml(homeSeo.es.description)}</p><a href="https://admin.bigmelo.com/auth/custom/sign-up?locale=es&amp;intent=trial&amp;plan=starter&amp;cycle=month">Crear mi Bigmelo</a><a href="${siteUrl}/bigsofia">Ver demo real</a></main>`;
 }
 
 function profileFallback({ alias, image, name, networks }) {
@@ -350,6 +441,10 @@ function notFoundFallback() {
 
 function trainerLandingFallback() {
   return '<main class="seo-home-fallback"><h1>El link en bio que responde por ti</h1><p>Bigmelo responde preguntas, recomienda tus programas fitness y dirige prospectos a WhatsApp.</p><a href="https://admin.bigmelo.com/auth/custom/sign-up?locale=es&amp;intent=trial&amp;plan=starter&amp;cycle=month">Crear mi Bigmelo gratis</a></main>';
+}
+
+function homeProposalFallback(title) {
+  return `<main class="seo-home-fallback"><h1>${escapeHtml(title)}</h1><p>Conoce una presencia digital interactiva con inteligencia artificial, imagen y voz.</p><a href="https://bigmelo.com/bigsofia">Ver demo real</a></main>`;
 }
 
 function normalizeNetworks(value) {

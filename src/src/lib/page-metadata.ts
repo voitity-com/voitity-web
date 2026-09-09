@@ -3,6 +3,10 @@ type PageMetadata = {
   canonicalPath: string;
   description: string;
   image?: string;
+  imageAlt?: string;
+  imageHeight?: number;
+  imageType?: string;
+  imageWidth?: number;
   locale?: "en" | "es";
   robots?: string;
   structuredData?: Record<string, unknown>;
@@ -25,6 +29,10 @@ function upsertMeta(selector: string, attributes: Record<string, string>) {
   Object.entries(attributes).forEach(([key, value]) => element!.setAttribute(key, value));
 }
 
+function removeMeta(selector: string) {
+  document.head.querySelector(selector)?.remove();
+}
+
 function canonicalUrl(path: string, origin = SITE_URL): string {
   const normalizedPath = path === "/" ? "/" : `/${path.replace(/^\/+|\/+$/g, "")}`;
   return `${origin.replace(/\/+$/, "")}${normalizedPath}`;
@@ -35,6 +43,10 @@ export function setPageMetadata({
   canonicalPath,
   description,
   image = DEFAULT_IMAGE,
+  imageAlt,
+  imageHeight,
+  imageType,
+  imageWidth,
   locale = "es",
   robots = "index,follow,max-image-preview:large,max-snippet:-1",
   structuredData,
@@ -42,6 +54,7 @@ export function setPageMetadata({
   type = "website",
 }: PageMetadata): void {
   const url = canonicalUrl(canonicalPath, canonicalOrigin);
+  const resolvedImageAlt = imageAlt ?? title;
 
   document.documentElement.lang = locale;
   document.title = title;
@@ -54,14 +67,34 @@ export function setPageMetadata({
   upsertMeta('meta[property="og:description"]', { content: description, property: "og:description" });
   upsertMeta('meta[property="og:url"]', { content: url, property: "og:url" });
   upsertMeta('meta[property="og:image"]', { content: image, property: "og:image" });
+  upsertMeta('meta[property="og:image:alt"]', { content: resolvedImageAlt, property: "og:image:alt" });
+  if (imageWidth) {
+    upsertMeta('meta[property="og:image:width"]', { content: String(imageWidth), property: "og:image:width" });
+  } else {
+    removeMeta('meta[property="og:image:width"]');
+  }
+  if (imageHeight) {
+    upsertMeta('meta[property="og:image:height"]', { content: String(imageHeight), property: "og:image:height" });
+  } else {
+    removeMeta('meta[property="og:image:height"]');
+  }
+  if (imageType) {
+    upsertMeta('meta[property="og:image:type"]', { content: imageType, property: "og:image:type" });
+  } else {
+    removeMeta('meta[property="og:image:type"]');
+  }
   upsertMeta('meta[property="og:locale"]', {
     content: locale === "en" ? "en_US" : "es_CO",
     property: "og:locale",
   });
-  upsertMeta('meta[name="twitter:card"]', { content: "summary", name: "twitter:card" });
+  upsertMeta('meta[name="twitter:card"]', {
+    content: image === DEFAULT_IMAGE ? "summary" : "summary_large_image",
+    name: "twitter:card",
+  });
   upsertMeta('meta[name="twitter:title"]', { content: title, name: "twitter:title" });
   upsertMeta('meta[name="twitter:description"]', { content: description, name: "twitter:description" });
   upsertMeta('meta[name="twitter:image"]', { content: image, name: "twitter:image" });
+  upsertMeta('meta[name="twitter:image:alt"]', { content: resolvedImageAlt, name: "twitter:image:alt" });
 
   let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
   if (!canonical) {

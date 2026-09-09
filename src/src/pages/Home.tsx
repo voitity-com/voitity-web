@@ -359,6 +359,7 @@ type TurnstileRenderOptions = {
   'expired-callback'?: () => void;
   language?: string;
   sitekey: string;
+  size?: 'compact' | 'flexible' | 'normal';
   theme?: 'auto' | 'dark' | 'light';
 };
 
@@ -867,6 +868,7 @@ export function Home() {
 
         turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
+          size: 'flexible',
           theme: 'light',
           language: locale,
           callback: (token) => {
