@@ -140,7 +140,6 @@ const pageCopy = {
       spanish: 'Español',
       trial: 'Probar 7 días',
     },
-    switcher: { label: 'Cambiar propuesta de home', title: 'Propuestas' },
     hero: {
       altBack: 'Vista móvil alternativa de un perfil Bigmelo',
       altFront: 'Vista móvil alternativa de otro perfil Bigmelo',
@@ -269,7 +268,6 @@ const pageCopy = {
       spanish: 'Español',
       trial: 'Try 7 days',
     },
-    switcher: { label: 'Switch homepage proposal', title: 'Proposals' },
     hero: {
       altBack: 'Alternative mobile view of a Bigmelo profile',
       altFront: 'Alternative mobile view of another Bigmelo profile',
@@ -577,7 +575,6 @@ export function HomeProposal({ variant }: { variant: HomeProposalVariant }) {
   return (
     <main className={`home-proposal ${variant}`}>
       <Header locale={locale} onLocaleChange={changeLocale} variant={variant} />
-      <ProposalSwitcher locale={locale} variant={variant} />
       <Hero copy={copy} locale={locale} signupUrl={signupUrl} variant={variant} />
       <SignalStrip locale={locale} />
       {variant === 'homev02' ? demo : mobileStory}
@@ -762,33 +759,6 @@ function LanguageSwitch({
       <button aria-label={t.spanish} aria-pressed={locale === 'es'} onClick={() => onLocaleChange('es')} type="button">ES</button>
       <button aria-label={t.english} aria-pressed={locale === 'en'} onClick={() => onLocaleChange('en')} type="button">EN</button>
     </div>
-  );
-}
-
-function ProposalSwitcher({ locale, variant }: { locale: Locale; variant: HomeProposalVariant }) {
-  const t = pageCopy[locale].switcher;
-
-  return (
-    <nav aria-label={t.label} className="hp-proposal-switcher">
-      <span>{t.title}</span>
-      {(['homev01', 'homev02', 'homev03'] as HomeProposalVariant[]).map((item, index) => (
-        <a
-          aria-current={item === variant ? 'page' : undefined}
-          href={item === 'homev01' ? '/' : `/landing/${item}`}
-          key={item}
-          onClick={() => {
-            if (item !== variant) {
-              trackLandingEvent('landing_proposal_switch', variant, locale, {
-                from_variant: variant,
-                to_variant: item,
-              });
-            }
-          }}
-        >
-          {String(index + 1).padStart(2, '0')}
-        </a>
-      ))}
-    </nav>
   );
 }
 

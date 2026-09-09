@@ -398,60 +398,6 @@
   transform: translateX(3px);
 }
 
-.hp-proposal-switcher {
-  position: fixed;
-  z-index: 50;
-  top: 50%;
-  right: 18px;
-  display: grid;
-  justify-items: center;
-  gap: 7px;
-  padding: 12px 9px;
-  border: 1px solid var(--hp-line);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--hp-card) 88%, transparent);
-  box-shadow: 0 14px 44px rgba(10, 14, 24, 0.13);
-  backdrop-filter: blur(16px);
-  transform: translateY(-50%);
-  transition: opacity 160ms ease, visibility 160ms ease;
-}
-
-.home-proposal:has(.hp-demo-dialog[open]) .hp-proposal-switcher {
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.hp-proposal-switcher > span {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-}
-
-.hp-proposal-switcher a {
-  width: 35px;
-  height: 35px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--hp-muted);
-  font-size: 0.68rem;
-  font-weight: 850;
-  transition: color 180ms ease, background 180ms ease, transform 180ms ease;
-}
-
-.hp-proposal-switcher a:hover {
-  color: var(--hp-ink);
-  transform: scale(1.07);
-}
-
-.hp-proposal-switcher a[aria-current="page"] {
-  color: var(--hp-button-ink);
-  background: var(--hp-accent);
-}
-
 .hp-hero {
   position: relative;
   width: min(1180px, calc(100% - 48px));
@@ -3553,26 +3499,6 @@
   to { transform: translateX(calc(-100% + 100vw)); }
 }
 
-@media (max-width: 1320px) {
-  .hp-proposal-switcher {
-    position: relative;
-    top: auto;
-    right: auto;
-    bottom: auto;
-    left: auto;
-    width: fit-content;
-    grid-template-columns: repeat(3, auto);
-    margin: 16px auto -50px;
-    padding: 6px;
-    transform: none;
-  }
-
-  .hp-proposal-switcher a {
-    width: 44px;
-    height: 44px;
-  }
-}
-
 @media (max-width: 1120px) {
   .hp-hero,
   .homev03 .hp-hero {
@@ -3789,24 +3715,6 @@
 }
 
 @media (max-width: 700px) {
-  .hp-proposal-switcher {
-    position: relative;
-    top: auto;
-    right: auto;
-    bottom: auto;
-    left: auto;
-    grid-template-columns: repeat(3, auto);
-    width: fit-content;
-    margin: 12px auto -42px;
-    padding: 6px;
-    transform: none;
-  }
-
-  .hp-proposal-switcher a {
-    width: 44px;
-    height: 44px;
-  }
-
   .hp-header-actions .hp-button {
     min-height: 44px;
     padding-inline: 13px;
