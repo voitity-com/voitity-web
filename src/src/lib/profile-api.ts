@@ -1,5 +1,5 @@
 const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
+  import.meta.env?.VITE_API_BASE_URL ?? "http://localhost:8000"
 ).replace(/\/+$/, "");
 const VISITOR_ID_STORAGE_KEY = "bigmelo:anonymous-visitor:v1";
 
@@ -177,6 +177,13 @@ export type AvatarMedia = {
   url: string;
 };
 
+export type AdminProfilePreview = {
+  avatar: AvatarMedia | null;
+  interactive: boolean;
+  isPublished: boolean;
+  profile: ProfileData;
+};
+
 export type PublicWidgetConfiguration = {
   launcher: {
     avatarUrl: string | null;
@@ -289,6 +296,44 @@ export async function fetchProfileByAlias(alias: string): Promise<ProfileData> {
   return normalizeProfile(payload, alias, socialNetworkDefinitions);
 }
 
+export function normalizeAdminProfilePreview(
+  payload: unknown,
+  fallbackAlias: string,
+): AdminProfilePreview | null {
+  if (!isRecord(payload) || !isRecord(payload.profile)) {
+    return null;
+  }
+
+  const preview = isRecord(payload.preview) ? payload.preview : {};
+  const interactive = pickBoolean(preview, ["interactive"]) ?? false;
+  const profile = normalizeProfile(
+    payload.profile,
+    fallbackAlias,
+    normalizeSocialNetworkDefinitions(
+      payload.social_networks ?? payload.socialNetworks,
+    ),
+    { sourceIsProfile: true },
+  );
+
+  return {
+    avatar: normalizeAvatarMedia(payload.avatar),
+    interactive,
+    isPublished:
+      pickBoolean(preview, ["is_published", "isPublished"]) ?? false,
+    profile: interactive
+      ? profile
+      : {
+          ...profile,
+          messagingCapabilities: {
+            ...profile.messagingCapabilities,
+            audioMessagesEnabled: false,
+            reason: "profile_inactive",
+            textMessagesEnabled: false,
+          },
+        },
+  };
+}
+
 export async function fetchProfileByDomain(hostname: string): Promise<ProfileData> {
   const normalizedHostname = hostname.toLowerCase().replace(/\.$/, "");
   const profileResponsePromise = fetch(
@@ -386,28 +431,13 @@ export async function fetchAvatarMedia(
   if (contentType.includes("application/json")) {
     const payload = await response.json();
     const source = unwrapPayload(payload);
-    const file =
-      pickString(source, ["file", "url"]) ??
-      pickNestedString(source, ["ai_video", "file"]) ??
-      pickNestedString(source, ["ai_image", "file"]);
+    const media = normalizeAvatarMedia(source);
 
-    if (!file) {
+    if (!media) {
       throw new Error("El avatar no tiene archivo disponible.");
     }
 
-    const imageFile =
-      pickString(source, ["image_url", "imageUrl"]) ??
-      pickNestedString(source, ["ai_image", "file"]);
-
-    return {
-      imageUrl: imageFile
-        ? toAssetUrl(imageFile)
-        : !isVideoFile(file)
-          ? toAssetUrl(file)
-          : null,
-      kind: isVideoFile(file) ? "video" : "image",
-      url: toAssetUrl(file),
-    };
+    return media;
   }
 
   const blob = await response.blob();
@@ -562,29 +592,69 @@ async function fetchSocialNetworkDefinitions(): Promise<
   }
 
   const source = unwrapPayload((await response.json()) as UnknownRecord);
-  const networks = isRecord(source.networks) ? source.networks : {};
+  return normalizeSocialNetworkDefinitions(source.networks);
+}
 
-  return Object.entries(networks).flatMap(([key, value]) => {
-    if (!isRecord(value)) {
+function normalizeSocialNetworkDefinitions(
+  value: unknown,
+): SocialNetworkDefinition[] {
+  const networks = isRecord(value) ? value : {};
+
+  return Object.entries(networks).flatMap(([key, definition]) => {
+    if (!isRecord(definition)) {
       return [];
     }
 
     return [
       {
-        iconUrl: normalizeOptionalAssetUrl(pickString(value, ["icon"])) ?? "",
+        iconUrl:
+          normalizeOptionalAssetUrl(pickString(definition, ["icon"])) ?? "",
         key,
-        name: pickString(value, ["name"]) ?? formatNetworkName(key),
+        name: pickString(definition, ["name"]) ?? formatNetworkName(key),
       },
     ];
   });
+}
+
+function normalizeAvatarMedia(value: unknown): AvatarMedia | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const file =
+    pickString(value, ["file", "url"]) ??
+    pickNestedString(value, ["ai_video", "file"]) ??
+    pickNestedString(value, ["ai_image", "file"]);
+
+  if (!file) {
+    return null;
+  }
+
+  const imageFile =
+    pickString(value, ["image_url", "imageUrl"]) ??
+    pickNestedString(value, ["ai_image", "file"]);
+
+  return {
+    imageUrl: imageFile
+      ? toAssetUrl(imageFile)
+      : !isVideoFile(file)
+        ? toAssetUrl(file)
+        : null,
+    kind: isVideoFile(file) ? "video" : "image",
+    url: toAssetUrl(file),
+  };
 }
 
 function normalizeProfile(
   payload: unknown,
   fallbackAlias: string,
   socialNetworkDefinitions: SocialNetworkDefinition[] = [],
+  options: { sourceIsProfile?: boolean } = {},
 ): ProfileData {
-  const source = unwrapPayload(payload);
+  const source =
+    options.sourceIsProfile && isRecord(payload)
+      ? payload
+      : unwrapPayload(payload);
 
   const id =
     pickString(source, ["id", "profile_id", "profileId", "uuid"]) ??

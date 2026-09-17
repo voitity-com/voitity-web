@@ -10,7 +10,8 @@
     "check:performance": "node scripts/check-performance-budget.mjs",
     "preview": "vite preview",
     "test:analytics": "node --disable-warning=ExperimentalWarning --test tests/analytics-safety.test.mjs",
-    "test:mobile-keyboard": "node --disable-warning=ExperimentalWarning --test tests/mobile-keyboard.test.mjs"
+    "test:mobile-keyboard": "node --disable-warning=ExperimentalWarning --test tests/mobile-keyboard.test.mjs",
+    "test:profile-preview": "node --disable-warning=ExperimentalWarning --experimental-transform-types --test tests/profile-admin-preview.test.mjs"
   },
   "dependencies": {
     "libphonenumber-js": "^1.13.9",

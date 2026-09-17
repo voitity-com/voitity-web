@@ -61,6 +61,7 @@ export function App() {
   const widgetKey = searchParams.get('widget')?.trim() ?? '';
   const isWidgetMode = widgetKey !== '';
   const isLandingDemoMode = searchParams.get('landing_demo') === '1';
+  const isAdminPreview = searchParams.get('admin_preview') === '1' && window.self !== window.top;
 
   useEffect(() => {
     if (isWidgetMode || isLandingDemoMode) {
@@ -139,7 +140,7 @@ export function App() {
   } else if (isCustomDomain && missingPathname === pathname) {
     page = <NotFound />;
   } else if (isCustomDomain) {
-    page = <Profile onProfileNotFound={handleProfileNotFound} profileDomain={hostname} suppressViewTracking={isLandingDemoMode} />;
+    page = <Profile adminPreview={isAdminPreview} onProfileNotFound={handleProfileNotFound} profileDomain={hostname} suppressViewTracking={isLandingDemoMode} />;
   } else if (isTrainerLanding) {
     page = <TrainerLanding />;
   } else if (homeProposalVariant) {
@@ -161,7 +162,7 @@ export function App() {
   } else if (profileAlias && missingPathname === pathname) {
     page = <NotFound />;
   } else if (profileAlias) {
-    page = <Profile onProfileNotFound={handleProfileNotFound} profileAlias={decodeURIComponent(profileAlias)} suppressViewTracking={isLandingDemoMode} />;
+    page = <Profile adminPreview={isAdminPreview} onProfileNotFound={handleProfileNotFound} profileAlias={decodeURIComponent(profileAlias)} suppressViewTracking={isLandingDemoMode} />;
   } else {
     page = <HomeProposal variant="homev01" />;
   }
