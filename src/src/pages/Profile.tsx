@@ -256,6 +256,8 @@ const profileCopy = {
     audioMessage: "Play message audio",
     audioLimitReached:
       "This profile reached its monthly incoming audio limit. You can continue by text.",
+    audioNotInPlan:
+      "Audio messages are not available on this profile's current plan. You can continue by text.",
     audioMaxDuration: (seconds: string) =>
       `Audio messages can be up to ${seconds} seconds long.`,
     audioMuted: "Audio muted",
@@ -314,6 +316,8 @@ const profileCopy = {
     audioMessage: "Reproducir audio del mensaje",
     audioLimitReached:
       "Este perfil alcanzó el límite mensual de audios entrantes. Puedes continuar por texto.",
+    audioNotInPlan:
+      "Los mensajes de audio no están disponibles en el plan actual de este perfil. Puedes continuar por texto.",
     audioMaxDuration: (seconds: string) =>
       `Los mensajes de audio pueden durar máximo ${seconds} segundos.`,
     audioMuted: "Audio silenciado",
@@ -537,6 +541,10 @@ function getMessagingUnavailableMessage(
   capabilities: ProfileMessagingCapabilities,
   copy: ReturnType<typeof getProfileCopy>,
 ): string {
+  if (capabilities.reason === "audio_messages_not_in_plan") {
+    return copy.audioNotInPlan;
+  }
+
   if (capabilities.textMessagesEnabled && !capabilities.audioMessagesEnabled) {
     return copy.audioLimitReached;
   }
