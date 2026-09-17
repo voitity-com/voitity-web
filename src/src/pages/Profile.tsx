@@ -11,6 +11,7 @@ import {
 import { profileDescription, setPageMetadata } from "../lib/page-metadata";
 import "../styles/profiles/profile-styles";
 import {
+  AdminProfilePreview,
   ChatMessage,
   ChatMessageMedia,
   ChatMessageProduct,
@@ -19,6 +20,7 @@ import {
   fetchProfileByAlias,
   fetchProfileByDomain,
   fetchProfileMessagingCapabilities,
+  normalizeAdminProfilePreview,
   ProfileApiError,
   ProfileData,
   ProfileFeatureSetting,
@@ -29,6 +31,7 @@ import {
 } from "../lib/profile-api";
 
 type ProfileProps = {
+  adminPreview?: boolean;
   embedded?: boolean;
   onProfileNotFound: () => void;
   suppressViewTracking?: boolean;
@@ -67,6 +70,11 @@ type PulseMedia = {
 };
 
 type ProfileAppearancePreview = ProfileData["appearance"];
+
+type AdminProfilePreviewMessage = {
+  payload: unknown;
+  type: "bigmelo:admin-profile-preview";
+};
 
 type VirtualKeyboardLike = EventTarget & {
   boundingRect?: {
@@ -213,6 +221,30 @@ function parseAppearancePreviewMessage(
   };
 }
 
+function isAdminProfilePreviewMessage(
+  value: unknown,
+): value is AdminProfilePreviewMessage {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    value.type === "bigmelo:admin-profile-preview" &&
+    "payload" in value
+  );
+}
+
+function getAdminPreviewParentOrigin(): string | null {
+  if (!document.referrer) {
+    return null;
+  }
+
+  try {
+    return new URL(document.referrer).origin;
+  } catch {
+    return null;
+  }
+}
+
 const profileCopy = {
   en: {
     audioInitialUnavailable: "Initial audio is not available for this profile.",
@@ -233,6 +265,9 @@ const profileCopy = {
     defaultInitial: (name: string) =>
       `Hi, I am ${name}. Ask me about my work, my projects, or anything you want to know about me.`,
     discardAudio: "Discard audio",
+    editProfile: "Edit profile",
+    editAvatarAndVoice: "Edit avatar and voice",
+    editSocialNetworks: "Edit social links",
     footerRights: "All rights Reserved.",
     goToBottom: "Go to the end of the conversation",
     goToChannel: "Go to channel",
@@ -289,6 +324,9 @@ const profileCopy = {
     defaultInitial: (name: string) =>
       `Hola, soy ${name}. Pregúntame sobre mi trabajo, mis proyectos o lo que quieres conocer de mí.`,
     discardAudio: "Descartar audio",
+    editProfile: "Editar perfil",
+    editAvatarAndVoice: "Editar avatar y voz",
+    editSocialNetworks: "Editar enlaces de redes sociales",
     footerRights: "Todos los derechos reservados.",
     goToBottom: "Ir al final de la conversación",
     goToChannel: "Ir al canal",
@@ -511,6 +549,7 @@ function getMessagingUnavailableMessage(
 }
 
 export function Profile({
+  adminPreview = false,
   embedded = false,
   onProfileNotFound,
   profileAlias,
@@ -518,6 +557,13 @@ export function Profile({
   suppressViewTracking = false,
 }: ProfileProps) {
   const profileStorageKey = profileDomain ?? profileAlias;
+  const adminPreviewRevision =
+    adminPreview && typeof window !== "undefined"
+      ? (new URLSearchParams(window.location.search).get("revision") ?? "0")
+      : null;
+  const profileSessionStorageKey = adminPreview
+    ? `${profileStorageKey}:admin-preview:${adminPreviewRevision}`
+    : profileStorageKey;
   const appearanceEditorEnabled = isAppearanceEditorEnabled();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -543,6 +589,8 @@ export function Profile({
   const hasTrackedChatStartRef = useRef(false);
   const shareFeedbackTimerRef = useRef<number | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [adminProfilePreview, setAdminProfilePreview] =
+    useState<AdminProfilePreview | null>(null);
   const [appearancePreview, setAppearancePreview] =
     useState<ProfileAppearancePreview | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
@@ -648,6 +696,57 @@ export function Profile({
   }, []);
 
   useEffect(() => {
+    if (!adminPreview) {
+      setAdminProfilePreview(null);
+      return;
+    }
+
+    const parentOrigin = getAdminPreviewParentOrigin();
+    setAdminProfilePreview(null);
+
+    const handleAdminProfilePreview = (event: MessageEvent): void => {
+      if (
+        event.source !== window.parent ||
+        (parentOrigin !== null && event.origin !== parentOrigin) ||
+        !isAdminProfilePreviewMessage(event.data)
+      ) {
+        return;
+      }
+
+      const nextPreview = normalizeAdminProfilePreview(
+        event.data.payload,
+        profileAlias ?? "",
+      );
+
+      if (
+        !nextPreview ||
+        (profileAlias && nextPreview.profile.alias !== profileAlias)
+      ) {
+        return;
+      }
+
+      setAdminProfilePreview(nextPreview);
+    };
+
+    window.addEventListener("message", handleAdminProfilePreview);
+    window.parent.postMessage(
+      { type: "bigmelo:admin-profile-preview-ready" },
+      parentOrigin ?? "*",
+    );
+
+    return () => {
+      window.removeEventListener("message", handleAdminProfilePreview);
+    };
+  }, [adminPreview, profileAlias]);
+
+  useEffect(() => {
+    if (adminPreview && !adminProfilePreview) {
+      setProfile(null);
+      setError(null);
+      setIsLoading(true);
+      return;
+    }
+
     let isMounted = true;
     const audio = audioRef.current;
     let nextAvatarUrl = "";
@@ -669,9 +768,11 @@ export function Profile({
         setMessagingCapabilities(DEFAULT_MESSAGING_CAPABILITIES);
         hasTrackedChatStartRef.current = false;
 
-        const nextProfile = profileDomain
-          ? await fetchProfileByDomain(profileDomain)
-          : await fetchProfileByAlias(profileAlias ?? "");
+        const nextProfile = adminPreview
+          ? adminProfilePreview!.profile
+          : profileDomain
+            ? await fetchProfileByDomain(profileDomain)
+            : await fetchProfileByAlias(profileAlias ?? "");
 
         if (!isMounted) {
           return;
@@ -681,7 +782,7 @@ export function Profile({
         setIsVoiceMuted(
           !nextProfile.voiceEnabled || !nextProfile.voiceAutoplayEnabled,
         );
-        if (!suppressViewTracking) {
+        if (!adminPreview && !suppressViewTracking) {
           trackProfileInteraction(nextProfile.id, {
             eventType: "profile_viewed",
             surface: embedded ? "widget_chat" : "profile_page",
@@ -689,7 +790,7 @@ export function Profile({
           trackAnalyticsEvent("profile_view");
         }
         setMessagingCapabilities(nextProfile.messagingCapabilities);
-        const storedSession = readProfileSession(profileStorageKey);
+        const storedSession = readProfileSession(profileSessionStorageKey);
         const initialMessage = nextProfile.conversationMessages.initial;
         const hasStoredMessages = Boolean(storedSession?.messages.length);
         const initialMessages = [
@@ -736,35 +837,60 @@ export function Profile({
           );
         }
 
-        fetchAvatarMedia(nextProfile.id)
-          .then((media) => {
-            if (isMounted) {
-              const nextAvatarImageUrl =
-                media.imageUrl ?? PROFILE_AVATAR_PLACEHOLDER_PATH;
-              nextAvatarUrl = media.url;
-              setAvatarKind(media.kind);
-              setAvatarUrl(media.url);
-              setAvatarImageUrl(nextAvatarImageUrl);
-              setAvatarDisplayState("ready");
-              if (!embedded) {
-                setProfilePageMetadata(
-                  nextProfile,
-                  profileDomain,
-                  nextAvatarImageUrl.startsWith("blob:")
-                    ? PROFILE_AVATAR_PLACEHOLDER_PATH
-                    : nextAvatarImageUrl,
-                );
+        if (adminPreview) {
+          const media = adminProfilePreview?.avatar;
+
+          if (media) {
+            const nextAvatarImageUrl =
+              media.imageUrl ?? PROFILE_AVATAR_PLACEHOLDER_PATH;
+            nextAvatarUrl = media.url;
+            setAvatarKind(media.kind);
+            setAvatarUrl(media.url);
+            setAvatarImageUrl(nextAvatarImageUrl);
+            setAvatarDisplayState("ready");
+
+            if (!embedded) {
+              setProfilePageMetadata(
+                nextProfile,
+                profileDomain,
+                nextAvatarImageUrl,
+              );
+            }
+          } else {
+            setAvatarKind("image");
+            setAvatarDisplayState("fallback");
+          }
+        } else {
+          fetchAvatarMedia(nextProfile.id)
+            .then((media) => {
+              if (isMounted) {
+                const nextAvatarImageUrl =
+                  media.imageUrl ?? PROFILE_AVATAR_PLACEHOLDER_PATH;
+                nextAvatarUrl = media.url;
+                setAvatarKind(media.kind);
+                setAvatarUrl(media.url);
+                setAvatarImageUrl(nextAvatarImageUrl);
+                setAvatarDisplayState("ready");
+                if (!embedded) {
+                  setProfilePageMetadata(
+                    nextProfile,
+                    profileDomain,
+                    nextAvatarImageUrl.startsWith("blob:")
+                      ? PROFILE_AVATAR_PLACEHOLDER_PATH
+                      : nextAvatarImageUrl,
+                  );
+                }
+              } else if (media.url.startsWith("blob:")) {
+                URL.revokeObjectURL(media.url);
               }
-            } else {
-              URL.revokeObjectURL(media.url);
-            }
-          })
-          .catch(() => {
-            if (isMounted) {
-              setAvatarKind("image");
-              setAvatarDisplayState("fallback");
-            }
-          });
+            })
+            .catch(() => {
+              if (isMounted) {
+                setAvatarKind("image");
+                setAvatarDisplayState("fallback");
+              }
+            });
+        }
 
         const greetingAudioUrl = hasStoredMessages
           ? undefined
@@ -811,21 +937,23 @@ export function Profile({
     return () => {
       isMounted = false;
 
-      if (nextAvatarUrl) {
+      if (nextAvatarUrl.startsWith("blob:")) {
         URL.revokeObjectURL(nextAvatarUrl);
       }
     };
   }, [
+    adminPreview,
+    adminProfilePreview,
     embedded,
     onProfileNotFound,
     profileAlias,
     profileDomain,
-    profileStorageKey,
+    profileSessionStorageKey,
     suppressViewTracking,
   ]);
 
   useEffect(() => {
-    if (!profile) {
+    if (!profile || adminPreview) {
       return;
     }
 
@@ -856,7 +984,7 @@ export function Profile({
       window.removeEventListener("focus", refreshCapabilities);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [profile]);
+  }, [adminPreview, profile]);
 
   useEffect(() => {
     isComponentMountedRef.current = true;
@@ -897,12 +1025,12 @@ export function Profile({
       return;
     }
 
-    writeProfileSession(profileStorageKey, {
+    writeProfileSession(profileSessionStorageKey, {
       chatId,
       chatToken,
       messages,
     });
-  }, [chatId, chatToken, messages, profile, profileStorageKey]);
+  }, [chatId, chatToken, messages, profile, profileSessionStorageKey]);
 
   useEffect(() => {
     const composerRow = composerRowRef.current;
@@ -2234,7 +2362,33 @@ export function Profile({
         {profile ? (
           <>
             <header className="profile-title">
-              <h1>{profile.name}</h1>
+              <div className="profile-name-row">
+                <h1>{profile.name}</h1>
+                {adminPreview ? (
+                  <button
+                    aria-label={copy.editProfile}
+                    className="profile-admin-edit"
+                    onClick={() => {
+                      window.parent.postMessage(
+                        { profileId: profile.id, type: "bigmelo:admin-edit-profile" },
+                        "*",
+                      );
+                    }}
+                    title={copy.editProfile}
+                    type="button"
+                  >
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                      <path
+                        d="M14.69 5.25 18.75 9.31M3.75 20.25l4.38-1.1a2 2 0 0 0 .9-.52L19.9 7.76a2.12 2.12 0 0 0-3-3L6.03 15.63a2 2 0 0 0-.52.9l-1.1 4.38a.5.5 0 0 0 .61.61Z"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.8"
+                      />
+                    </svg>
+                  </button>
+                ) : null}
+              </div>
               <p className="profile-alias">@{profile.alias}</p>
               {profile.networks.length || !embedded ? (
                 <nav
@@ -2292,6 +2446,33 @@ export function Profile({
                         </span>
                       ) : null}
                     </span>
+                  ) : null}
+                  {adminPreview ? (
+                    <button
+                      aria-label={copy.editSocialNetworks}
+                      className="profile-admin-edit profile-social-edit"
+                      onClick={() => {
+                        window.parent.postMessage(
+                          {
+                            profileId: profile.id,
+                            type: "bigmelo:admin-edit-social-networks",
+                          },
+                          "*",
+                        );
+                      }}
+                      title={copy.editSocialNetworks}
+                      type="button"
+                    >
+                      <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                        <path
+                          d="M14.69 5.25 18.75 9.31M3.75 20.25l4.38-1.1a2 2 0 0 0 .9-.52L19.9 7.76a2.12 2.12 0 0 0-3-3L6.03 15.63a2 2 0 0 0-.52.9l-1.1 4.38a.5.5 0 0 0 .61.61Z"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="1.8"
+                        />
+                      </svg>
+                    </button>
                   ) : null}
                 </nav>
               ) : null}
@@ -2441,6 +2622,34 @@ export function Profile({
                   <VoiceRing className="voice-ring-one" pathIndex={0} />
                   <VoiceRing className="voice-ring-two" pathIndex={1} />
                   <VoiceRing className="voice-ring-three" pathIndex={2} />
+
+                  {adminPreview ? (
+                    <button
+                      aria-label={copy.editAvatarAndVoice}
+                      className="profile-admin-edit profile-avatar-edit"
+                      onClick={() => {
+                        window.parent.postMessage(
+                          {
+                            profileId: profile.id,
+                            type: "bigmelo:admin-edit-avatar-voice",
+                          },
+                          "*",
+                        );
+                      }}
+                      title={copy.editAvatarAndVoice}
+                      type="button"
+                    >
+                      <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                        <path
+                          d="M14.69 5.25 18.75 9.31M3.75 20.25l4.38-1.1a2 2 0 0 0 .9-.52L19.9 7.76a2.12 2.12 0 0 0-3-3L6.03 15.63a2 2 0 0 0-.52.9l-1.1 4.38a.5.5 0 0 0 .61.61Z"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="1.8"
+                        />
+                      </svg>
+                    </button>
+                  ) : null}
 
                   {hasVisibleAvatar && avatarKind === "video" ? (
                     <ProfileAvatarVideo

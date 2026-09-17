@@ -3026,6 +3026,58 @@ video.landing-avatar-image {
   overflow-wrap: anywhere;
 }
 
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: min(760px, 100%);
+  pointer-events: auto;
+}
+
+.profile-title .profile-name-row h1 {
+  width: auto;
+  max-width: calc(100% - 42px);
+}
+
+.profile-admin-edit {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: #667085;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(102, 112, 133, 0.22);
+  border-radius: 50%;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.12);
+  backdrop-filter: blur(10px);
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.profile-admin-edit:hover {
+  background: rgba(255, 255, 255, 0.94);
+  transform: translateY(-1px);
+}
+
+.profile-admin-edit:focus-visible {
+  outline: 3px solid rgba(99, 102, 241, 0.3);
+  outline-offset: 2px;
+}
+
+.profile-admin-edit svg {
+  width: 18px;
+  height: 18px;
+}
+
+.profile-social-edit {
+  align-self: center;
+  margin: 17px 0;
+}
+
 .profile-alias {
   width: min(760px, 100%);
   margin: 8px 0 0;
@@ -4057,6 +4109,14 @@ video.landing-avatar-image {
     transform 180ms ease;
 }
 
+.profile-avatar-edit {
+  position: absolute;
+  z-index: 7;
+  top: 16%;
+  right: 16%;
+  pointer-events: auto;
+}
+
 .profile-audio-toggle:hover:not(:disabled) {
   transform: translateY(-1px);
 }
@@ -4632,6 +4692,10 @@ video.landing-avatar-image {
   .profile-social-link {
     width: 46px;
     height: 46px;
+  }
+
+  .profile-social-edit {
+    margin: 6px 0;
   }
 
   .profile-share-action {
