@@ -4851,6 +4851,11 @@ video.landing-avatar-image {
     height: 38px;
   }
 
+  .profile-avatar-edit {
+    top: 23%;
+    right: 22%;
+  }
+
   .profile-audio-toggle svg {
     width: 19px;
     height: 19px;
@@ -5242,6 +5247,10 @@ video.landing-avatar-image {
 
     .profile-avatar {
       width: min(58vw, 220px, calc(27svh - 2px));
+    }
+
+    .profile-avatar-edit {
+      top: 29%;
     }
 
     .profile-message-list {

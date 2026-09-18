@@ -199,15 +199,31 @@ const pageCopy = {
       title: 'Tu experiencia deja de ser contenido suelto y se vuelve útil.',
     },
     plans: {
-      allIncluded: 'TODO INCLUIDO',
-      allIncludedTitle: 'El mismo Starter completo en ambos planes.',
       bestValue: 'Mejor valor',
-      eyebrow: 'PLANES ACTUALES',
+      eyebrow: 'PLANES',
       fallbackSource: 'Precios disponibles actualmente',
-      lead: 'Ambas opciones incluyen siete días de prueba y las funciones necesarias para publicar tu primera presencia digital.',
+      free: {
+        badge: 'PLAN GRATUITO',
+        cta: 'Crear perfil gratis',
+        description: 'Crea y publica tu primer perfil sin tarjeta. Mejora el plan cuando necesites voz, audio o integraciones.',
+        features: [
+          '1 perfil publicable con marca Bigmelo',
+          'Avatar estático sin procesamiento con IA',
+          '100 respuestas de texto al mes',
+          '1 fuente de hasta 2 MB y 20.000 caracteres',
+          '1 producto',
+          'Analítica básica de los últimos 30 días',
+          'Enlaces públicos a redes sociales',
+        ],
+        limitation: 'No incluye clonación de voz, mensajes de audio ni integraciones.',
+        name: 'Gratis',
+        noCard: 'SIN TARJETA',
+        period: 'para siempre',
+      },
+      lead: 'Empieza sin costo y sin tarjeta. Cuando necesites más capacidad, voz o integraciones, puedes mejorar a Starter.',
       liveSource: 'Precios sincronizados con Bigmelo',
       select: 'Elegir Starter',
-      title: 'Empieza completo. Elige cómo pagarlo.',
+      title: 'Empieza gratis. Crece cuando estés listo.',
       trial: '7 días gratis. Cancela antes del primer cobro.',
     },
     video: {
@@ -327,15 +343,31 @@ const pageCopy = {
       title: 'Your experience stops being scattered content and becomes useful.',
     },
     plans: {
-      allIncluded: 'EVERYTHING INCLUDED',
-      allIncludedTitle: 'The same complete Starter experience in both plans.',
       bestValue: 'Best value',
-      eyebrow: 'CURRENT PLANS',
+      eyebrow: 'PLANS',
       fallbackSource: 'Current prices available',
-      lead: 'Both options include a seven-day trial and everything you need to publish your first digital presence.',
+      free: {
+        badge: 'FREE PLAN',
+        cta: 'Create free profile',
+        description: 'Create and publish your first profile without a card. Upgrade when you need voice, audio, or integrations.',
+        features: [
+          '1 publishable profile with Bigmelo branding',
+          'Static avatar without AI processing',
+          '100 text replies per month',
+          '1 source up to 2 MB and 20,000 characters',
+          '1 product',
+          'Basic analytics for the last 30 days',
+          'Public social network links',
+        ],
+        limitation: 'Voice cloning, audio messages, and integrations are not included.',
+        name: 'Free',
+        noCard: 'NO CARD',
+        period: 'forever',
+      },
+      lead: 'Start at no cost and without a card. Upgrade to Starter when you need more capacity, voice, or integrations.',
       liveSource: 'Prices synced with Bigmelo',
       select: 'Choose Starter',
-      title: 'Start complete. Choose how to pay.',
+      title: 'Start free. Grow when you are ready.',
       trial: '7 days free. Cancel before your first charge.',
     },
     video: {
@@ -1243,7 +1275,7 @@ function Plans({ locale, variant }: { locale: Locale; variant: HomeProposalVaria
       .then((plans) => {
         if (!cancelled && plans.length > 0) {
           setPublicPlans(plans);
-          setUsesLiveData(['starter', 'starter_annual'].every((id) => plans.some((plan) => plan.id === id)));
+          setUsesLiveData(['free', 'starter', 'starter_annual'].every((id) => plans.some((plan) => plan.id === id)));
         }
       })
       .catch(() => {
@@ -1259,9 +1291,9 @@ function Plans({ locale, variant }: { locale: Locale; variant: HomeProposalVaria
     () => fallbackPlans[locale].map((plan) => applyPublicPlan(plan, publicPlans, locale)),
     [locale, publicPlans],
   );
-  const sharedFeatures = plans.length > 1
-    ? plans[0].features.filter((feature) => plans.slice(1).every((plan) => plan.features.includes(feature)))
-    : plans[0]?.features ?? fallbackFeatures[locale];
+  const freePublicPlan = publicPlans.find((plan) => plan.id === 'free');
+  const freePlanFeatures = buildFreePlanFeatures(freePublicPlan, locale, t.free.features);
+  const freePlanPrice = freePublicPlan ? formatUsd(freePublicPlan.priceUsd) : '$0';
 
   return (
     <section className="hp-plans hp-section-shell" data-hp-scene="planes" data-hp-snap="soft" id="planes" ref={sectionRef}>
@@ -1273,52 +1305,41 @@ function Plans({ locale, variant }: { locale: Locale; variant: HomeProposalVaria
         <p>{t.lead}</p>
       </div>
       <div className="hp-plan-source" data-live={usesLiveData}>{usesLiveData ? t.liveSource : t.fallbackSource}<i /></div>
-      {variant === 'homev01' ? (
-        <div className="hp-plans-compact" data-hp-reveal>
-          <div className="hp-plan-grid hp-plan-grid--compact">
-            {plans.map((plan) => {
-              const uniqueFeatures = plan.features.filter((feature) => !sharedFeatures.includes(feature));
-
-              return (
-                <article className={plan.highlighted ? 'hp-plan hp-plan--summary is-highlighted' : 'hp-plan hp-plan--summary'} key={plan.id}>
-                  <div className="hp-plan-topline"><span>{plan.label}</span>{plan.highlighted ? <b>{t.bestValue}</b> : null}</div>
-                  <div className="hp-plan-summary-main">
-                    <div><h3>Starter</h3><p>{plan.description}</p></div>
-                    <div className="hp-plan-price"><strong>{plan.price}</strong><span>{plan.period}</span></div>
-                  </div>
-                  <small>{t.trial}</small>
-                  {uniqueFeatures.map((feature) => <p className="hp-plan-saving" key={feature}><CheckIcon />{feature}</p>)}
-                  <a className="hp-button" href={createSignupUrl(plan.id, plan.cycle, variant, locale)} onClick={() => trackCta(variant, locale, `plan_${plan.cycle}`, plan.id, plan.cycle)}>
-                    {t.select} {plan.label.toLocaleLowerCase(locale)} <Arrow />
-                  </a>
-                </article>
-              );
-            })}
-          </div>
-          <div className="hp-shared-features">
-            <div><span>{t.allIncluded}</span><h3>{t.allIncludedTitle}</h3></div>
-            <ul>{sharedFeatures.map((feature) => <li key={feature}><CheckIcon />{feature}</li>)}</ul>
-          </div>
-        </div>
-      ) : (
-        <div className="hp-plan-grid" data-hp-reveal>
-          {plans.map((plan) => (
-            <article className={plan.highlighted ? 'hp-plan is-highlighted' : 'hp-plan'} key={plan.id}>
-              <div className="hp-plan-topline"><span>{plan.label}</span>{plan.highlighted ? <b>{t.bestValue}</b> : null}</div>
-              <h3>Starter</h3>
-              <p>{plan.description}</p>
-              <div className="hp-plan-price"><strong>{plan.price}</strong><span>{plan.period}</span></div>
-              <small>{t.trial}</small>
-              <ul>
-                {plan.features.map((feature) => <li key={feature}><CheckIcon />{feature}</li>)}
-              </ul>
-              <a className="hp-button" href={createSignupUrl(plan.id, plan.cycle, variant, locale)} onClick={() => trackCta(variant, locale, `plan_${plan.cycle}`, plan.id, plan.cycle)}>
-                {t.select} {plan.label.toLocaleLowerCase(locale)} <Arrow />
-              </a>
-            </article>
-          ))}
-        </div>
-      )}
+      <div className="hp-plan-grid hp-plan-grid--pricing" data-hp-reveal>
+        <article className="hp-plan hp-plan--free">
+          <div className="hp-plan-topline"><span>{t.free.badge}</span><b>{t.free.noCard}</b></div>
+          <h3>{t.free.name}</h3>
+          <p>{t.free.description}</p>
+          <div className="hp-plan-price"><strong>{freePlanPrice}</strong><span>{t.free.period}</span></div>
+          <small>{t.free.noCard}</small>
+          <ul>
+            {freePlanFeatures.map((feature) => <li key={feature}><CheckIcon />{feature}</li>)}
+          </ul>
+          <p className="hp-plan-limitation">{t.free.limitation}</p>
+          <a
+            className="hp-button"
+            href={createFreeSignupUrl(variant, locale)}
+            onClick={() => trackFreePlanCta(variant, locale)}
+          >
+            {t.free.cta} <Arrow />
+          </a>
+        </article>
+        {plans.map((plan) => (
+          <article className={plan.highlighted ? 'hp-plan is-highlighted' : 'hp-plan'} key={plan.id}>
+            <div className="hp-plan-topline"><span>{plan.label}</span>{plan.highlighted ? <b>{t.bestValue}</b> : null}</div>
+            <h3>Starter</h3>
+            <p>{plan.description}</p>
+            <div className="hp-plan-price"><strong>{plan.price}</strong><span>{plan.period}</span></div>
+            <small>{t.trial}</small>
+            <ul>
+              {plan.features.map((feature) => <li key={feature}><CheckIcon />{feature}</li>)}
+            </ul>
+            <a className="hp-button" href={createSignupUrl(plan.id, plan.cycle, variant, locale)} onClick={() => trackCta(variant, locale, `plan_${plan.cycle}`, plan.id, plan.cycle)}>
+              {t.select} {plan.label.toLocaleLowerCase(locale)} <Arrow />
+            </a>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -1646,6 +1667,45 @@ function buildPlanFeatures(plan: PublicSubscriptionPlan, savings: number, locale
   ];
 }
 
+function buildFreePlanFeatures(
+  plan: PublicSubscriptionPlan | undefined,
+  locale: Locale,
+  fallback: string[],
+): string[] {
+  if (!plan) return fallback;
+
+  const format = (value: number) => new Intl.NumberFormat(locale === 'es' ? 'es-CO' : 'en-US').format(value);
+  const profiles = plan.limits.profiles ?? 1;
+  const messages = plan.limits.chat_messages ?? 100;
+  const products = plan.capabilities.productsPerProfile || 1;
+  const sources = plan.capabilities.sourcesPerProfile || 1;
+  const sourceFileMb = (plan.capabilities.sourceMaxFileKb || 2048) / 1024;
+  const sourceCharacters = plan.capabilities.sourceMaxCharacters || 20000;
+  const analyticsDays = plan.capabilities.analyticsDays || 30;
+
+  if (locale === 'en') {
+    return [
+      `${format(profiles)} publishable profile with Bigmelo branding`,
+      'Static avatar without AI processing',
+      `${format(messages)} text replies per month`,
+      `${format(sources)} source up to ${format(sourceFileMb)} MB and ${format(sourceCharacters)} characters`,
+      `${format(products)} product`,
+      `Basic analytics for the last ${format(analyticsDays)} days`,
+      ...(plan.capabilities.socialLinks ? ['Public social network links'] : []),
+    ];
+  }
+
+  return [
+    `${format(profiles)} perfil publicable con marca Bigmelo`,
+    'Avatar estático sin procesamiento con IA',
+    `${format(messages)} respuestas de texto al mes`,
+    `${format(sources)} fuente de hasta ${format(sourceFileMb)} MB y ${format(sourceCharacters)} caracteres`,
+    `${format(products)} producto`,
+    `Analítica básica de los últimos ${format(analyticsDays)} días`,
+    ...(plan.capabilities.socialLinks ? ['Enlaces públicos a redes sociales'] : []),
+  ];
+}
+
 function formatUsd(value: number): string {
   return `$${new Intl.NumberFormat('en-US', {
     maximumFractionDigits: 2,
@@ -1654,11 +1714,24 @@ function formatUsd(value: number): string {
 }
 
 function createSignupUrl(planId: string, cycle: BillingCycle, variant: HomeProposalVariant, locale: Locale): string {
-  const url = new URL('/auth/custom/sign-up', getAdminBaseUrl());
-  url.searchParams.set('locale', locale);
+  const url = createSignupBaseUrl(variant, locale);
   url.searchParams.set('intent', 'trial');
   url.searchParams.set('plan', planId);
   url.searchParams.set('cycle', cycle);
+
+  return url.toString();
+}
+
+function createFreeSignupUrl(variant: HomeProposalVariant, locale: Locale): string {
+  const url = createSignupBaseUrl(variant, locale);
+  url.searchParams.set('plan', 'free');
+
+  return url.toString();
+}
+
+function createSignupBaseUrl(variant: HomeProposalVariant, locale: Locale): URL {
+  const url = new URL('/auth/custom/sign-up', getAdminBaseUrl());
+  url.searchParams.set('locale', locale);
 
   const incoming = new URLSearchParams(window.location.search);
   for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'gbraid', 'wbraid']) {
@@ -1667,7 +1740,7 @@ function createSignupUrl(planId: string, cycle: BillingCycle, variant: HomePropo
   }
   url.searchParams.set('landing_variant', variant);
 
-  return url.toString();
+  return url;
 }
 
 function getInitialLocale(): Locale {
@@ -1948,6 +2021,16 @@ function trackCta(
     landing_audience: 'general',
     plan_id: plan,
     trial_days: 7,
+  });
+}
+
+function trackFreePlanCta(variant: HomeProposalVariant, locale: Locale) {
+  trackLandingEvent('landing_cta_click', variant, locale, {
+    billing_cycle: 'none',
+    cta_location: 'plan_free',
+    landing_audience: 'general',
+    plan_id: 'free',
+    trial_days: 0,
   });
 }
 
