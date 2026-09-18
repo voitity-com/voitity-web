@@ -6,9 +6,18 @@ type UnknownRecord = Record<string, unknown>;
 
 export type PublicSubscriptionPlan = {
   capabilities: {
+    analyticsDays: number;
+    avatarUpload: boolean;
+    incomingAudio: boolean;
     integrations: Record<string, { selectedMedia: number }>;
+    integrationsPerProfile: number;
+    profileTemplates: string[];
     productsPerProfile: number;
     socialLinks: boolean;
+    sourceMaxCharacters: number;
+    sourceMaxFileKb: number;
+    sourcesPerProfile: number;
+    voiceClone: boolean;
   };
   id: string;
   interval: string;
@@ -55,6 +64,9 @@ export async function fetchPublicSubscriptionPlans(): Promise<
     return [
       {
         capabilities: {
+          analyticsDays: numberValue(capabilitiesSource.analytics_days) ?? 0,
+          avatarUpload: capabilitiesSource.avatar_upload === true,
+          incomingAudio: capabilitiesSource.incoming_audio === true,
           integrations: Object.fromEntries(
             Object.entries(integrationsSource).flatMap(([provider, raw]) => {
               if (!isRecord(raw)) {
@@ -68,9 +80,24 @@ export async function fetchPublicSubscriptionPlans(): Promise<
                 : [[provider, { selectedMedia }]];
             }),
           ),
+          integrationsPerProfile:
+            numberValue(capabilitiesSource.integrations_per_profile) ?? 0,
+          profileTemplates: Array.isArray(capabilitiesSource.profile_templates)
+            ? capabilitiesSource.profile_templates.flatMap((template) => {
+                const value = stringValue(template);
+                return value ? [value] : [];
+              })
+            : [],
           productsPerProfile:
             numberValue(capabilitiesSource.products_per_profile) ?? 15,
           socialLinks: capabilitiesSource.social_links !== false,
+          sourceMaxCharacters:
+            numberValue(capabilitiesSource.source_max_characters) ?? 0,
+          sourceMaxFileKb:
+            numberValue(capabilitiesSource.source_max_file_kb) ?? 0,
+          sourcesPerProfile:
+            numberValue(capabilitiesSource.sources_per_profile) ?? 0,
+          voiceClone: capabilitiesSource.voice_clone === true,
         },
         id,
         interval: stringValue(value.interval) ?? "",

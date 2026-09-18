@@ -2115,6 +2115,11 @@
   gap: 22px;
 }
 
+.hp-plan-grid--pricing {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
 .hp-plan {
   position: relative;
   min-height: 720px;
@@ -2130,6 +2135,11 @@
 .hp-plan.is-highlighted {
   border-color: color-mix(in srgb, var(--hp-accent) 52%, var(--hp-line));
   box-shadow: 0 30px 80px color-mix(in srgb, var(--hp-accent) 14%, transparent);
+  transform: translateY(-8px);
+}
+
+.hp-plan--free {
+  background: linear-gradient(155deg, color-mix(in srgb, var(--hp-accent) 6%, var(--hp-card)), var(--hp-card) 42%);
 }
 
 .homev02 .hp-plan.is-highlighted {
@@ -2145,6 +2155,10 @@
 .homev03 .hp-plan.is-highlighted {
   color: #ffffff;
   background: var(--hp-ink);
+}
+
+.homev03 .hp-plan--free {
+  background: var(--hp-card);
 }
 
 .homev03 .hp-plan.is-highlighted p,
@@ -2221,6 +2235,9 @@
   margin-top: 16px;
   color: var(--hp-muted);
   font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .hp-plan ul {
@@ -2255,90 +2272,16 @@
   margin-top: auto;
 }
 
-.homev01 .hp-plans-compact {
-  display: grid;
-  gap: 20px;
-}
-
-.homev01 .hp-plan--summary {
-  min-height: 0;
-  gap: 10px;
-}
-
-.homev01 .hp-plan-summary-main > div:first-child > p {
-  max-width: 430px;
-  margin: 8px 0 0;
+.hp-plan > .hp-plan-limitation {
+  max-width: none;
+  margin: -17px 0 26px;
+  padding: 13px 14px;
+  border-radius: 12px;
   color: var(--hp-muted);
-  font-size: 0.84rem;
-  line-height: 1.5;
-}
-
-.homev01 .hp-plan-saving {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: var(--hp-muted);
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.homev01 .hp-plan-saving svg {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  color: var(--hp-accent);
-}
-
-.homev01 .hp-plan--summary > .hp-button {
-  margin-top: 8px;
-}
-
-.homev01 .hp-shared-features {
-  display: grid;
-  gap: 24px;
-  padding: 26px;
-  border: 1px solid var(--hp-line);
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--hp-card) 78%, transparent);
-}
-
-.homev01 .hp-shared-features > div > span {
-  color: var(--hp-accent);
-  font-size: 0.63rem;
-  font-weight: 880;
-  letter-spacing: 0.13em;
-}
-
-.homev01 .hp-shared-features h3 {
-  margin: 8px 0 0;
-  font-size: 1.5rem;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
-}
-
-.homev01 .hp-shared-features ul {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.homev01 .hp-shared-features li {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  color: var(--hp-muted);
-  font-size: 0.76rem;
-  line-height: 1.42;
-}
-
-.homev01 .hp-shared-features li svg {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  color: var(--hp-accent);
+  background: color-mix(in srgb, var(--hp-ink) 5%, transparent);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.45;
 }
 
 .hp-video {
@@ -3157,15 +3100,19 @@
     margin: -4px 0 16px auto;
   }
 
+  .homev01 .hp-plan-grid--pricing {
+    gap: 18px;
+  }
+
   .homev01 .hp-plan {
     min-height: 0;
-    padding: clamp(22px, 2.2vw, 30px);
+    padding: clamp(22px, 2.2vw, 28px);
     border-radius: 22px;
   }
 
   .homev01 .hp-plan h3 {
     margin: 14px 0 3px;
-    font-size: clamp(2.4rem, 3.3vw, 3.25rem);
+    font-size: clamp(2.1rem, 2.7vw, 2.7rem);
   }
 
   .homev01 .hp-plan > p {
@@ -3179,7 +3126,7 @@
   }
 
   .homev01 .hp-plan-price strong {
-    font-size: clamp(3.4rem, 4.6vw, 4.55rem);
+    font-size: clamp(3.1rem, 3.8vw, 3.8rem);
   }
 
   .homev01 .hp-plan > small {
@@ -3187,8 +3134,7 @@
   }
 
   .homev01 .hp-plan ul {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 18px;
+    grid-template-columns: minmax(0, 1fr);
     row-gap: 7px;
     margin: 17px 0 20px;
     padding-top: 17px;
@@ -3209,101 +3155,9 @@
     min-height: 47px;
   }
 
-  .homev01 .hp-plans-compact {
-    display: grid;
-    gap: 18px;
-  }
-
-  .homev01 .hp-plan--summary {
-    gap: 10px;
-  }
-
-  .homev01 .hp-plan-summary-main {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    gap: 22px;
-  }
-
-  .homev01 .hp-plan-summary-main h3 {
-    margin-top: 9px;
-  }
-
-  .homev01 .hp-plan-summary-main .hp-plan-price {
-    margin: 0;
-  }
-
-  .homev01 .hp-plan--summary > .hp-button {
-    margin-top: 4px;
-  }
-
-  .homev01 .hp-plan-saving {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    color: var(--hp-muted);
-    font-size: 0.7rem;
-    font-weight: 700;
-  }
-
-  .homev01 .hp-plan-saving svg {
-    width: 16px;
-    height: 16px;
-    flex: 0 0 auto;
-    color: var(--hp-accent);
-  }
-
-  .homev01 .hp-shared-features {
-    display: grid;
-    grid-template-columns: minmax(190px, 0.38fr) minmax(0, 1fr);
-    gap: 28px;
-    padding: 20px 24px;
-    border: 1px solid var(--hp-line);
-    border-radius: 19px;
-    background: color-mix(in srgb, var(--hp-card) 78%, transparent);
-  }
-
-  .homev01 .hp-shared-features > div > span {
-    color: var(--hp-accent);
-    font-size: 0.63rem;
-    font-weight: 880;
-    letter-spacing: 0.13em;
-  }
-
-  .homev01 .hp-shared-features h3 {
-    max-width: 280px;
-    margin: 8px 0 0;
-    font-size: 1.35rem;
-    letter-spacing: -0.035em;
-    line-height: 1.08;
-  }
-
-  .homev01 .hp-shared-features ul {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-content: center;
-    gap: 7px 20px;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    list-style: none;
-  }
-
-  .homev01 .hp-shared-features li {
-    display: flex;
-    align-items: flex-start;
-    gap: 7px;
-    color: var(--hp-muted);
+  .homev01 .hp-plan > .hp-plan-limitation {
+    margin: -8px 0 20px;
     font-size: 0.67rem;
-    line-height: 1.3;
-  }
-
-  .homev01 .hp-shared-features li svg {
-    width: 15px;
-    height: 15px;
-    flex: 0 0 auto;
-    color: var(--hp-accent);
   }
 
   .homev01 .hp-video {
@@ -3522,6 +3376,21 @@
 @media (max-width: 959px) {
   .home-proposal section {
     scroll-margin-top: 80px;
+  }
+
+  .hp-plan-grid--pricing {
+    max-width: 640px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    margin-inline: auto;
+  }
+
+  .hp-plan-grid--pricing .hp-plan {
+    min-height: 0;
+  }
+
+  .hp-plan.is-highlighted {
+    transform: none;
   }
 
   .hp-header {
