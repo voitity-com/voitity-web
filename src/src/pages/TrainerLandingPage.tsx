@@ -4,6 +4,7 @@ import bigmeloLogo from '../assets/bigmelo-logo.webp';
 import { getAdminBaseUrl } from '../lib/admin-url';
 import { trackAnalyticsEvent } from '../lib/google-analytics';
 import { setPageMetadata } from '../lib/page-metadata';
+import { initializeTrainerTikTokPixel } from '../lib/tiktok-pixel';
 import '../styles/trainer-landing.css';
 
 type TemplateKey = 'profile01' | 'profile02' | 'profile03' | 'profile04' | 'profile05';
@@ -42,6 +43,8 @@ export function TrainerLandingPage() {
       title: `${LANDING_COPY.title} | Bigmelo`,
     });
   }, [isCanonicalLanding]);
+
+  useEffect(() => initializeTrainerTikTokPixel(), []);
 
   useCleanMotion();
   useHeaderNavigation();

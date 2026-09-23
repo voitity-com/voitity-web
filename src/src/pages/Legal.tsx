@@ -217,12 +217,12 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
           </p>
           <p>
             We may use cookies, local storage, session storage, Cloudflare
-            Turnstile verification, Google Analytics 4, and similar browser
-            technologies to remember language, maintain sessions, measure
-            aggregate usage, protect forms, and prevent abuse. Optional
-            analytics is disabled until you accept it. We do not send profile
-            names, contact information, payment data, or chat content to Google
-            Analytics.
+            Turnstile verification, Google Analytics 4, TikTok Pixel on selected
+            landing pages, and similar browser technologies to remember language,
+            maintain sessions, measure aggregate usage and campaign performance,
+            protect forms, and prevent abuse. Optional analytics is disabled until
+            you accept it. We do not send profile names, contact information,
+            payment data, or chat content to Google Analytics or TikTok Pixel.
           </p>
         </section>
 
@@ -494,12 +494,13 @@ export function PrivacyPolicy({ locale }: { locale: LegalLocale }) {
         </p>
         <p>
           Podemos usar cookies, almacenamiento local, almacenamiento de sesión,
-          verificación de Cloudflare Turnstile, Google Analytics 4 y tecnologías
-          similares del navegador para recordar idioma, mantener sesiones,
-          medir uso agregado, proteger formularios y prevenir abuso. La
-          analítica opcional permanece desactivada hasta que la aceptes. No
-          enviamos nombres de perfiles, información de contacto, datos de pago
-          ni contenido del chat a Google Analytics.
+          verificación de Cloudflare Turnstile, Google Analytics 4, TikTok Pixel
+          en landings seleccionados y tecnologías similares del navegador para
+          recordar idioma, mantener sesiones, medir uso agregado y rendimiento de
+          campañas, proteger formularios y prevenir abuso. La analítica opcional
+          permanece desactivada hasta que la aceptes. No enviamos nombres de
+          perfiles, información de contacto, datos de pago ni contenido del chat
+          a Google Analytics o TikTok Pixel.
         </p>
       </section>
 
@@ -1637,7 +1638,8 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
               TikTok
             </a>
             , for connected account verification, selected media imports, and
-            related social integration features when authorized.
+            related social integration features when authorized, as well as
+            consented campaign measurement on selected landing pages.
           </li>
           <li>
             <a href="https://wompi.com/" rel="noreferrer" target="_blank">
@@ -1734,7 +1736,8 @@ function ExternalProviders({ locale }: { locale: LegalLocale }) {
           </a>
           , para verificación de cuentas conectadas, importación de media
           seleccionada y funciones relacionadas de integración social cuando se
-          autoricen.
+          autoricen, además de medición consentida de campañas en landings
+          seleccionados.
         </li>
         <li>
           <a href="https://wompi.com/" rel="noreferrer" target="_blank">

@@ -14,14 +14,14 @@ type Locale = "en" | "es";
 const copy = {
   en: {
     accept: "Accept cookies",
-    body: "We use optional Google Analytics cookies to understand aggregate usage. We do not send profile names, chat content, contact information, or payment data.",
+    body: "We use optional Google Analytics cookies and, on selected landing pages, TikTok Pixel to understand aggregate usage and campaign performance. We do not send profile names, chat content, contact information, or payment data.",
     privacy: "Privacy policy",
     reject: "Reject Cookies",
     title: "Accept Cookies",
   },
   es: {
     accept: "Aceptar cookies",
-    body: "Usamos cookies opcionales de Google Analytics para entender el uso agregado. No enviamos nombres de perfiles, contenido del chat, datos de contacto ni información de pago.",
+    body: "Usamos cookies opcionales de Google Analytics y, en landings seleccionados, TikTok Pixel para entender el uso agregado y el rendimiento de campañas. No enviamos nombres de perfiles, contenido del chat, datos de contacto ni información de pago.",
     privacy: "Política de privacidad",
     reject: "Rechazar Cookies",
     title: "Aceptar Cookies",
